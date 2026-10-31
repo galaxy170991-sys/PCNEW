@@ -152,6 +152,7 @@
 
 <script>
 const KEY = 'pb-tournament-v8';
+const BALL = '<svg viewBox="0 0 24 24" style="display:inline-block;width:1.15em;height:1.15em;vertical-align:-0.2em" aria-hidden="true"><circle cx="12" cy="12" r="10.6" fill="#fbbf24" stroke="#b45309" stroke-width="1.2"/><g fill="#b45309"><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="6.4" r="1.5"/><circle cx="12" cy="17.6" r="1.5"/><circle cx="7.2" cy="9.2" r="1.5"/><circle cx="16.8" cy="9.2" r="1.5"/><circle cx="7.2" cy="14.8" r="1.5"/><circle cx="16.8" cy="14.8" r="1.5"/><circle cx="4.9" cy="12" r="1"/><circle cx="19.1" cy="12" r="1"/></g></svg>';
 const DEFAULT_DB = 'https://pickleball-34cb5-default-rtdb.asia-southeast1.firebasedatabase.app';
 
 const def = () => ({
@@ -649,7 +650,7 @@ function winner(m) {
   return done(m) && m.a != null && m.b != null ? (m.sa > m.sb ? m.a : m.b) : null;
 }
 
-function bracket(sr) {
+function bracketRaw(sr) {
   const seeds = qual(sr), n = seeds.length;
   if (n < 2) return null;
   let P = 1; while (P < n) P *= 2;
@@ -694,27 +695,107 @@ function bracket(sr) {
   return rounds;
 }
 
+// Ước lượng số lượt đấu vòng bảng để hiển thị ở phần thiết lập
+function courtEstimate() {
+  const C = Math.max(1, S.courts | 0);
+  const total = S.sizes.reduce((t, n) => t + n * (n - 1) / 2, 0);
+  const rounds = Math.max(...S.sizes.map(n => (n % 2 ? n : n - 1)));
+  const lb = Math.max(Math.ceil(total / C), rounds);
+  return `Vòng bảng có ${total} trận, dùng ${C} sân → dự kiến khoảng ${lb} lượt đấu. Các bảng được xếp đấu song song; vòng sau cũng tự chia sân.`;
+}
+
+// Xếp lịch vòng bảng vào sân: các bảng đấu song song, ít lượt nhất, hạn chế đấu liên tiếp.
+// Chạy nhiều phương án (có xáo trộn nhẹ) và chọn phương án tốt nhất.
 function courtSched() {
-  const C = Math.max(1, S.courts | 0), last = {}, cnt = {};
-  let rest = S.matches.slice(), slot = 0;
-  while (rest.length) {
-    const used = new Set(), pick = [];
-    const sc = m => ((last[m.a] === slot - 1) + (last[m.b] === slot - 1)) * 10 + (cnt[m.a] || 0) + (cnt[m.b] || 0) + m.r * .1;
-    for (const m of rest.slice().sort((x, y) => sc(x) - sc(y))) {
-      if (pick.length >= C) break;
-      if (used.has(m.a) || used.has(m.b)) continue;
-      used.add(m.a); used.add(m.b); pick.push(m);
+  const C = Math.max(1, S.courts | 0), ms = S.matches, N = ms.length;
+  const rng = seed => () => {
+    seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  let best = null;
+  const runs = N > 150 ? 40 : 300;
+  for (let run = 0; run < runs; run++) {
+    const rnd = rng(1000 + run * 7919), jit = run === 0 ? 0 : 1;
+    let rest = ms.map((_, i) => i), slot = 0;
+    const last = {}, cnt = {}, gc = {}, asg = new Array(N), gEnd = {};
+    let b2b = 0;
+    while (rest.length) {
+      const used = new Set(), picks = [];
+      while (picks.length < C) {
+        let bi = -1, bs = Infinity;
+        for (const i of rest) {
+          const m = ms[i];
+          if (used.has(m.a) || used.has(m.b)) continue;
+          const tired = (last[m.a] === slot - 1) + (last[m.b] === slot - 1);
+          const sc = tired * 40 + ((cnt[m.a] || 0) + (cnt[m.b] || 0)) * 6 + (gc[m.g] || 0) * 2 + m.r * 0.01 + jit * rnd() * 8;
+          if (sc < bs) { bs = sc; bi = i; }
+        }
+        if (bi < 0) break;
+        const m = ms[bi];
+        used.add(m.a); used.add(m.b); picks.push(bi);
+        gc[m.g] = (gc[m.g] || 0) + 1;
+        rest = rest.filter(x => x !== bi);
+      }
+      if (!picks.length) break;
+      picks.forEach(i => {
+        const m = ms[i];
+        b2b += (last[m.a] === slot - 1) + (last[m.b] === slot - 1);
+        asg[i] = slot; gEnd[m.g] = slot;
+      });
+      picks.forEach(i => {
+        const m = ms[i];
+        last[m.a] = last[m.b] = slot;
+        cnt[m.a] = (cnt[m.a] || 0) + 1; cnt[m.b] = (cnt[m.b] || 0) + 1;
+      });
+      slot++;
     }
-    pick.forEach((m, i) => {
-      m.slot = slot; m.court = i + 1;
-      last[m.a] = last[m.b] = slot;
-      cnt[m.a] = (cnt[m.a] || 0) + 1;
-      cnt[m.b] = (cnt[m.b] || 0) + 1;
-    });
-    rest = rest.filter(m => !pick.includes(m));
-    slot++;
+    const ends = Object.values(gEnd);
+    const spread = ends.length ? Math.max(...ends) - Math.min(...ends) : 0;
+    const cost = slot * 10000 + b2b * 100 + spread * 30;
+    if (!best || cost < best.cost) best = { cost, asg, slots: slot };
   }
-  S.nslots = slot;
+  // Gán số sân trong từng lượt: gom theo bảng để mỗi bảng thường ở cạnh nhau
+  for (let k = 0; k < best.slots; k++) {
+    const idx = ms.map((m, i) => i).filter(i => best.asg[i] === k).sort((x, y) => ms[x].g - ms[y].g || ms[x].r - ms[y].r);
+    idx.forEach((i, c) => { ms[i].slot = k; ms[i].court = c + 1; });
+  }
+  S.nslots = best.slots;
+}
+
+// Xếp sân cho vòng loại trực tiếp: các seri chạy song song, vòng sau nối tiếp vòng trước
+function koPlan() {
+  const C = Math.max(1, S.courts | 0);
+  const br = { A: bracketRaw('A'), B: S.advB > 0 ? bracketRaw('B') : null };
+  const maxL = Math.max(br.A ? br.A.length : 0, br.B ? br.B.length : 0);
+  const stages = [];
+  const third3 = [];
+  ['A', 'B'].forEach(sr => {
+    const b = br[sr];
+    if (b && b.length >= 2 && b[b.length - 2].length === 2 && !b[b.length - 2].some(m => m.bye)) third3.push([sr, 't']);
+  });
+  for (let d = maxL - 1; d >= 0; d--) {
+    if (d === 0 && third3.length) stages.push(third3);
+    const items = [];
+    ['A', 'B'].forEach(sr => {
+      const b = br[sr];
+      if (!b) return;
+      const ri = b.length - 1 - d;
+      if (ri < 0) return;
+      b[ri].forEach(m => { if (!m.bye) items.push([sr, m.key]); });
+    });
+    stages.push(items);
+  }
+  const plan = {};
+  let turn = S.nslots || 0;
+  stages.forEach(items => {
+    for (let k = 0; k < items.length; k += C) {
+      turn++;
+      items.slice(k, k + C).forEach(([sr, key], j) => { plan[sr + '|' + key] = { court: j + 1, turn }; });
+    }
+  });
+  return plan;
 }
 
 function groupsOf() {
@@ -725,6 +806,18 @@ function groupsOf() {
   });
 }
 const tn = (p, k, i) => (S.mode === 'double' ? p : [p[0]]).filter(Boolean).join(' / ') || `Đội ${GN(k)}${i + 1}`;
+
+// Bảng đấu kèm sân & lượt đấu tự động (sân nhập tay của BTC được ưu tiên)
+function bracket(sr) {
+  const br = bracketRaw(sr);
+  if (!br) return null;
+  const plan = koPlan();
+  br.forEach(R => R.forEach(m => {
+    const pl = plan[sr + '|' + m.key];
+    if (pl) { m.court = m.court ?? pl.court; m.turn = pl.turn; m.autoCourt = pl.court; }
+  }));
+  return br;
+}
 
 function getM(k, i) {
   if (k === 'm') return { m: S.matches[+i], rk: 'rr', rn: 'Vòng bảng' };
@@ -884,8 +977,8 @@ function vReferee() {
   const dbl = S.mode === 'double';
   const rule = S.rules[g.rk];
   const at = `data-w="${w}" data-i="${i}"`;
-  const roundTitle = w === 'm' ? `Vòng bảng · Bảng ${GN(m.g)}` : `Seri ${w} · ${g.rn || 'Playoff'}`;
-  const turnTitle = w === 'm' ? `Thứ ${(m.slot ?? 0) + 1}${S.nslots ? ' / ' + S.nslots : ''}` : (i === 't' ? 'Tranh hạng 3' : `Số ${(parseInt(String(i).split('-')[1], 10) || 0) + 1}`);
+  const roundTitle = w === 'm' ? `Vòng bảng · Bảng ${GN(m.g)}` : `Seri ${w} · ${g.rn || 'Playoff'}${i === 't' ? '' : ' · Trận ' + ((parseInt(String(i).split('-')[1], 10) || 0) + 1)}`;
+  const turnTitle = w === 'm' ? `Thứ ${(m.slot ?? 0) + 1}${S.nslots ? ' / ' + S.nslots : ''}` : (m.turn ? `Thứ ${m.turn}` : (i === 't' ? 'Tranh hạng 3' : `Số ${(parseInt(String(i).split('-')[1], 10) || 0) + 1}`));
   const hasSv = !!m.sv;
   const sv = m.sv || 'a';
   const sn = m.sn || (dbl ? 2 : 1);
@@ -951,7 +1044,7 @@ function vReferee() {
             <div class="font-black text-sm sm:text-base text-indigo-700 dark:text-indigo-300">${roundTitle}</div>
           </div>
           <div class="bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-900 rounded-xl p-2">
-            <div class="text-[10px] font-bold uppercase text-sky-500">${w === 'm' ? 'Lượt đấu' : 'Trận'}</div>
+            <div class="text-[10px] font-bold uppercase text-sky-500">Lượt đấu</div>
             <div class="font-black text-sm sm:text-base text-sky-700 dark:text-sky-300">${turnTitle}</div>
           </div>
           <div class="bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 rounded-xl p-2">
@@ -1033,7 +1126,7 @@ function vSetup() {
 
   let h = `
     <div class="bg-card p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-      <h3 class="font-extrabold text-base text-slate-800 dark:text-slate-100 flex items-center gap-2">⚙️ THIẾT LẬP BAN TỔ CHỨC</h3>
+      <h3 class="font-extrabold text-base text-slate-800 dark:text-slate-100 flex items-center gap-2">${BALL} THIẾT LẬP BAN TỔ CHỨC</h3>
       
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
         <div>
@@ -1071,6 +1164,13 @@ function vSetup() {
           <select data-f="g" ${d} class="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl">
             ${[1, 2, 3, 4, 5, 6, 7, 8].map(x => `<option value="${x}" ${S.g === x ? 'selected' : ''}>${x} bảng</option>`).join('')}
           </select>
+        </div>
+        <div class="sm:col-span-2">
+          <label class="block text-xs font-bold text-slate-500 mb-1">🏟️ Số sân thi đấu (app tự xếp trận vào sân, các bảng đấu song song)</label>
+          <select data-f="courts" ${d} class="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl">
+            ${[...Array(24).keys()].map(x => `<option value="${x + 1}" ${S.courts === x + 1 ? 'selected' : ''}>${x + 1} sân</option>`).join('')}
+          </select>
+          <p class="text-[11px] text-slate-400 mt-1">${courtEstimate()}</p>
         </div>
       </div>
 
@@ -1218,7 +1318,10 @@ function third(sr, br) {
   const sf = br[br.length - 2];
   if (sf.length !== 2 || sf.some(m => m.bye)) return null;
   const lose = m => (done(m) && m.a != null && m.b != null ? (m.sa > m.sb ? m.b : m.a) : null);
-  return { a: lose(sf[0]), b: lose(sf[1]), key: 't', ...((S.ko[sr] || {})['t'] || {}) };
+  const t = { a: lose(sf[0]), b: lose(sf[1]), key: 't', ...((S.ko[sr] || {})['t'] || {}) };
+  const pl = koPlan()[sr + '|t'];
+  if (pl) { t.court = t.court ?? pl.court; t.turn = pl.turn; t.autoCourt = pl.court; }
+  return t;
 }
 
 function vRound(sr) {
@@ -1265,7 +1368,7 @@ function vRound(sr) {
           <span class="text-xs font-normal text-slate-400">${R.filter(m => !m.bye).length} trận</span>
         </h3>
         <div class="space-y-2.5">
-          ${R.map((m, idx) => matchRow(m, sr, m.key, R.rk, `${R.nm} · Trận ${idx + 1}${m.court ? ' · Sân ' + m.court : ''}`)).join('')}
+          ${R.map((m, idx) => matchRow(m, sr, m.key, R.rk, `${R.nm} · Trận ${idx + 1}${m.turn ? ' · Lượt ' + m.turn : ''}${m.court ? ' · Sân ' + m.court : ''}`)).join('')}
         </div>
       </div>`;
   });
@@ -1273,7 +1376,7 @@ function vRound(sr) {
     h += `
       <div class="bg-card p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3">
         <h3 class="font-extrabold text-sm text-slate-700 dark:text-slate-300">TRANH HẠNG 3 – 4</h3>
-        ${matchRow(th, sr, 't', 'ko', `Tranh hạng 3${th.court ? ' · Sân ' + th.court : ''}`)}
+        ${matchRow(th, sr, 't', 'ko', `Tranh hạng 3${th.turn ? ' · Lượt ' + th.turn : ''}${th.court ? ' · Sân ' + th.court : ''}`)}
       </div>`;
   }
   return h;
@@ -1304,7 +1407,7 @@ function render() {
   }
 
   const N0 = ADMIN ? [
-    ['setup', '⚙️ Thiết lập'],
+    ['setup', BALL + ' Thiết lập'],
     ['sched', '📅 Lịch đấu'],
     ['rank', '🏆 Bảng xếp hạng']
   ] : MODE === 'referee' ? [
@@ -1613,7 +1716,7 @@ document.addEventListener('change', ev => {
     if (p[0] === 'sz') {
       S.sizes[+p[1]] = Math.max(2, Math.min(8, parseInt(t.value, 10) || 2));
       fit();
-    } else if (['g', 'advA', 'advB'].includes(f)) {
+    } else if (['g', 'advA', 'advB', 'courts'].includes(f)) {
       S[f] = +t.value;
       if (f === 'g') fit();
     } else {
