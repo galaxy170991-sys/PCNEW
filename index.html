@@ -959,11 +959,26 @@ function courtState(m) {
   return out;
 }
 
+// Tách tên VĐV thành tối đa 2 dòng (ngắt theo từ) để hiện đầy đủ trên sơ đồ
+function nameLines(n) {
+  n = String(n).trim();
+  const w = n.split(/\s+/);
+  if (n.length <= 14 || w.length < 2) return [n];
+  let best = null;
+  for (let k = 1; k < w.length; k++) {
+    const l1 = w.slice(0, k).join(' '), l2 = w.slice(k).join(' ');
+    const mx = Math.max(l1.length, l2.length);
+    if (!best || mx < best.mx) best = { mx, lines: [l1, l2] };
+  }
+  return best.lines;
+}
+
 function courtSvg(m, at, editable) {
-  const X0 = 20, X1 = 420, Y0 = 28, Y1 = 210, NX = 220, KL = 156.4, KR = 283.6, YM = 119;
-  const leftKey = m.sw ? 'b' : 'a';
+  const X0 = 20, X1 = 420, Y0 = 106, Y1 = 306, NX = 220, KL = 156.4, KR = 283.6, YM = 206;
+  const leftKey = m.sw ? 'b' : 'a', rightKey = m.sw ? 'a' : 'b';
   const dbl = S.mode === 'double';
   const st = courtState(m);
+  const sv = m.sv, hasSv = !!m.sv;
   const spot = (t, court) => {
     const left = t === leftKey;
     const cx = left ? (X0 + KL) / 2 : (KR + X1) / 2;
@@ -974,21 +989,40 @@ function courtSvg(m, at, editable) {
   ['a', 'b'].forEach(t => {
     const mine = st.filter(p => p.t === t);
     const inner = mine.map(p => {
-      const [cx, cy] = spot(t, p.court);
+      const [cx, cy0] = spot(t, p.court);
+      const cy = cy0 - 20;                       // tâm vòng tròn VĐV
       const col = p.role === 'server' ? '#fbbf24' : p.role === 'receiver' ? '#22d3ee' : '#e2e8f0';
       const tx = p.role === 'server' ? '#fde047' : p.role === 'receiver' ? '#67e8f9' : '#ffffff';
-      const ring = editable ? `<circle cx="${cx}" cy="${cy - 8}" r="21" fill="none" stroke="#fff" stroke-width="1.6" stroke-dasharray="4 3"/>` : '';
-      const ball = p.role === 'server' ? `<circle cx="${cx + 15}" cy="${cy - 23}" r="6.5" fill="#fef08a" stroke="#a16207" stroke-width="1.5"/><circle cx="${cx + 13.5}" cy="${cy - 24}" r="1" fill="#a16207"/><circle cx="${cx + 17}" cy="${cy - 22}" r="1" fill="#a16207"/>` : '';
-      return `${ring}<circle cx="${cx}" cy="${cy - 8}" r="15" fill="${col}" stroke="#0f172a" stroke-width="1.5"/>
-        <text x="${cx}" y="${cy - 3}" text-anchor="middle" font-size="14" font-weight="800" fill="#0f172a">${e(String(p.name).charAt(0).toUpperCase())}</text>${ball}
-        <text x="${cx}" y="${cy + 24}" text-anchor="middle" font-size="12.5" font-weight="${p.role ? 800 : 600}" fill="${tx}">${e(shortName(p.name))}</text>`;
+      const lines = nameLines(p.name);
+      const fs = Math.max(9, Math.min(14, Math.round(124 / (Math.max(...lines.map(x => x.length)) * 0.6))));
+      const ring = editable ? `<circle cx="${cx}" cy="${cy}" r="23" fill="none" stroke="#fff" stroke-width="1.8" stroke-dasharray="4 3"/>` : '';
+      const ball = p.role === 'server' ? `<circle cx="${cx + 17}" cy="${cy - 17}" r="7.5" fill="#fef08a" stroke="#a16207" stroke-width="1.6"/><circle cx="${cx + 15}" cy="${cy - 18.5}" r="1.1" fill="#a16207"/><circle cx="${cx + 19.5}" cy="${cy - 15.5}" r="1.1" fill="#a16207"/><circle cx="${cx + 15.5}" cy="${cy - 14}" r="1.1" fill="#a16207"/>` : '';
+      const txt = lines.map((ln, k) => `<text x="${cx}" y="${cy + 33 + k * (fs + 3)}" text-anchor="middle" font-size="${fs}" font-weight="${p.role ? 800 : 700}" fill="${tx}" stroke="#0f172a" stroke-width="0.4" paint-order="stroke">${e(ln)}</text>`).join('');
+      return `${ring}<circle cx="${cx}" cy="${cy}" r="17" fill="${col}" stroke="#0f172a" stroke-width="1.6"/>
+        <text x="${cx}" y="${cy + 6}" text-anchor="middle" font-size="17" font-weight="800" fill="#0f172a">${e(String(p.name).charAt(0).toUpperCase())}</text>${ball}${txt}`;
     }).join('');
     g += dbl ? `<g data-swap="${t}" ${at} style="cursor:${editable ? 'pointer' : 'default'}">${inner}</g>` : `<g>${inner}</g>`;
   });
-  const lbl = (t, x) => `<text x="${x}" y="19" text-anchor="middle" font-size="12" font-weight="800" fill="#64748b">ĐỘI ${t === 'a' ? '1' : '2'} · ${t === 'a' ? (m.sa ?? 0) : (m.sb ?? 0)}</text>`;
+
+  // Phần đầu: tên đội (mỗi VĐV một dòng) + điểm số lớn cho từng bên
+  const head = (t, x) => {
+    const idx = t === 'a' ? m.a : m.b;
+    const pl = teamPlayers(idx);
+    const isSv = hasSv && sv === t;
+    const nmTxt = pl.map((nm, k) => {
+      const fs = Math.max(9, Math.min(15, 200 / (String(nm).length * 0.6)));
+      return `<text x="${x}" y="${29 + k * 16}" text-anchor="middle" font-size="${fs.toFixed(1)}" font-weight="800" class="fill-slate-800 dark:fill-slate-100">${e(nm)}</text>`;
+    }).join('');
+    const scY = pl.length > 1 ? 92 : 80;
+    return `
+      <text x="${x}" y="12" text-anchor="middle" font-size="11" font-weight="800" class="fill-slate-400">ĐỘI ${t === 'a' ? '1' : '2'} ${t === leftKey ? '◀' : '▶'}${isSv ? ' · ĐANG GIAO' : ''}</text>
+      ${nmTxt}
+      <text x="${x}" y="${scY}" text-anchor="middle" font-size="50" font-weight="900" class="${isSv ? 'fill-amber-500' : 'fill-slate-800 dark:fill-slate-100'}">${t === 'a' ? (m.sa ?? 0) : (m.sb ?? 0)}</text>`;
+  };
+  const lx = (X0 + NX) / 2, rx = (NX + X1) / 2;
   return `
-  <svg viewBox="0 0 440 226" class="w-full h-auto select-none" role="img" aria-label="Sơ đồ sân pickleball">
-    ${lbl(leftKey, (X0 + KL) / 2)}${lbl(leftKey === 'a' ? 'b' : 'a', (KR + X1) / 2)}
+  <svg viewBox="0 0 440 322" class="w-full h-auto select-none" role="img" aria-label="Sơ đồ sân pickleball">
+    ${head(leftKey, lx)}${head(rightKey, rx)}
     <rect x="${X0 - 8}" y="${Y0 - 8}" width="${X1 - X0 + 16}" height="${Y1 - Y0 + 16}" rx="10" fill="#1e3a5f"/>
     <rect x="${X0}" y="${Y0}" width="${X1 - X0}" height="${Y1 - Y0}" fill="#2b6cb0"/>
     <rect x="${KL}" y="${Y0}" width="${KR - KL}" height="${Y1 - Y0}" fill="#2c5282"/>
@@ -998,10 +1032,9 @@ function courtSvg(m, at, editable) {
       <line x1="${X0}" y1="${YM}" x2="${KL}" y2="${YM}"/><line x1="${KR}" y1="${YM}" x2="${X1}" y2="${YM}"/>
     </g>
     <line x1="${NX}" y1="${Y0 - 8}" x2="${NX}" y2="${Y1 + 8}" stroke="#f8fafc" stroke-width="4" stroke-dasharray="3 3"/>
-    <text x="${NX}" y="${Y0 - 11}" text-anchor="middle" font-size="9" font-weight="700" fill="#94a3b8">LƯỚI</text>
-    <g font-size="9" fill="#fff" opacity="0.5" font-weight="700">
-      <text x="${KL / 2 + X0 / 2 - 62}" y="${YM + 12}" >PHẢI</text><text x="${KL / 2 + X0 / 2 - 62}" y="${Y0 + 14}">TRÁI</text>
-      <text x="${(KR + X1) / 2 - 18}" y="${Y0 + 14}">PHẢI</text><text x="${(KR + X1) / 2 - 18}" y="${YM + 12}">TRÁI</text>
+    <g font-size="9" fill="#fff" opacity="0.55" font-weight="700">
+      <text x="${X0 + 6}" y="${Y0 + 13}">TRÁI</text><text x="${X0 + 6}" y="${YM + 13}">PHẢI</text>
+      <text x="${KR + 6}" y="${Y0 + 13}">PHẢI</text><text x="${KR + 6}" y="${YM + 13}">TRÁI</text>
       <text x="${(KL + NX) / 2}" y="${(Y0 + Y1) / 2 + 3}" text-anchor="middle">BẾP</text><text x="${(NX + KR) / 2}" y="${(Y0 + Y1) / 2 + 3}" text-anchor="middle">BẾP</text>
     </g>
     ${g}
