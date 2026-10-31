@@ -1,0 +1,16 @@
+{
+  "name": "Giải Pickleball",
+  "short_name": "Pickleball",
+  "description": "Quản lý giải đấu Pickleball, chấm điểm trọng tài và xem kết quả trực tiếp",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#047857",
+  "theme_color": "#047857",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
