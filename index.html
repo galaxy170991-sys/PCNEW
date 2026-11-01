@@ -189,7 +189,7 @@ const def = () => ({
 function rd(k) { try { return JSON.parse(localStorage.getItem(k)); } catch(x) { return null; } }
 
 let S = def(), SC = {}, tab = 'sched', armed = false, err = '', ADMIN = false, MODE = 'view', pendingConfirm = null, OPEN = {};
-let POSEDIT = false;
+let POSEDIT = false, PRE = {};
 let SYNC = { db: '', tid: '' }, DIRTY = {}, SYNC_OK = null, SNAP_RT = null, HIST = {};
 let STORE = KEY, SHARED = false, SNAP_T = 0, SNAP_ERR = false, CH = {}, ROUTED = false;
 
@@ -512,6 +512,7 @@ function applyScores() {
     m.ar = d.ar ?? null;
     m.br = d.br ?? null;
     m.sw = d.sw ? 1 : 0;
+    m.si = d.si ?? null;
   });
   const ko = { A: {}, B: {} };
   Object.keys(SC).forEach(id => {
@@ -936,13 +937,20 @@ function teamPlayers(idx) {
 }
 const shortName = n => { n = String(n); if (n.length <= 11) return n; const w = n.split(/\s+/); return w[w.length - 1].slice(0, 11); };
 
-// Tính vị trí từng VĐV theo luật: người giao đứng ô theo điểm chẵn/lẻ, người nhận đứng ô chéo
+// Vị trí VĐV theo luật: người giao đứng ô theo vị trí hiện tại, người nhận đứng ô chéo.
+// Đánh đôi: ar/br = chỉ số VĐV đang đứng ô PHẢI của mỗi đội; si = chỉ số người đang giao.
 function courtState(m) {
   const dbl = S.mode === 'double';
   const hasSv = !!m.sv, sv = m.sv || 'a';
   const rightIdx = { a: m.ar ?? 0, b: m.br ?? 0 };
   const score = { a: m.sa ?? 0, b: m.sb ?? 0 };
-  const svCourt = score[sv] % 2 === 0 ? 'R' : 'L';
+  let svCourt = 'R';
+  if (dbl) {
+    const si = m.si ?? rightIdx[sv];
+    svCourt = rightIdx[sv] === si ? 'R' : 'L';
+  } else {
+    svCourt = score[sv] % 2 === 0 ? 'R' : 'L';   // đánh đơn: điểm chẵn → phải, lẻ → trái
+  }
   const out = [];
   ['a', 'b'].forEach(t => {
     const names = teamPlayers(t === 'a' ? m.a : m.b);
@@ -950,8 +958,8 @@ function courtState(m) {
       const court = dbl ? (idx === rightIdx[t] ? 'R' : 'L') : (hasSv ? svCourt : 'R');
       let role = '';
       if (hasSv) {
-        if (t === sv && (!dbl || court === svCourt)) role = 'server';
-        else if (t !== sv && (!dbl ? true : court === svCourt)) role = 'receiver';
+        if (t === sv) { if (!dbl || idx === (m.si ?? rightIdx[sv])) role = 'server'; }
+        else if (!dbl || court === svCourt) role = 'receiver';
       }
       out.push({ t, idx, name: nm, court, role });
     });
@@ -1102,10 +1110,13 @@ function vReferee() {
   const sn = m.sn || (dbl ? 2 : 1);
   const svScore = sv === 'a' ? sa : sb;
   const rvScore = sv === 'a' ? sb : sa;
-  const courtSide = svScore % 2 === 0 ? 'PHẢI' : 'TRÁI';
+  const csNow = courtState(m);
+  const srvP = csNow.find(x => x.role === 'server');
+  const courtSide = srvP ? (srvP.court === 'R' ? 'PHẢI' : 'TRÁI') : (svScore % 2 === 0 ? 'PHẢI' : 'TRÁI');
   const canFinish = live && sa !== sb && valid({ sa, sb }, rule);
   const call = dbl ? `${svScore} – ${rvScore} – ${sn}` : `${svScore} – ${rvScore}`;
-  const svName = sv === 'a' ? T(m.a) : T(m.b);
+  const svName = srvP ? srvP.name : (sv === 'a' ? T(m.a) : T(m.b));
+  const svTeamNo = sv === 'a' ? 1 : 2;
 
   const leftKey = m.sw ? 'b' : 'a', rightKey = m.sw ? 'a' : 'b';
   const posEdit = dbl && (!hasSv || POSEDIT) && !fin;
@@ -1123,7 +1134,7 @@ function vReferee() {
 
   const rallyBtn = (key, nm) => {
     const isSv = sv === key;
-    const sub = isSv ? '+1 điểm cho đội giao bóng' : (dbl && sn === 1 ? 'Đội giao lỗi → người giao số 2 giao tiếp' : 'Đội giao lỗi → mất quyền giao (đổi giao bóng)');
+    const sub = isSv ? (dbl ? '+1 điểm · người giao đổi ô trái/phải' : '+1 điểm cho người giao') : (dbl && sn === 1 ? 'Đội giao lỗi → đồng đội giao tiếp (người giao số 2)' : 'Đội giao lỗi → đổi giao, người đứng ô PHẢI của đội kia giao đầu');
     return `
       <button data-rally="${key}" ${at} class="w-full py-4 sm:py-5 ${isSv ? 'bg-brand-600 hover:bg-brand-500' : 'bg-slate-700 hover:bg-slate-600'} active:scale-[0.98] text-white rounded-2xl shadow-lg transition-all">
         <div class="font-black text-base sm:text-xl">✅ ${nm} THẮNG PHA BÓNG</div>
@@ -1147,15 +1158,43 @@ function vReferee() {
     </div>`;
   const preStart = !fin && (!live || !hasSv);
 
-  const chooser = `
+  const preKey = w + '|' + i;
+  const preTeam = PRE[preKey] || null;
+  const teamBtnLbl = k => `${BALL} ${e(T(k === 'a' ? m.a : m.b))}`;
+  let chooser;
+  if (!dbl) {
+    chooser = `
     <div class="bg-card p-4 rounded-2xl border-2 border-amber-300 space-y-3">
-      <div class="font-extrabold text-sm text-slate-800 dark:text-slate-100">${live ? 'Chưa chọn đội giao bóng.' : 'Bước 1:'} Đội nào GIAO BÓNG ĐẦU TIÊN?</div>
+      <div class="font-extrabold text-sm text-slate-800 dark:text-slate-100">${live ? 'Chưa chọn người giao bóng.' : ''} Ai GIAO BÓNG ĐẦU TIÊN?</div>
       <div class="grid grid-cols-2 gap-2">
-        <button data-first="a" ${at} class="py-4 bg-brand-600 hover:bg-brand-500 text-white font-black rounded-2xl break-words px-2">${BALL} ${T(m.a)}</button>
-        <button data-first="b" ${at} class="py-4 bg-brand-600 hover:bg-brand-500 text-white font-black rounded-2xl break-words px-2">${BALL} ${T(m.b)}</button>
+        <button data-startp="0" data-team="a" ${at} class="py-4 bg-brand-600 hover:bg-brand-500 text-white font-black rounded-2xl break-words px-2">${teamBtnLbl('a')}</button>
+        <button data-startp="0" data-team="b" ${at} class="py-4 bg-brand-600 hover:bg-brand-500 text-white font-black rounded-2xl break-words px-2">${teamBtnLbl('b')}</button>
       </div>
-      ${dbl ? '<div class="text-[11px] text-slate-500">Đánh đôi: đội giao đầu tiên chỉ có <b>1 lượt giao</b> (hô <b>0 – 0 – 2</b>).</div>' : ''}
     </div>`;
+  } else if (!preTeam) {
+    chooser = `
+    <div class="bg-card p-4 rounded-2xl border-2 border-amber-300 space-y-3">
+      <div class="font-extrabold text-sm text-slate-800 dark:text-slate-100">${live ? 'Chưa chọn đội giao bóng.' : 'Bước 1:'} Chọn ĐỘI giao bóng đầu tiên</div>
+      <div class="grid grid-cols-2 gap-2">
+        <button data-pre-team="a" ${at} class="py-4 bg-brand-600 hover:bg-brand-500 text-white font-black rounded-2xl break-words px-2">${teamBtnLbl('a')}</button>
+        <button data-pre-team="b" ${at} class="py-4 bg-brand-600 hover:bg-brand-500 text-white font-black rounded-2xl break-words px-2">${teamBtnLbl('b')}</button>
+      </div>
+      <div class="text-[11px] text-slate-500">Đánh đôi: đội giao đầu tiên chỉ có <b>1 lượt giao</b> (hô <b>0 – 0 – 2</b>).</div>
+    </div>`;
+  } else {
+    const pls = teamPlayers(preTeam === 'a' ? m.a : m.b);
+    chooser = `
+    <div class="bg-card p-4 rounded-2xl border-2 border-amber-300 space-y-3">
+      <div class="flex items-center justify-between gap-2">
+        <div class="font-extrabold text-sm text-slate-800 dark:text-slate-100">Bước 2: Chọn VĐV giao bóng đầu tiên (Đội ${preTeam === 'a' ? 1 : 2})</div>
+        <button data-pre-back="1" ${at} class="px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200">← Đổi đội</button>
+      </div>
+      <div class="grid grid-cols-2 gap-2">
+        ${pls.map((nm, k) => `<button data-startp="${k}" data-team="${preTeam}" ${at} class="py-4 bg-amber-500 hover:bg-amber-400 text-slate-900 font-black rounded-2xl break-words px-2">${BALL} ${e(nm)}</button>`).join('')}
+      </div>
+      <div class="text-[11px] text-slate-500">VĐV được chọn sẽ đứng <b>ô PHẢI</b> của đội (theo hướng nhìn về lưới) và giao bóng trước.</div>
+    </div>`;
+  }
 
   const sync = syncOn()
     ? `<div class="text-xs ${SYNC_OK === false ? 'text-red-500' : 'text-emerald-600'} font-semibold">${SYNC_OK === false ? '🔴 Mất kết nối: điểm đang lưu tạm trên máy và sẽ tự gửi lại khi có mạng.' : '🟢 Điểm tự động cập nhật cho Ban tổ chức và khán giả.'}</div>`
@@ -1203,7 +1242,7 @@ function vReferee() {
         <div class="bg-slate-900 text-white rounded-2xl p-4 text-center shadow-lg">
           <div class="text-[11px] uppercase tracking-widest text-slate-400">${dbl ? 'Hô tỉ số: điểm đội giao – điểm đội nhận – người giao' : 'Hô tỉ số: điểm người giao – điểm người nhận'}</div>
           <div class="text-5xl sm:text-6xl font-black tracking-wider my-1">${call}</div>
-          <div class="text-sm text-amber-300 font-bold">${BALL} ${svName} giao bóng từ ô <span class="underline">${courtSide}</span> <span class="text-slate-400 font-medium">(điểm đội giao ${svScore} ${svScore % 2 === 0 ? 'chẵn → phải' : 'lẻ → trái'})</span></div>
+          <div class="text-sm text-amber-300 font-bold">${BALL} <span class="text-yellow-300 text-base font-black">${e(svName)}</span> <span class="text-slate-300 font-medium">(Đội ${svTeamNo}${dbl ? ' · người giao số ' + sn : ''})</span> giao bóng từ ô <span class="underline">${courtSide}</span></div>
         </div>
 
         ${courtBlock}
@@ -1236,8 +1275,9 @@ function vReferee() {
             <button data-first="b" ${at} class="py-2 bg-slate-200 dark:bg-slate-700 rounded-xl font-bold text-xs">Đặt Đội 2 đang giao</button>
           </div>
           ${dbl ? `<div class="grid grid-cols-2 gap-2 mt-2">
-            <button data-sn="1" ${at} class="py-2 bg-slate-200 dark:bg-slate-700 rounded-xl font-bold text-xs">Người giao số 1</button>
-            <button data-sn="2" ${at} class="py-2 bg-slate-200 dark:bg-slate-700 rounded-xl font-bold text-xs">Người giao số 2</button>
+            <button data-sn="1" ${at} class="py-2 bg-slate-200 dark:bg-slate-700 rounded-xl font-bold text-xs">Đặt: giao số 1</button>
+            <button data-sn="2" ${at} class="py-2 bg-slate-200 dark:bg-slate-700 rounded-xl font-bold text-xs">Đặt: giao số 2</button>
+            <button data-si="1" ${at} class="col-span-2 py-2 bg-slate-200 dark:bg-slate-700 rounded-xl font-bold text-xs">🔁 Đổi sang đồng đội đang giao</button>
           </div>` : ''}
         </details>` : ''}
 
@@ -1245,9 +1285,11 @@ function vReferee() {
         <summary class="text-xs font-bold text-slate-500 cursor-pointer">📖 Nhắc nhanh luật giao bóng Pickleball</summary>
         <ul class="text-xs text-slate-600 dark:text-slate-300 mt-2 space-y-1 list-disc pl-4">
           <li><b>Chỉ đội giao bóng mới ghi điểm.</b> Đội nhận thắng pha bóng thì không có điểm, chỉ chuyển quyền giao.</li>
-          <li>Giao bóng chéo sân. Điểm đội giao <b>chẵn → giao từ ô phải</b>, <b>lẻ → giao từ ô trái</b>.</li>
-          ${dbl ? `<li><b>Đánh đôi:</b> hô 3 số (điểm đội giao – điểm đội nhận – người giao số 1/2). Mỗi đội có 2 lượt giao: người số 1 lỗi → người số 2 giao; người số 2 lỗi → đổi giao bóng.</li>
-          <li>Đầu ván, đội giao đầu tiên chỉ có <b>1 lượt giao</b> (bắt đầu 0 – 0 – 2).</li>` : `<li><b>Đánh đơn:</b> hô 2 số (điểm người giao – điểm người nhận). Người giao lỗi → đổi giao bóng ngay.</li>`}
+          <li>Giao bóng chéo sân sang ô đối diện.</li>
+          ${dbl ? `<li><b>Đánh đôi:</b> hô 3 số (điểm đội giao – điểm đội nhận – người giao số 1/2). Đầu trận người đứng <b>ô phải</b> giao trước.</li>
+          <li>Ghi điểm → người giao <b>đổi ô</b> (phải ↔ trái) và giao tiếp. Đội giao <b>chỉ đổi ô khi ghi điểm</b>; đội nhận <b>không bao giờ đổi ô</b>.</li>
+          <li>Người giao số 1 lỗi → đồng đội (giao số 2) giao tiếp từ ô đang đứng. Giao số 2 lỗi → đổi giao: người đứng <b>ô phải</b> của đội kia giao đầu.</li>
+          <li>Đầu ván, đội giao đầu tiên chỉ có <b>1 lượt giao</b> (bắt đầu 0 – 0 – 2).</li>` : `<li><b>Đánh đơn:</b> hô 2 số. Điểm người giao <b>chẵn → ô phải</b>, <b>lẻ → ô trái</b>. Người giao lỗi → đổi giao bóng ngay.</li>`}
           <li>Thắng khi đạt ${rule.pts} điểm${rule.w2 ? ' và hơn đối thủ ít nhất 2 điểm' : ''}.</li>
         </ul>
       </details>
@@ -1594,7 +1636,7 @@ document.addEventListener('click', ev => {
   const btn = ev.target.closest('button');
 
   // Người xem không được chấm điểm / chỉnh sửa gì cả
-  if (btn && (btn.dataset.first || btn.dataset.sn || btn.dataset.rally || btn.dataset.undo || btn.dataset.sc || btn.dataset.swapends || btn.dataset.posedit || btn.dataset.refW != null || btn.dataset.tgl) && !(ADMIN || (MODE === 'referee' && btn.dataset.refW == null && !btn.dataset.tgl))) return;
+  if (btn && (btn.dataset.first || btn.dataset.sn || btn.dataset.rally || btn.dataset.undo || btn.dataset.sc || btn.dataset.swapends || btn.dataset.posedit || btn.dataset.startp != null || btn.dataset.preTeam || btn.dataset.preBack || btn.dataset.si || btn.dataset.refW != null || btn.dataset.tgl) && !(ADMIN || (MODE === 'referee' && btn.dataset.refW == null && !btn.dataset.tgl))) return;
 
   // Nút sao chép link Trọng Tài
   if (btn && btn.dataset.refW != null) {
@@ -1679,12 +1721,34 @@ document.addEventListener('click', ev => {
     return;
   }
 
+  // Trọng tài: chọn đội giao đầu tiên (bước 1) -> VĐV giao đầu tiên (bước 2)
+  if (btn && btn.dataset.preTeam) { PRE[btn.dataset.w + '|' + btn.dataset.i] = btn.dataset.preTeam; render(); return; }
+  if (btn && btn.dataset.preBack) { delete PRE[btn.dataset.w + '|' + btn.dataset.i]; render(); return; }
+  if (btn && btn.dataset.startp != null) {
+    const w = btn.dataset.w, i = btn.dataset.i, g = getM(w, i);
+    if (!g || !g.m) return;
+    const m = g.m, dbl = S.mode === 'double', t = btn.dataset.team, idx = +btn.dataset.startp;
+    const patch = { sa: m.sa ?? 0, sb: m.sb ?? 0, st: 'live', sv: t, sn: dbl ? 2 : 1, si: idx };
+    if (dbl) patch[t === 'a' ? 'ar' : 'br'] = idx;       // VĐV giao đầu đứng ô phải của đội
+    delete PRE[w + '|' + i];
+    putScore(w, i, patch);
+    return;
+  }
+  if (btn && btn.dataset.si) {
+    const g = getM(btn.dataset.w, btn.dataset.i);
+    if (!g || !g.m || !g.m.sv) return;
+    const m = g.m, cur = m.si ?? (m.sv === 'a' ? (m.ar ?? 0) : (m.br ?? 0));
+    putScore(btn.dataset.w, btn.dataset.i, { si: 1 - cur, st: 'live' });
+    return;
+  }
+
   // Trọng tài: chọn đội giao đầu tiên / người giao
   if (btn && btn.dataset.first) {
     const w = btn.dataset.w, i = btn.dataset.i, g = getM(w, i);
     if (!g || !g.m) return;
     const m = g.m, dbl = S.mode === 'double';
-    putScore(w, i, { sa: m.sa ?? 0, sb: m.sb ?? 0, st: 'live', sv: btn.dataset.first, sn: m.sn || (dbl ? 2 : 1) });
+    const nt = btn.dataset.first;
+    putScore(w, i, { sa: m.sa ?? 0, sb: m.sb ?? 0, st: 'live', sv: nt, sn: m.sn || (dbl ? 2 : 1), si: dbl ? (nt === 'a' ? (m.ar ?? 0) : (m.br ?? 0)) : 0 });
     return;
   }
   if (btn && btn.dataset.sn) {
@@ -1701,20 +1765,19 @@ document.addEventListener('click', ev => {
     const m = g.m, dbl = S.mode === 'double', side = btn.dataset.rally;
     let sa = m.sa ?? 0, sb = m.sb ?? 0, sv = m.sv || 'a', sn = m.sn || (dbl ? 2 : 1);
     let ar = m.ar ?? 0, br = m.br ?? 0;
+    let si = m.si ?? (sv === 'a' ? ar : br);
     const hid = w + '|' + i;
-    HIST[hid] = (HIST[hid] || []).concat([{ sa, sb, sv, sn, ar, br }]).slice(-50);
-    const flip = () => { if (!dbl) return; if (sv === 'a') ar = 1 - ar; else br = 1 - br; };
+    HIST[hid] = (HIST[hid] || []).concat([{ sa, sb, sv, sn, ar, br, si }]).slice(-50);
     if (side === sv) {
       if (side === 'a') sa++; else sb++;
-      flip();                 // đội giao ghi điểm: người giao đổi ô với đồng đội
+      if (dbl) { if (sv === 'a') ar = 1 - ar; else br = 1 - br; }   // ghi điểm: người giao đổi ô với đồng đội, vẫn giao tiếp
     } else if (dbl && sn === 1) {
-      sn = 2;
-      flip();                 // người giao số 1 lỗi: đồng đội vào ô giao theo điểm
+      sn = 2; si = 1 - si;                                          // giao số 1 lỗi: đồng đội giao tiếp, không đổi ô
     } else {
-      sv = sv === 'a' ? 'b' : 'a';   // đổi giao bóng, giữ nguyên vị trí
-      sn = 1;
+      sv = sv === 'a' ? 'b' : 'a'; sn = 1;                          // đổi giao: người đứng ô PHẢI của đội kia giao đầu
+      si = dbl ? (sv === 'a' ? ar : br) : 0;
     }
-    putScore(w, i, { sa, sb, sv, sn, ar, br, st: 'live' });
+    putScore(w, i, { sa, sb, sv, sn, ar, br, si, st: 'live' });
     if (sa !== sb && valid({ sa, sb }, S.rules[g.rk])) showToast('Đã đủ điều kiện thắng! Bấm KẾT THÚC TRẬN để xác nhận.', '🏁');
     return;
   }
@@ -1724,7 +1787,7 @@ document.addEventListener('click', ev => {
     const h = HIST[hid] || [];
     if (!h.length) { showToast('Không còn pha bóng nào để hoàn tác.', 'ℹ️'); return; }
     const prev = h.pop();
-    putScore(w, i, { sa: prev.sa, sb: prev.sb, sv: prev.sv, sn: prev.sn, ar: prev.ar, br: prev.br, st: 'live' });
+    putScore(w, i, { sa: prev.sa, sb: prev.sb, sv: prev.sv, sn: prev.sn, ar: prev.ar, br: prev.br, si: prev.si, st: 'live' });
     return;
   }
 
