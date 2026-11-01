@@ -189,7 +189,7 @@ const def = () => ({
 function rd(k) { try { return JSON.parse(localStorage.getItem(k)); } catch(x) { return null; } }
 
 let S = def(), SC = {}, tab = 'sched', armed = false, err = '', ADMIN = false, MODE = 'view', pendingConfirm = null, OPEN = {};
-let POSEDIT = false, PRE = {};
+let POSEDIT = false, PRE = {}, RESTART_ARM = {};
 let SYNC = { db: '', tid: '' }, DIRTY = {}, SYNC_OK = null, SNAP_RT = null, HIST = {};
 let STORE = KEY, SHARED = false, SNAP_T = 0, SNAP_ERR = false, CH = {}, ROUTED = false;
 
@@ -981,7 +981,7 @@ function nameLines(n) {
   return best.lines;
 }
 
-function courtSvg(m, at, editable) {
+function courtSvg(m, at, editTeam) {
   const X0 = 20, X1 = 420, Y0 = 106, Y1 = 306, NX = 220, KL = 156.4, KR = 283.6, YM = 206;
   const leftKey = m.sw ? 'b' : 'a', rightKey = m.sw ? 'a' : 'b';
   const dbl = S.mode === 'double';
@@ -1003,13 +1003,13 @@ function courtSvg(m, at, editable) {
       const tx = p.role === 'server' ? '#fde047' : p.role === 'receiver' ? '#67e8f9' : '#ffffff';
       const lines = nameLines(p.name);
       const fs = Math.max(9, Math.min(14, Math.round(124 / (Math.max(...lines.map(x => x.length)) * 0.6))));
-      const ring = editable ? `<circle cx="${cx}" cy="${cy}" r="23" fill="none" stroke="#fff" stroke-width="1.8" stroke-dasharray="4 3"/>` : '';
+      const ring = editTeam === t ? `<circle cx="${cx}" cy="${cy}" r="23" fill="none" stroke="#fff" stroke-width="1.8" stroke-dasharray="4 3"/>` : '';
       const ball = p.role === 'server' ? `<circle cx="${cx + 17}" cy="${cy - 17}" r="7.5" fill="#fef08a" stroke="#a16207" stroke-width="1.6"/><circle cx="${cx + 15}" cy="${cy - 18.5}" r="1.1" fill="#a16207"/><circle cx="${cx + 19.5}" cy="${cy - 15.5}" r="1.1" fill="#a16207"/><circle cx="${cx + 15.5}" cy="${cy - 14}" r="1.1" fill="#a16207"/>` : '';
       const txt = lines.map((ln, k) => `<text x="${cx}" y="${cy + 33 + k * (fs + 3)}" text-anchor="middle" font-size="${fs}" font-weight="${p.role ? 800 : 700}" fill="${tx}" stroke="#0f172a" stroke-width="0.4" paint-order="stroke">${e(ln)}</text>`).join('');
       return `${ring}<circle cx="${cx}" cy="${cy}" r="17" fill="${col}" stroke="#0f172a" stroke-width="1.6"/>
         <text x="${cx}" y="${cy + 6}" text-anchor="middle" font-size="17" font-weight="800" fill="#0f172a">${e(String(p.name).charAt(0).toUpperCase())}</text>${ball}${txt}`;
     }).join('');
-    g += dbl ? `<g data-swap="${t}" ${at} style="cursor:${editable ? 'pointer' : 'default'}">${inner}</g>` : `<g>${inner}</g>`;
+    g += dbl ? `<g data-swap="${t}" ${at} style="cursor:${editTeam === t ? 'pointer' : 'default'}">${inner}</g>` : `<g>${inner}</g>`;
   });
 
   // Phần đầu: tên đội (mỗi VĐV một dòng) + điểm số lớn cho từng bên
@@ -1119,7 +1119,11 @@ function vReferee() {
   const svTeamNo = sv === 'a' ? 1 : 2;
 
   const leftKey = m.sw ? 'b' : 'a', rightKey = m.sw ? 'a' : 'b';
-  const posEdit = dbl && (!hasSv || POSEDIT) && !fin;
+  const preKey = w + '|' + i;
+  const preTeam = PRE[preKey] || null;
+  // Chỉ được sửa vị trí đội ĐỠ giao; người giao đầu tiên luôn đứng ô phải và vị trí đội giao tự đổi theo luật
+  const curSv = hasSv ? sv : preTeam;
+  const editTeam = (dbl && !fin && curSv && (!hasSv || POSEDIT)) ? (curSv === 'a' ? 'b' : 'a') : null;
   const teamCard = (key, nm, score) => {
     const isSv = hasSv && sv === key && !fin;
     const win = fin && ((key === 'a' && sa > sb) || (key === 'b' && sb > sa));
@@ -1148,18 +1152,16 @@ function vReferee() {
         <div class="text-xs font-extrabold text-slate-600 dark:text-slate-300">🗺️ SƠ ĐỒ SÂN</div>
         <button data-swapends="1" ${at} class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl shadow">🔄 ĐỔI SÂN</button>
       </div>
-      ${dbl && !hasSv ? '<div class="text-xs font-bold text-amber-600">Bước 1: xếp đúng vị trí thực tế — chạm vào VĐV để đổi chỗ phải/trái trong đội.</div>' : ''}
-      ${courtSvg(m, at, posEdit)}
+      ${dbl && !hasSv ? `<div class="text-xs font-bold text-amber-600">${preTeam ? 'Chạm vào VĐV của đội ĐỠ giao (viền nét đứt) để đổi chỗ phải/trái cho đúng thực tế. Người giao đầu tiên luôn đứng ô PHẢI.' : 'Chọn đội giao bóng đầu tiên ở bên dưới. Người giao đầu tiên sẽ đứng ô PHẢI; chỉ sửa được vị trí đội đỡ giao.'}</div>` : ''}
+      ${courtSvg(m, at, editTeam)}
       <div class="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500">
         <span><b style="color:#d97706">●</b> Người giao &nbsp; <b style="color:#0891b2">●</b> Người nhận &nbsp; <span class="opacity-70">(vị trí tự đổi theo luật)</span></span>
-        ${dbl && hasSv ? `<button data-posedit="1" class="px-2.5 py-1 rounded-lg font-bold ${POSEDIT ? 'bg-amber-500 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200'}">${POSEDIT ? '✅ Xong sửa vị trí' : '✏️ Sửa vị trí VĐV'}</button>` : ''}
+        ${dbl && hasSv ? `<button data-posedit="1" class="px-2.5 py-1 rounded-lg font-bold ${POSEDIT ? 'bg-amber-500 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200'}">${POSEDIT ? '✅ Xong sửa vị trí' : '✏️ Sửa vị trí đội đỡ giao'}</button>` : ''}
       </div>
-      ${posEdit && hasSv ? '<div class="text-[11px] text-amber-600 font-semibold">Chạm vào VĐV để đổi chỗ phải/trái của cả đội.</div>' : ''}
+      ${editTeam && hasSv ? '<div class="text-[11px] text-amber-600 font-semibold">Chạm vào VĐV của đội đỡ giao (viền nét đứt) để đổi chỗ phải/trái. Đội giao tự đổi vị trí theo luật nên không sửa tay.</div>' : ''}
     </div>`;
   const preStart = !fin && (!live || !hasSv);
 
-  const preKey = w + '|' + i;
-  const preTeam = PRE[preKey] || null;
   const teamBtnLbl = k => `${BALL} ${e(T(k === 'a' ? m.a : m.b))}`;
   let chooser;
   if (!dbl) {
@@ -1256,6 +1258,7 @@ function vReferee() {
           <button data-undo="1" ${at} class="py-3 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-100 font-bold rounded-2xl">↩️ Hoàn tác pha bóng</button>
           <button data-sc="fin" ${at} class="py-3 ${canFinish ? 'bg-amber-500 hover:bg-amber-600 animate-pulse' : 'bg-slate-300 dark:bg-slate-700 text-slate-600 dark:text-slate-300'} text-white font-black rounded-2xl">🏁 KẾT THÚC TRẬN</button>
         </div>
+        <button data-restart="1" ${at} class="w-full py-2.5 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 text-sm font-bold rounded-2xl">🔁 Chọn lại đội &amp; người giao bóng đầu tiên</button>
         ${canFinish ? `<div class="text-center text-sm font-bold text-amber-600">✅ Đã đủ điều kiện thắng (${rule.pts} điểm${rule.w2 ? ', hơn 2 điểm' : ''}). Bấm KẾT THÚC TRẬN để xác nhận.</div>` : ''}
       ` : ''}
 
@@ -1636,7 +1639,7 @@ document.addEventListener('click', ev => {
   const btn = ev.target.closest('button');
 
   // Người xem không được chấm điểm / chỉnh sửa gì cả
-  if (btn && (btn.dataset.first || btn.dataset.sn || btn.dataset.rally || btn.dataset.undo || btn.dataset.sc || btn.dataset.swapends || btn.dataset.posedit || btn.dataset.startp != null || btn.dataset.preTeam || btn.dataset.preBack || btn.dataset.si || btn.dataset.refW != null || btn.dataset.tgl) && !(ADMIN || (MODE === 'referee' && btn.dataset.refW == null && !btn.dataset.tgl))) return;
+  if (btn && (btn.dataset.first || btn.dataset.sn || btn.dataset.rally || btn.dataset.undo || btn.dataset.sc || btn.dataset.swapends || btn.dataset.posedit || btn.dataset.startp != null || btn.dataset.preTeam || btn.dataset.preBack || btn.dataset.restart || btn.dataset.si || btn.dataset.refW != null || btn.dataset.tgl) && !(ADMIN || (MODE === 'referee' && btn.dataset.refW == null && !btn.dataset.tgl))) return;
 
   // Nút sao chép link Trọng Tài
   if (btn && btn.dataset.refW != null) {
@@ -1707,8 +1710,11 @@ document.addEventListener('click', ev => {
     const g = getM(swEl.dataset.w, swEl.dataset.i);
     if (!g || !g.m) return;
     const m = g.m;
-    if (m.sv && !POSEDIT) { showToast('Bấm "Sửa vị trí VĐV" nếu cần đổi chỗ.', 'ℹ️'); return; }
-    if (!m.sv ? false : (m.st !== 'live' && done(m))) return;
+    const cur = m.sv || PRE[swEl.dataset.w + '|' + swEl.dataset.i];
+    if (!cur) { showToast('Hãy chọn đội giao bóng đầu tiên trước.', 'ℹ️'); return; }
+    if (swEl.dataset.swap === cur) { showToast('Vị trí đội giao bóng tự đổi theo luật. Chỉ sửa được vị trí đội đỡ giao.', 'ℹ️'); return; }
+    if (m.sv && !POSEDIT) { showToast('Bấm "Sửa vị trí đội đỡ giao" nếu cần đổi chỗ.', 'ℹ️'); return; }
+    if (m.sv && m.st !== 'live' && done(m)) return;
     putScore(swEl.dataset.w, swEl.dataset.i, swEl.dataset.swap === 'a' ? { ar: 1 - (m.ar ?? 0) } : { br: 1 - (m.br ?? 0) });
     return;
   }
@@ -1723,12 +1729,26 @@ document.addEventListener('click', ev => {
 
   // Trọng tài: chọn đội giao đầu tiên (bước 1) -> VĐV giao đầu tiên (bước 2)
   if (btn && btn.dataset.preTeam) { PRE[btn.dataset.w + '|' + btn.dataset.i] = btn.dataset.preTeam; render(); return; }
+  if (btn && btn.dataset.restart) {
+    const w = btn.dataset.w, i = btn.dataset.i, g = getM(w, i);
+    if (!g || !g.m) return;
+    const m = g.m, key = w + '|' + i, played = (m.sa ?? 0) + (m.sb ?? 0) > 0;
+    if (played && !(RESTART_ARM[key] && Date.now() - RESTART_ARM[key] < 4000)) {
+      RESTART_ARM[key] = Date.now();
+      showToast('Trận đã có điểm. Bấm lần nữa trong 4 giây để chọn lại người giao (điểm giữ nguyên).', '⚠️');
+      return;
+    }
+    delete RESTART_ARM[key]; delete PRE[key]; delete HIST[key];
+    putScore(w, i, played ? { sv: null, sn: null, si: null, st: 'live' } : { sv: null, sn: null, si: null, st: null, sa: null, sb: null });
+    showToast('Đã hoàn tác. Hãy chọn lại đội và người giao đầu tiên.', '🔁');
+    return;
+  }
   if (btn && btn.dataset.preBack) { delete PRE[btn.dataset.w + '|' + btn.dataset.i]; render(); return; }
   if (btn && btn.dataset.startp != null) {
     const w = btn.dataset.w, i = btn.dataset.i, g = getM(w, i);
     if (!g || !g.m) return;
     const m = g.m, dbl = S.mode === 'double', t = btn.dataset.team, idx = +btn.dataset.startp;
-    const patch = { sa: m.sa ?? 0, sb: m.sb ?? 0, st: 'live', sv: t, sn: dbl ? 2 : 1, si: idx };
+    const patch = { sa: m.sa ?? 0, sb: m.sb ?? 0, st: 'live', sv: t, sn: dbl ? ((m.sa ?? 0) + (m.sb ?? 0) === 0 ? 2 : 1) : 1, si: idx };
     if (dbl) patch[t === 'a' ? 'ar' : 'br'] = idx;       // VĐV giao đầu đứng ô phải của đội
     delete PRE[w + '|' + i];
     putScore(w, i, patch);
