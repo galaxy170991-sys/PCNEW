@@ -1,259 +1,1068 @@
-<meta name='viewport' content='width=device-width, initial-scale=1'/><!DOCTYPE html>
-<html lang="vi">
+<!DOCTYPE html>
+<html lang="vi" class="h-full">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Quản Lý Giải Đấu Pickleball</title>
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#047857">
-<link rel="icon" type="image/png" href="icon-192.png">
-<script src="https://cdn.tailwindcss.com"></script>
-<script>
-  tailwind.config = {
-    darkMode: 'class',
-    theme: {
-      extend: {
-        colors: {
-          brand: { 50: '#ecfdf5', 100: '#d1fae5', 500: '#10b981', 600: '#059669', 700: '#047857', 900: '#064e3b' },
-          gold: { 400: '#fbbf24', 500: '#f59e0b', 600: '#d97706' }
-        }
-      }
-    }
-  }
-</script>
-<style>
-  * { box-sizing: border-box; }
-  body { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); -webkit-tap-highlight-color: transparent; }
-  :root { --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0; --text: #0f172a; --muted: #64748b; }
-  .dark { --bg: #0f172a; --card: #1e293b; --border: #334155; --text: #f8fafc; --muted: #94a3b8; }
-  body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, sans-serif; min-height: 100vh; }
-  button { touch-action: manipulation; cursor: pointer; }
-  .hidden { display: none !important; }
-  .modal-backdrop { background: rgba(15,23,42,0.7); backdrop-filter: blur(4px); position: fixed; inset: 0; z-index: 40; }
-  .tab-active { background: #047857; color: white; }
-  input, select, textarea { color-scheme: light; }
-  .dark input, .dark select, .dark textarea { color-scheme: dark; }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Hệ Thống Quản Lý Giải Pickleball Pro</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800;900&display=swap');
+    body { font-family: 'Lexend', sans-serif; -webkit-tap-highlight-color: transparent; }
+    .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.05); }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); border-radius: 4px; }
+  </style>
 </head>
-<body class="min-h-screen pb-20">
-<main class="max-w-4xl mx-auto px-3 sm:px-4 pt-4">
+<body class="bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-full flex flex-col antialiased selection:bg-amber-400 selection:text-slate-900">
 
-  <!-- Toast Thông báo -->
-  <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-5 py-3 rounded-xl shadow-2xl text-sm flex items-center gap-3 opacity-0 transition-all duration-300 pointer-events-none">
-    <span id="toast-icon">✅</span>
-    <span id="toast-msg"></span>
-  </div>
+  <!-- Header Section -->
+  <header class="bg-slate-900 border-b border-slate-800 text-white sticky top-0 z-40 shadow-xl">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-2">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-400 to-yellow-300 flex items-center justify-center shadow-lg shadow-amber-500/20 text-2xl animate-pulse">
+          🟡
+        </div>
+        <div>
+          <h1 id="header-tournament-name" class="font-black text-lg sm:text-xl tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
+            PICKLEBALL CHAMPIONSHIP
+          </h1>
+          <p id="header-tournament-subtitle" class="text-[11px] font-medium text-amber-400 flex items-center gap-1">
+            <span>🏓 Hệ thống điều phối & chấm điểm trực tiếp</span>
+          </p>
+        </div>
+      </div>
 
-  <!-- Modal Đăng Nhập Admin -->
-  <div id="login-modal" class="hidden">
-    <div class="modal-backdrop" onclick="closeLoginModal()"></div>
-    <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div class="bg-white dark:bg-slate-800 w-full max-w-sm rounded-2xl p-6 shadow-2xl border border-slate-200 dark:border-slate-700">
-        <div class="text-center mb-6">
-          <div class="text-3xl mb-2">🔐</div>
-          <h3 class="text-xl font-bold">Đăng Nhập Quản Trị</h3>
-          <p class="text-sm text-slate-500 mt-1">Nhập thông tin để quản lý giải đấu</p>
-        </div>
-        <div class="space-y-4">
-          <div>
-            <label class="text-sm font-medium block mb-1.5">Tên người dùng</label>
-            <input type="text" id="admin-name" placeholder="Nhập tên của bạn" class="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500">
-          </div>
-          <div>
-            <label class="text-sm font-medium block mb-1.5">Mật khẩu Admin</label>
-            <input type="password" id="admin-pass" placeholder="Nhập mật khẩu" class="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500">
-            <p id="login-error" class="text-red-500 text-sm mt-1.5 hidden">❌ Mật khẩu không chính xác!</p>
-          </div>
-        </div>
-        <div class="flex gap-3 mt-6">
-          <button onclick="closeLoginModal()" class="flex-1 py-2.5 bg-slate-200 dark:bg-slate-700 rounded-lg font-medium">Hủy</button>
-          <button onclick="doLogin()" class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-medium">Đăng Nhập</button>
-        </div>
+      <!-- Header Quick Controls -->
+      <div class="flex items-center gap-2">
+        <button id="btn-admin-auth" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold transition-all active:scale-95 shadow-sm">
+          <span id="admin-status-icon">🔐</span>
+          <span id="admin-status-text" class="hidden sm:inline">BTC Admin</span>
+        </button>
       </div>
     </div>
-  </div>
 
-  <!-- Modal Biên Bản -->
-  <div id="report-modal" class="hidden">
-    <div class="modal-backdrop" onclick="closeReportModal()"></div>
-    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
-      <div class="bg-white dark:bg-slate-800 w-full max-w-md rounded-2xl p-6 shadow-2xl border border-slate-200 dark:border-slate-700">
-        <h3 class="text-lg font-bold mb-4">📄 Biên Bản Trận Đấu</h3>
-        <div id="report-content" class="text-sm space-y-2 mb-4 max-h-96 overflow-y-auto bg-slate-50 dark:bg-slate-900 p-4 rounded-lg"></div>
-        <div class="flex gap-3">
-          <button onclick="copyReport()" class="flex-1 py-2.5 bg-blue-600 text-white rounded-lg font-medium">📋 Sao chép</button>
-          <button onclick="closeReportModal()" class="flex-1 py-2.5 bg-slate-200 dark:bg-slate-700 rounded-lg font-medium">Đóng</button>
-        </div>
+    <!-- Navigation Tabs -->
+    <nav class="bg-slate-950/80 backdrop-blur border-t border-slate-800/80 px-2 overflow-x-auto custom-scrollbar">
+      <div class="max-w-7xl mx-auto flex items-center gap-1 py-1 min-w-max">
+        <button id="tab-matches" class="tab-btn px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 bg-amber-400 text-slate-950 shadow-md">
+          <span>📅</span> <span>Lịch đấu & Kết quả</span>
+        </button>
+        <button id="tab-courts" class="tab-btn px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 text-slate-400 hover:text-white hover:bg-slate-800/60">
+          <span>🏟️</span> <span>Quản lý Sân</span>
+        </button>
+        <button id="tab-standings" class="tab-btn px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 text-slate-400 hover:text-white hover:bg-slate-800/60">
+          <span>🏆</span> <span>Bảng xếp hạng</span>
+        </button>
+        <button id="tab-consolation" class="tab-btn px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 text-slate-400 hover:text-white hover:bg-slate-800/60">
+          <span>🛡️</span> <span>Bảng An Ủi (Seri B)</span>
+        </button>
+        <button id="tab-print" class="tab-btn px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 text-slate-400 hover:text-white hover:bg-slate-800/60">
+          <span>🖨️</span> <span>In Lịch & Mã QR</span>
+        </button>
+        <button id="tab-export" class="tab-btn px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 text-slate-400 hover:text-white hover:bg-slate-800/60">
+          <span>📲</span> <span>Xuất Zalo</span>
+        </button>
+        <button id="tab-settings" class="tab-btn px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 text-slate-400 hover:text-white hover:bg-slate-800/60">
+          <span>🟡</span> <span>Thiết lập BTC</span>
+        </button>
       </div>
-    </div>
-  </div>
-
-  <!-- Modal Ghi chú -->
-  <div id="note-modal" class="hidden">
-    <div class="modal-backdrop" onclick="closeNoteModal()"></div>
-    <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div class="bg-white dark:bg-slate-800 w-full max-w-md rounded-2xl p-6 shadow-2xl border border-slate-200 dark:border-slate-700">
-        <h3 class="text-lg font-bold mb-4">📝 Ghi Chú Trận Đấu</h3>
-        <textarea id="note-text" rows="4" placeholder="Nhập ghi chú..." class="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 mb-4"></textarea>
-        <div class="flex gap-3">
-          <button onclick="saveNote()" class="flex-1 py-2.5 bg-emerald-600 text-white rounded-lg font-medium">💾 Lưu</button>
-          <button onclick="closeNoteModal()" class="flex-1 py-2.5 bg-slate-200 dark:bg-slate-700 rounded-lg font-medium">Đóng</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal Backup -->
-  <div id="backup-modal" class="hidden">
-    <div class="modal-backdrop" onclick="closeBackupModal()"></div>
-    <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div class="bg-white dark:bg-slate-800 w-full max-w-md rounded-2xl p-6 shadow-2xl border border-slate-200 dark:border-slate-700">
-        <h3 class="text-lg font-bold mb-4">💾 Sao Lưu / Khôi Phục</h3>
-        <div class="space-y-3 mb-4">
-          <button onclick="exportData()" class="w-full py-3 bg-emerald-600 text-white rounded-lg font-medium">📥 Tải Bản Sao Lưu Về Máy</button>
-          <div class="text-center text-sm text-slate-500">hoặc chọn file để khôi phục:</div>
-          <input type="file" id="restore-file" accept=".json" class="w-full text-sm">
-          <button onclick="importData()" class="w-full py-3 bg-amber-500 text-white rounded-lg font-medium">📤 Khôi Phục Từ File</button>
-        </div>
-        <button onclick="closeBackupModal()" class="w-full py-2 bg-slate-200 dark:bg-slate-700 rounded-lg">Đóng</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Header -->
-  <header class="bg-gradient-to-r from-emerald-600 to-teal-600 text-white p-4 sm:p-6 rounded-2xl shadow-lg mb-4">
-    <div class="flex flex-wrap items-center justify-between gap-3">
-      <div>
-        <h1 class="text-xl sm:text-2xl font-bold">🏸 Quản Lý Giải Đấu Pickleball</h1>
-        <p id="user-status" class="text-sm text-emerald-100 mt-1">Chưa đăng nhập -- Chế độ xem</p>
-      </div>
-      <div class="flex gap-2">
-        <button onclick="openBackupModal()" class="bg-white/20 hover:bg-white/30 px-3 py-2 rounded-lg text-sm">💾</button>
-        <button onclick="toggleTheme()" class="bg-white/20 hover:bg-white/30 px-3 py-2 rounded-lg text-sm">🌙</button>
-        <button id="btn-login" onclick="openLoginModal()" class="bg-amber-400 hover:bg-amber-300 text-slate-900 px-4 py-2 rounded-lg text-sm font-bold">🔐 Vào BTC</button>
-      </div>
-    </div>
+    </nav>
   </header>
 
-  <!-- Thanh Điều Hướng Tab -->
-  <nav id="admin-tabs" class="hidden mb-4">
-    <div class="flex flex-wrap gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
-      <button class="tab-btn tab-active px-3 py-2 rounded-lg text-sm font-medium" data-tab="teams">👥 Đội/Đấu Thủ</button>
-      <button class="tab-btn px-3 py-2 rounded-lg text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-700" data-tab="schedule">📅 Lịch Thi Đấu</button>
-      <button class="tab-btn px-3 py-2 rounded-lg text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-700" data-tab="results">🏆 Kết Quả</button>
-      <button class="tab-btn px-3 py-2 rounded-lg text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-700" data-tab="standings">📊 Bảng Xếp Hạng</button>
-    </div>
-  </nav>
+  <!-- Main View Containers -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-6 space-y-6">
 
-  <!-- Nội Dung Tab -->
-  <div id="tab-content" class="min-h-[400px]">
-    <!-- Trang chào khi chưa đăng nhập -->
-    <div id="page-welcome">
-      <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
-        <h2 class="text-xl font-bold mb-4">👋 Chào Mừng</h2>
-        <p class="mb-4">Để bắt đầu quản lý giải đấu, nhấn nút <strong>🔐 Vào BTC</strong> ở góc trên bên phải.</p>
-        <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 text-sm">
-          <p class="font-bold text-amber-800 dark:text-amber-300">ℹ️ Thông tin đăng nhập:</p>
-          <p class="text-amber-700 dark:text-amber-400 mt-1">• Mật khẩu mặc định: <code class="bg-amber-100 dark:bg-amber-800/50 px-2 py-0.5 rounded">1234</code></p>
+    <!-- Modal: Admin Login Popup -->
+    <div id="admin-login-modal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+      <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-2xl max-w-sm w-full border border-slate-200 dark:border-slate-700 space-y-4 text-center animate-in fade-in zoom-in duration-200">
+        <div class="w-14 h-14 bg-amber-100 dark:bg-amber-900/50 rounded-2xl flex items-center justify-center text-3xl mx-auto shadow-inner">🔐</div>
+        <div>
+          <h3 class="text-lg font-black text-slate-900 dark:text-white">Đăng Nhập BTC Admin</h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Nhập mật khẩu ban tổ chức để mở quyền cấu hình giải đấu.</p>
+        </div>
+        <div class="space-y-2">
+          <input id="admin-password-modal-input" type="password" placeholder="Mật khẩu (Mặc định: 1234)" class="w-full text-center text-base font-bold bg-slate-100 dark:bg-slate-700 border-2 border-slate-200 dark:border-slate-600 focus:border-amber-500 rounded-xl py-3 outline-none transition-all">
+          <p id="admin-login-error" class="text-xs text-rose-500 font-bold hidden">⚠️ Mật khẩu không chính xác!</p>
+        </div>
+        <div class="grid grid-cols-2 gap-2 pt-2">
+          <button id="btn-close-admin-modal" class="py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl transition-all">Hủy</button>
+          <button id="btn-submit-admin-login" class="py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-900 font-black text-xs rounded-xl shadow-md transition-all">ĐĂNG NHẬP</button>
         </div>
       </div>
     </div>
 
-    <!-- Tab Đội/Đấu thủ -->
-    <div id="page-teams" class="hidden">
-      <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-200 dark:border-slate-700 mb-4">
-        <h3 class="text-lg font-bold mb-4">➕ Thêm Đội / Đấu Thủ</h3>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-          <div>
-            <label class="text-sm font-medium mb-1 block">Tên Đội / Đấu Thủ *</label>
-            <input type="text" id="team-name" placeholder="VD: Đội A -- Nam/Nữ" class="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700">
-          </div>
-          <div>
-            <label class="text-sm font-medium mb-1 block">Loại</label>
-            <select id="team-type" class="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700">
-              <option value="Đôi Nam">Đôi Nam</option>
-              <option value="Đôi Nữ">Đôi Nữ</option>
-              <option value="Đôi Nam-Nữ">Đôi Nam-Nữ</option>
-              <option value="Đơn Nam">Đơn Nam</option>
-              <option value="Đơn Nữ">Đơn Nữ</option>
-              <option value="Khác">Khác</option>
-            </select>
-          </div>
+    <!-- Modal: Match Details & Umpire PIN Modal -->
+    <div id="umpire-pin-modal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+      <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-2xl max-w-sm w-full border border-slate-200 dark:border-slate-700 space-y-4 text-center">
+        <div class="w-14 h-14 bg-blue-100 dark:bg-blue-900/50 rounded-2xl flex items-center justify-center text-3xl mx-auto">🛡️</div>
+        <div>
+          <h3 class="text-lg font-black text-slate-900 dark:text-white">Nhập Mã PIN Trọng Tài</h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Nhập PIN bảo mật để bắt đầu điều khiển trận đấu.</p>
         </div>
-        <button onclick="addTeam()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-medium">➕ Thêm</button>
-      </div>
-      <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
-        <h3 class="text-lg font-bold mb-4">👥 Danh Sách Đội</h3>
-        <div id="team-list" class="space-y-2 text-sm">
-          <p class="text-slate-500">Chưa có đội nào</p>
+        <input id="umpire-pin-input" type="password" maxlength="6" placeholder="Mã PIN (Mặc định: 0000)" class="w-full text-center text-xl tracking-widest font-black bg-slate-100 dark:bg-slate-700 border-2 border-slate-200 dark:border-slate-600 focus:border-blue-500 rounded-xl py-3 outline-none">
+        <p id="umpire-pin-error" class="text-xs text-rose-500 font-bold hidden">⚠️ Mã PIN không đúng!</p>
+        <div class="grid grid-cols-2 gap-2 pt-2">
+          <button id="btn-close-pin-modal" class="py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl">Hủy</button>
+          <button id="btn-submit-pin" class="py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl shadow-md">XÁC NHẬN</button>
         </div>
       </div>
     </div>
 
-    <!-- Tab Lịch Thi Đấu -->
-    <div id="page-schedule" class="hidden">
-      <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-200 dark:border-slate-700 mb-4">
-        <h3 class="text-lg font-bold mb-4">➕ Tạo Trận Đấu Mới</h3>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-          <div>
-            <label class="text-sm font-medium mb-1 block">Ngày/Giờ</label>
-            <input type="datetime-local" id="match-time" class="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700">
-          </div>
-          <div>
-            <label class="text-sm font-medium mb-1 block">Địa điểm/Sân</label>
-            <input type="text" id="match-venue" placeholder="VD: Sân số 1" class="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700">
-          </div>
+    <!-- VIEW 1: MATCHES SCHEDULE -->
+    <section id="view-matches" class="space-y-4">
+      <!-- Filter Bar -->
+      <div class="bg-white dark:bg-slate-800 p-3 sm:p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-2 flex-1 min-w-[240px]">
+          <span class="text-sm">🔍</span>
+          <input id="match-search-input" type="text" placeholder="Tìm theo tên VĐV, tên đội..." class="w-full text-xs font-semibold bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-2 outline-none focus:border-amber-400">
         </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-          <div>
-            <label class="text-sm font-medium mb-1 block">Đội 1</label>
-            <select id="team-1" class="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700">
-              <option value="">-- Chọn đội 1 --</option>
-            </select>
-          </div>
-          <div>
-            <label class="text-sm font-medium mb-1 block">Đội 2</label>
-            <select id="team-2" class="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700">
-              <option value="">-- Chọn đội 2 --</option>
-            </select>
-          </div>
-        </div>
-        <button onclick="addMatch()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-medium">➕ Thêm Trận</button>
-      </div>
-      <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
-        <h3 class="text-lg font-bold mb-4">📅 Lịch Thi Đấu</h3>
-        <div id="match-list" class="space-y-3 text-sm">
-          <p class="text-slate-500">Chưa có trận đấu nào</p>
+        <div class="flex items-center gap-2">
+          <select id="match-filter-stage" class="text-xs font-bold bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-2 outline-none">
+            <option value="ALL">Tất cả các vòng</option>
+            <option value="GROUP">Vòng Bảng</option>
+            <option value="PLAYOFF">Vòng Loại Trực Tiếp (Knockout)</option>
+            <option value="CONSOLATION">Nhánh An Ủi (Seri B)</option>
+          </select>
+          <select id="match-filter-court" class="text-xs font-bold bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-2 outline-none">
+            <option value="ALL">Tất cả các Sân</option>
+          </select>
         </div>
       </div>
-    </div>
 
-    <!-- Tab Kết Quả -->
-    <div id="page-results" class="hidden">
-      <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
-        <h3 class="text-lg font-bold mb-4">🏆 Cập Nhật Kết Quả</h3>
-        <div id="pending-matches" class="space-y-3 mb-6">
-          <p class="text-slate-500">Không có trận đấu nào cần cập nhật kết quả</p>
+      <!-- Match Cards Grid -->
+      <div id="matches-grid-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <!-- Rendered dynamically -->
+      </div>
+    </section>
+
+    <!-- VIEW 2: COURTS DASHBOARD -->
+    <section id="view-courts" class="space-y-4 hidden">
+      <div class="flex items-center justify-between">
+        <h2 class="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+          <span>🏟️</span> BẢNG ĐIỀU PHỐI SÂN THI ĐẤU TRỰC TIẾP
+        </h2>
+        <span id="courts-count-badge" class="px-3 py-1 bg-amber-400 text-slate-950 font-black text-xs rounded-full shadow-sm">0 Sân Active</span>
+      </div>
+      <div id="courts-dashboard-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <!-- Rendered dynamically -->
+      </div>
+    </section>
+
+    <!-- VIEW 3: STANDINGS -->
+    <section id="view-standings" class="space-y-6 hidden">
+      <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-4">
+        <div class="flex items-center justify-between">
+          <h2 class="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+            <span>🏆</span> BẢNG XẾP HẠNG VÒNG BẢNG
+          </h2>
+          <span class="text-xs text-slate-500">Ưu tiên: Thắng > Đối đầu > Hiệu số</span>
         </div>
-        <h3 class="text-lg font-bold mb-4">✅ Kết Quả Đã Hoàn Thành</h3>
-        <div id="completed-matches" class="space-y-3 text-sm">
-          <p class="text-slate-500">Chưa có kết quả nào</p>
+        <div id="group-standings-container" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Rendered dynamically -->
         </div>
       </div>
-    </div>
 
-    <!-- Tab Bảng Xếp Hạng -->
-    <div id="page-standings" class="hidden">
-      <div class="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-200 dark:border-slate-700">
-        <h3 class="text-lg font-bold mb-4">📊 Bảng Xếp Hạng</h3>
+      <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-4">
+        <h2 class="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+          <span>🌟</span> BẢNG XẾP HẠNG CÁ NHÂN / ĐỘI XUẤT SẮC NHẤT
+        </h2>
         <div class="overflow-x-auto">
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="border-b border-slate-200 dark:border-slate-700 text-left">
-                <th class="py-2 px-2">#</th>
-                <th class="py-2 px-2">Đội</th>
-                <th class="py-2 px-2">Trận</th>
-                <th class="py-2 px-2">Thắng</th>
-               
+          <table class="w-full text-xs text-left">
+            <thead class="bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 uppercase font-black">
+              <tr>
+                <th class="p-3">Hạng</th>
+                <th class="p-3">Đội / VĐV</th>
+                <th class="p-3">Trình</th>
+                <th class="p-3 text-center">Trận</th>
+                <th class="p-3 text-center">Thắng</th>
+                <th class="p-3 text-center">Thua</th>
+                <th class="p-3 text-center">Hiệu Số Points</th>
+              </tr>
+            </thead>
+            <tbody id="individual-standings-tbody" class="divide-y divide-slate-200 dark:divide-slate-700 font-semibold">
+              <!-- Rendered dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 4: CONSOLATION (SERI B) -->
+    <section id="view-consolation" class="space-y-4 hidden">
+      <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-3">
+        <h2 class="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+          <span>🛡️</span> BẢNG AN ỦI (SERI B - DÀNH CHO CÁC ĐỘI DỪNG BƯỚC VÒNG BẢNG)
+        </h2>
+        <p class="text-xs text-slate-500">Giúp các đội bóng có thêm trải nghiệm cọ xát, không phải về nhà sớm!</p>
+        <div id="consolation-matches-container" class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+          <!-- Rendered dynamically -->
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 5: PRINT & QR CODE -->
+    <section id="view-print" class="space-y-4 hidden">
+      <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-4 print:p-0 print:border-none">
+        <div class="flex items-center justify-between print:hidden">
+          <h2 class="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+            <span>🖨️</span> IN LỊCH THI ĐẤU THEO SÂN & MÃ QR TRA CỨU
+          </h2>
+          <button onclick="window.print()" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-amber-400 font-black text-xs rounded-xl flex items-center gap-2 shadow-md">
+            <span>🖨️</span> In Ngay Trang Này
+          </button>
+        </div>
+
+        <div id="print-courts-container" class="space-y-6">
+          <!-- Rendered dynamically for printing -->
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 6: ZALO EXPORT -->
+    <section id="view-export" class="space-y-4 hidden">
+      <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-4">
+        <div class="flex items-center justify-between">
+          <h2 class="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+            <span>📲</span> TỔNG HỢP VĂN BẢN XUẤT ĐĂNG NHÓM ZALO
+          </h2>
+          <button id="btn-copy-zalo" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl flex items-center gap-2 shadow-md">
+            <span>📋</span> Sao Chép Đoạn Văn Bản
+          </button>
+        </div>
+        <textarea id="zalo-text-area" rows="16" class="w-full text-xs font-mono p-4 bg-slate-950 text-emerald-400 rounded-2xl border border-slate-800 outline-none focus:border-emerald-500 custom-scrollbar"></textarea>
+      </div>
+    </section>
+
+    <!-- VIEW 7: BTC ADMIN SETTINGS -->
+    <section id="view-settings" class="space-y-6 hidden">
+      <div class="bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-6">
+        <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-4">
+          <div>
+            <h2 class="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+              <span>🟡</span> THIẾT LẬP BAN TỔ CHỨC (BTC)
+            </h2>
+            <p class="text-xs text-slate-500">Cấu hình giải đấu, rải hạt giống theo trình độ VĐV và phân sân thi đấu</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button id="btn-export-backup" class="px-3 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-xs font-bold rounded-xl border border-slate-300 dark:border-slate-600">
+              💾 Sao Lưu JSON
+            </button>
+            <label class="px-3 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-xs font-bold rounded-xl border border-slate-300 dark:border-slate-600 cursor-pointer">
+              📥 Khôi Phục File
+              <input type="file" id="btn-import-backup" accept=".json" class="hidden">
+            </label>
+          </div>
+        </div>
+
+        <!-- Form Controls -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div class="space-y-1.5">
+            <label class="text-xs font-bold text-slate-700 dark:text-slate-300">Tên Giải Đấu</label>
+            <input id="cfg-tournament-name" type="text" class="w-full text-xs font-bold bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl p-2.5 outline-none focus:border-amber-400">
+          </div>
+          <div class="space-y-1.5">
+            <label class="text-xs font-bold text-slate-700 dark:text-slate-300">Số Lượng Sân Thi Đấu</label>
+            <input id="cfg-court-count" type="number" min="1" max="16" value="3" class="w-full text-xs font-bold bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl p-2.5 outline-none focus:border-amber-400">
+          </div>
+          <div class="space-y-1.5">
+            <label class="text-xs font-bold text-slate-700 dark:text-slate-300">Mã PIN Trọng Tài Mặc Định</label>
+            <input id="cfg-umpire-pin" type="text" maxlength="6" value="0000" class="w-full text-xs font-bold bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl p-2.5 outline-none focus:border-amber-400">
+          </div>
+          <div class="space-y-1.5">
+            <label class="text-xs font-bold text-slate-700 dark:text-slate-300">Thể Thức Vòng Bảng</label>
+            <select id="cfg-format-group" class="w-full text-xs font-bold bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl p-2.5 outline-none">
+              <option value="1_SET_11">1 Ván (11 Điểm - Thắng Cách 2)</option>
+              <option value="1_SET_15">1 Ván (15 Điểm - Thắng Cách 2)</option>
+              <option value="BEST_OF_3">Thắng 2/3 Ván (Mỗi Ván 11 Điểm)</option>
+            </select>
+          </div>
+          <div class="space-y-1.5">
+            <label class="text-xs font-bold text-slate-700 dark:text-slate-300">Thể Thức Vòng Knockout / Chung Kết</label>
+            <select id="cfg-format-playoff" class="w-full text-xs font-bold bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl p-2.5 outline-none">
+              <option value="BEST_OF_3">Thắng 2/3 Ván (Mỗi Ván 11 Điểm)</option>
+              <option value="1_SET_15">1 Ván (15 Điểm - Thắng Cách 2)</option>
+              <option value="1_SET_11">1 Ván (11 Điểm - Thắng Cách 2)</option>
+            </select>
+          </div>
+          <div class="space-y-1.5">
+            <label class="text-xs font-bold text-slate-700 dark:text-slate-300">Số Đội Đi Tiếp Mỗi Bảng</label>
+            <select id="cfg-advance-count" class="w-full text-xs font-bold bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl p-2.5 outline-none">
+              <option value="2">Top 2 Đội Đầu Bảng</option>
+              <option value="1">Chỉ 1 Đội Đầu Bảng</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Teams List & Rating Format Input -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <label class="text-xs font-bold text-slate-700 dark:text-slate-300">
+              Danh Sách Đội & Trình Độ VĐV (Định dạng: <code class="bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 px-1.5 py-0.5 rounded">Tên Đội | Trình | VĐV 1 - VĐV 2 | SĐT | CLB</code>)
+            </label>
+            <span class="text-[11px] text-slate-400">Trình hỗ trợ: A+, A, A-, B+, B, B-</span>
+          </div>
+          <textarea id="cfg-teams-input" rows="8" class="w-full text-xs font-mono p-3 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-2xl outline-none focus:border-amber-400 custom-scrollbar" placeholder="Đội Alpha | A+ | Nguyễn Văn A - Trần Văn B | 0901234567 | CLB Pickleball SG&#10;Đội Beta | A | Phạm Văn C - Lê Văn D | 0908888888 | CLB Hà Nội&#10;Đội Gamma | B+ | Hoàng Văn E - Ngô Văn F | 0912345678 | CLB Đà Nẵng"></textarea>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="pt-2 flex items-center justify-end gap-3">
+          <button id="btn-reset-demo" class="px-4 py-2.5 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 text-slate-800 dark:text-slate-200 text-xs font-bold rounded-xl transition-all">
+            ♻️ Tải Dữ Liệu Mẫu
+          </button>
+          <button id="btn-save-generate" class="px-6 py-2.5 bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-500 hover:to-yellow-600 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-amber-500/20 transition-all active:scale-95">
+            🚀 TẠO VÀ SẮP XẾP LỊCH THI ĐẤU TỰ ĐỘNG
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 8: FULLSCREEN UMPIRE SCOREBOARD -->
+    <section id="view-umpire" class="fixed inset-0 bg-slate-950 z-50 flex flex-col hidden text-white select-none">
+      <!-- Umpire Top Bar -->
+      <div class="bg-slate-900 border-b border-slate-800 p-3 flex items-center justify-between text-xs font-bold">
+        <button id="btn-close-umpire" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-xl text-slate-300 border border-slate-700">
+          ⬅️ Thoát
+        </button>
+        <div class="text-center">
+          <span id="umpire-match-title" class="text-amber-400 font-black">TRẬN ĐẤU SÂN 1</span>
+          <p id="umpire-match-subtitle" class="text-[10px] text-slate-400">Vòng Bảng · Thể thức 1 Ván 11 Điểm</p>
+        </div>
+        <button id="btn-umpire-undo" class="px-3 py-1.5 bg-rose-950/80 hover:bg-rose-900 border border-rose-800 text-rose-300 rounded-xl">
+          ↩️ Hoàn tác (Undo)
+        </button>
+      </div>
+
+      <!-- Court Switch Warning Banner -->
+      <div id="umpire-court-switch-banner" class="bg-amber-500 text-slate-950 px-4 py-2 text-center text-xs font-black animate-bounce hidden">
+        ⚠️ THÔNG BÁO: ĐẠT 6 ĐIỂM Ở VÁN QUYẾT ĐỊNH - HAI ĐỘI TIẾN HÀNH ĐỔI SÂN!
+      </div>
+
+      <!-- Scoreboard Display -->
+      <div class="flex-1 grid grid-cols-2 gap-2 p-2 sm:p-4">
+        <!-- Team 1 Side -->
+        <div id="umpire-t1-card" class="bg-slate-900/90 border-2 border-slate-800 rounded-3xl p-4 flex flex-col justify-between items-center text-center">
+          <div>
+            <span id="umpire-t1-serve-badge" class="px-3 py-1 bg-amber-400 text-slate-950 font-black text-[11px] rounded-full shadow-lg inline-block mb-2 invisible">
+              🎾 GIAO BÓNG (Server 1)
+            </span>
+            <h2 id="umpire-t1-name" class="text-xl sm:text-2xl font-black text-white">ĐỘI 1</h2>
+            <p id="umpire-t1-players" class="text-xs text-slate-400 mt-1">VĐV A - VĐV B</p>
+          </div>
+
+          <div class="my-auto">
+            <span id="umpire-t1-score" class="text-7xl sm:text-9xl font-black tracking-tighter text-amber-400">0</span>
+          </div>
+
+          <button id="btn-add-t1" class="w-full py-4 sm:py-6 bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-500 text-slate-950 font-black text-lg sm:text-xl rounded-2xl shadow-xl active:scale-95 transition-all">
+            +1 ĐIỂM (CỘNG ĐIỂM)
+          </button>
+        </div>
+
+        <!-- Team 2 Side -->
+        <div id="umpire-t2-card" class="bg-slate-900/90 border-2 border-slate-800 rounded-3xl p-4 flex flex-col justify-between items-center text-center">
+          <div>
+            <span id="umpire-t2-serve-badge" class="px-3 py-1 bg-amber-400 text-slate-950 font-black text-[11px] rounded-full shadow-lg inline-block mb-2 invisible">
+              🎾 GIAO BÓNG (Server 1)
+            </span>
+            <h2 id="umpire-t2-name" class="text-xl sm:text-2xl font-black text-white">ĐỘI 2</h2>
+            <p id="umpire-t2-players" class="text-xs text-slate-400 mt-1">VĐV C - VĐV D</p>
+          </div>
+
+          <div class="my-auto">
+            <span id="umpire-t2-score" class="text-7xl sm:text-9xl font-black tracking-tighter text-amber-400">0</span>
+          </div>
+
+          <button id="btn-add-t2" class="w-full py-4 sm:py-6 bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-500 text-slate-950 font-black text-lg sm:text-xl rounded-2xl shadow-xl active:scale-95 transition-all">
+            +1 ĐIỂM (CỘNG ĐIỂM)
+          </button>
+        </div>
+      </div>
+
+      <!-- Bottom Control Toolbar -->
+      <div class="bg-slate-900 border-t border-slate-800 p-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <button id="btn-umpire-fault" class="py-2.5 bg-rose-900/60 hover:bg-rose-900 text-rose-200 border border-rose-700/80 font-bold text-xs rounded-xl">
+          ⚠️ Đổi lượt / Sideout (Fault)
+        </button>
+        <button id="btn-umpire-golden-point" class="py-2.5 bg-yellow-500 hover:bg-yellow-600 text-slate-950 font-black text-xs rounded-xl shadow-md">
+          ⭐ ĐIỂM VÀNG QUYẾT ĐỊNH
+        </button>
+        <button id="btn-umpire-wo" class="py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 font-bold text-xs rounded-xl">
+          🏳️ Xử Thắng W.O / Bỏ cuộc
+        </button>
+        <button id="btn-umpire-finish" class="py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-xl shadow-md">
+          ✅ KẾT THÚC & KÝ BIÊN BẢN
+        </button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Application Logic JavaScript -->
+  <script>
+    // GLOBAL APPLICATION STATE
+    const APP_KEY = 'PICKLEBALL_PRO_STATE_V1';
+    
+    let STATE = {
+      isAdmin: false,
+      config: {
+        tournamentName: 'GIẢI PICKLEBALL MỞ RỘNG 2026',
+        courtCount: 3,
+        umpirePin: '0000',
+        formatGroup: '1_SET_11',
+        formatPlayoff: 'BEST_OF_3',
+        advanceCount: 2
+      },
+      teams: [],
+      matches: [],
+      auditLog: []
+    };
+
+    // Helper Selectors
+    const $ = id => document.getElementById(id);
+    const $$ = sel => document.querySelectorAll(sel);
+
+    // Initial Default Data Setup
+    const DEMO_TEAMS_TEXT = 
+`Đội Alpha | A+ | Nguyễn Văn A - Trần Văn B | 0901234567 | CLB Sài Gòn
+Đội Beta | A | Phạm Văn C - Lê Văn D | 0908888888 | CLB Hà Nội
+Đội Gamma | A- | Hoàng Văn E - Ngô Văn F | 0912345678 | CLB Đà Nẵng
+Đội Delta | B+ | Lý Văn G - Trịnh Văn H | 0922334455 | CLB Bình Dương
+Đội Epsilon | B | Võ Văn I - Bùi Văn K | 0933445566 | CLB Hải Phòng
+Đội Zeta | B- | Đặng Văn L - Đỗ Văn M | 0944556677 | CLB Can Tho`;
+
+    // System Initialization
+    window.addEventListener('DOMContentLoaded', () => {
+      loadState();
+      initEvents();
+      renderAll();
+    });
+
+    function loadState() {
+      const saved = localStorage.getItem(APP_KEY);
+      if (saved) {
+        try {
+          STATE = JSON.parse(saved);
+        } catch (e) {
+          console.error("Failed loading state", e);
+        }
+      }
+      if (!STATE.teams || STATE.teams.length === 0) {
+        parseTeamsInput(DEMO_TEAMS_TEXT);
+        generateMatchesSchedule();
+      }
+    }
+
+    function saveState() {
+      localStorage.setItem(APP_KEY, JSON.stringify(STATE));
+    }
+
+    // UI View Navigation
+    function showTab(tabName) {
+      const views = ['matches', 'courts', 'standings', 'consolation', 'print', 'export', 'settings'];
+      views.forEach(v => {
+        const el = $('view-' + v);
+        if (el) el.classList.add('hidden');
+      });
+
+      const activeView = $('view-' + tabName);
+      if (activeView) activeView.classList.remove('hidden');
+
+      // Update Tab Styles
+      $$('.tab-btn').forEach(btn => {
+        btn.classList.remove('bg-amber-400', 'text-slate-950', 'shadow-md');
+        btn.classList.add('text-slate-400');
+      });
+
+      const activeTabBtn = $('tab-' + tabName);
+      if (activeTabBtn) {
+        activeTabBtn.classList.add('bg-amber-400', 'text-slate-950', 'shadow-md');
+        activeTabBtn.classList.remove('text-slate-400');
+      }
+
+      renderAll();
+    }
+
+    // Parse Input Teams & Rating System
+    function parseTeamsInput(text) {
+      const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+      const ratingWeight = { 'A+': 6, 'A': 5, 'A-': 4, 'B+': 3, 'B': 2, 'B-': 1 };
+
+      STATE.teams = lines.map((line, idx) => {
+        const parts = line.split('|').map(p => p.trim());
+        const name = parts[0] || `Đội ${idx + 1}`;
+        const rating = parts[1] || 'B';
+        const players = parts[2] || 'VĐV 1 - VĐV 2';
+        const phone = parts[3] || '';
+        const club = parts[4] || '';
+
+        return {
+          id: 'T' + (idx + 1),
+          name,
+          rating,
+          weight: ratingWeight[rating] || 1,
+          players,
+          phone,
+          club
+        };
+      });
+    }
+
+    // Automatic Smart Seeding & Match Generator Algorithm
+    function generateMatchesSchedule() {
+      STATE.matches = [];
+      const numCourts = parseInt(STATE.config.courtCount) || 3;
+      
+      // Sort teams by skill rating (Snake Seeding)
+      const sortedTeams = [...STATE.teams].sort((a,b) => b.weight - a.weight);
+      const numGroups = Math.max(2, Math.ceil(sortedTeams.length / 4));
+      const groups = Array.from({ length: numGroups }, () => []);
+
+      // Snake Distribution
+      sortedTeams.forEach((team, idx) => {
+        const groupIdx = (Math.floor(idx / numGroups) % 2 === 0) 
+          ? (idx % numGroups) 
+          : (numGroups - 1 - (idx % numGroups));
+        groups[groupIdx].push(team);
+      });
+
+      // Round Robin Matches per group
+      let matchCounter = 1;
+      let courtAssignments = 1;
+
+      groups.forEach((grpTeams, gIdx) => {
+        const groupLabel = String.fromCharCode(65 + gIdx); // Group A, B, C...
+        grpTeams.forEach(t => t.group = groupLabel);
+
+        for (let i = 0; i < grpTeams.length; i++) {
+          for (let j = i + 1; j < grpTeams.length; j++) {
+            const courtNum = ((courtAssignments - 1) % numCourts) + 1;
+            STATE.matches.push({
+              id: 'M' + matchCounter,
+              code: `M${matchCounter}`,
+              stage: 'GROUP',
+              groupLabel: `Bảng ${groupLabel}`,
+              court: courtNum,
+              team1: grpTeams[i],
+              team2: grpTeams[j],
+              score1: 0,
+              score2: 0,
+              sets1: 0,
+              sets2: 0,
+              server: 1, // Server 1 or 2
+              servingTeam: 1,
+              status: 'PENDING', // PENDING, PLAYING, FINISHED
+              logs: []
+            });
+            matchCounter++;
+            courtAssignments++;
+          }
+        }
+      });
+
+      saveState();
+    }
+
+    // Render Event & UI Controller
+    function initEvents() {
+      $('tab-matches').onclick = () => showTab('matches');
+      $('tab-courts').onclick = () => showTab('courts');
+      $('tab-standings').onclick = () => showTab('standings');
+      $('tab-consolation').onclick = () => showTab('consolation');
+      $('tab-print').onclick = () => showTab('print');
+      $('tab-export').onclick = () => showTab('export');
+      $('tab-settings').onclick = () => showTab('settings');
+
+      // Admin Login Modal Trigger
+      $('btn-admin-auth').onclick = () => {
+        if (STATE.isAdmin) {
+          showTab('settings');
+        } else {
+          $('admin-login-error').classList.add('hidden');
+          $('admin-password-modal-input').value = '';
+          $('admin-login-modal').classList.remove('hidden');
+          setTimeout(() => $('admin-password-modal-input').focus(), 100);
+        }
+      };
+
+      $('btn-close-admin-modal').onclick = () => {
+        $('admin-login-modal').classList.add('hidden');
+      };
+
+      $('btn-submit-admin-login').onclick = () => {
+        const pass = $('admin-password-modal-input').value;
+        if (pass === '1234') {
+          STATE.isAdmin = true;
+          $('admin-status-icon').textContent = '🟢';
+          $('admin-status-text').textContent = 'Admin (Đã vào)';
+          $('admin-login-modal').classList.add('hidden');
+          showTab('settings');
+          saveState();
+        } else {
+          $('admin-login-error').classList.remove('hidden');
+        }
+      };
+
+      $('admin-password-modal-input').onkeydown = (e) => {
+        if (e.key === 'Enter') $('btn-submit-admin-login').click();
+      };
+
+      // Config Form Triggers
+      $('btn-reset-demo').onclick = () => {
+        $('cfg-teams-input').value = DEMO_TEAMS_TEXT;
+      };
+
+      $('btn-save-generate').onclick = () => {
+        STATE.config.tournamentName = $('cfg-tournament-name').value || 'GIẢI PICKLEBALL MỞ RỘNG';
+        STATE.config.courtCount = parseInt($('cfg-court-count').value) || 3;
+        STATE.config.umpirePin = $('cfg-umpire-pin').value || '0000';
+        STATE.config.formatGroup = $('cfg-format-group').value;
+        STATE.config.formatPlayoff = $('cfg-format-playoff').value;
+        STATE.config.advanceCount = parseInt($('cfg-advance-count').value) || 2;
+
+        parseTeamsInput($('cfg-teams-input').value);
+        generateMatchesSchedule();
+        renderAll();
+        showTab('matches');
+        alert('✅ Đã khởi tạo và tự động phân sân thi đấu thành công!');
+      };
+
+      // Filters
+      $('match-search-input').oninput = renderMatches;
+      $('match-filter-stage').onchange = renderMatches;
+      $('match-filter-court').onchange = renderMatches;
+
+      // Copy Zalo Text
+      $('btn-copy-zalo').onclick = () => {
+        const area = $('zalo-text-area');
+        area.select();
+        document.execCommand('copy');
+        alert('📋 Đã sao chép nội dung bảng đấu để dán vào nhóm Zalo!');
+      };
+    }
+
+    // Render Master Functions
+    function renderAll() {
+      $('header-tournament-name').textContent = STATE.config.tournamentName;
+      renderMatches();
+      renderCourts();
+      renderStandings();
+      renderPrintView();
+      renderZaloText();
+      populateSettingsForm();
+    }
+
+    function populateSettingsForm() {
+      $('cfg-tournament-name').value = STATE.config.tournamentName;
+      $('cfg-court-count').value = STATE.config.courtCount;
+      $('cfg-umpire-pin').value = STATE.config.umpirePin;
+      $('cfg-format-group').value = STATE.config.formatGroup;
+      $('cfg-format-playoff').value = STATE.config.formatPlayoff;
+      $('cfg-advance-count').value = STATE.config.advanceCount;
+
+      if (!$('cfg-teams-input').value) {
+        $('cfg-teams-input').value = STATE.teams.map(t => `${t.name} | ${t.rating} | ${t.players} | ${t.phone} | ${t.club}`).join('\n');
+      }
+    }
+
+    // Render View 1: Matches Grid
+    function renderMatches() {
+      const container = $('matches-grid-container');
+      container.innerHTML = '';
+
+      const search = $('match-search-input').value.toLowerCase();
+      const stageFilter = $('match-filter-stage').value;
+      const courtFilter = $('match-filter-court').value;
+
+      // Update Court Dropdown Filter Options
+      const courtSelect = $('match-filter-court');
+      courtSelect.innerHTML = '<option value="ALL">Tất cả các Sân</option>';
+      for (let i = 1; i <= STATE.config.courtCount; i++) {
+        courtSelect.innerHTML += `<option value="${i}">🏟️ Sân ${i}</option>`;
+      }
+      courtSelect.value = courtFilter;
+
+      const filtered = STATE.matches.filter(m => {
+        const matchText = `${m.team1.name} ${m.team2.name} ${m.team1.players} ${m.team2.players}`.toLowerCase();
+        const matchesSearch = matchText.includes(search);
+        const matchesStage = (stageFilter === 'ALL') || (m.stage === stageFilter);
+        const matchesCourt = (courtFilter === 'ALL') || (m.court.toString() === courtFilter);
+        return matchesSearch && matchesStage && matchesCourt;
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-full text-center py-12 bg-white dark:bg-slate-800 rounded-3xl border border-dashed border-slate-300 dark:border-slate-700">
+            <span class="text-4xl">🏓</span>
+            <p class="text-xs font-bold text-slate-500 mt-2">Chưa có trận đấu nào phù hợp với bộ lọc!</p>
+          </div>
+        `;
+        return;
+      }
+
+      filtered.forEach(m => {
+        const isFinished = m.status === 'FINISHED';
+        const card = document.createElement('div');
+        card.className = "bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm border border-slate-200 dark:border-slate-700 space-y-3 relative overflow-hidden";
+        
+        card.innerHTML = `
+          <div class="flex items-center justify-between text-xs font-bold border-b border-slate-100 dark:border-slate-700 pb-2">
+            <span class="px-2.5 py-1 bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 rounded-lg">
+              🏟️ SÂN ${m.court} · ${m.groupLabel}
+            </span>
+            <span class="${isFinished ? 'text-emerald-500 font-black' : 'text-slate-400'}">
+              ${isFinished ? '✅ Đã Kết Thúc' : '⏳ Chờ Thi Đấu'}
+            </span>
+          </div>
+
+          <div class="space-y-2">
+            <div class="flex items-center justify-between font-bold text-sm">
+              <span class="text-slate-900 dark:text-white">${m.team1.name} <span class="text-[10px] text-amber-500">(${m.team1.rating})</span></span>
+              <span class="text-lg font-black ${m.score1 > m.score2 ? 'text-amber-500' : ''}">${m.score1}</span>
+            </div>
+            <div class="flex items-center justify-between font-bold text-sm">
+              <span class="text-slate-900 dark:text-white">${m.team2.name} <span class="text-[10px] text-amber-500">(${m.team2.rating})</span></span>
+              <span class="text-lg font-black ${m.score2 > m.score1 ? 'text-amber-500' : ''}">${m.score2}</span>
+            </div>
+          </div>
+
+          <div class="pt-2 flex items-center justify-between gap-2 border-t border-slate-100 dark:border-slate-700">
+            <button onclick="openUmpireScoreboard('${m.id}')" class="w-full py-2 bg-slate-900 hover:bg-slate-800 text-amber-400 font-black text-xs rounded-xl shadow-md flex items-center justify-center gap-1">
+              <span>⚡</span> <span>Bàn Trọng Tài</span>
+            </button>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    // Render View 2: Courts Dashboard
+    function renderCourts() {
+      const container = $('courts-dashboard-container');
+      container.innerHTML = '';
+      const numCourts = parseInt(STATE.config.courtCount) || 3;
+      $('courts-count-badge').textContent = `${numCourts} Sân Active`;
+
+      for (let c = 1; c <= numCourts; c++) {
+        const courtMatches = STATE.matches.filter(m => m.court === c);
+        const currentMatch = courtMatches.find(m => m.status === 'PLAYING') || courtMatches.find(m => m.status === 'PENDING');
+        const nextMatch = courtMatches.filter(m => m.status === 'PENDING' && m !== currentMatch)[0];
+
+        const card = document.createElement('div');
+        card.className = "bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-200 dark:border-slate-700 space-y-4";
+        card.innerHTML = `
+          <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-3">
+            <h3 class="font-black text-base text-slate-900 dark:text-white flex items-center gap-2">
+              <span>🏟️</span> SÂN THI ĐẤU SỐ ${c}
+            </h3>
+            <span class="px-2.5 py-1 bg-emerald-500/10 text-emerald-500 font-bold text-xs rounded-full">Sẵn sàng</span>
+          </div>
+
+          <!-- Current Playing -->
+          <div class="space-y-2">
+            <span class="text-[11px] font-black tracking-wider uppercase text-amber-500 flex items-center gap-1">
+              <span>🔴</span> TRẬN ĐANG ĐẤU / CHUẨN BỊ:
+            </span>
+            ${currentMatch ? `
+              <div class="bg-slate-50 dark:bg-slate-700/50 p-3 rounded-2xl border border-slate-200 dark:border-slate-600 space-y-1">
+                <div class="flex justify-between font-bold text-xs">
+                  <span>${currentMatch.team1.name} vs ${currentMatch.team2.name}</span>
+                  <span class="text-amber-500 font-black">${currentMatch.score1} - ${currentMatch.score2}</span>
+                </div>
+                <p class="text-[10px] text-slate-400">${currentMatch.groupLabel} · ${currentMatch.team1.players} - ${currentMatch.team2.players}</p>
+              </div>
+            ` : '<p class="text-xs text-slate-400 font-medium italic">Sân trống (Không có trận)</p>'}
+          </div>
+
+          <!-- Next Match -->
+          <div class="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-700">
+            <span class="text-[11px] font-black tracking-wider uppercase text-slate-400 flex items-center gap-1">
+              <span>⏳</span> TRẬN TIẾP THEO MỜI VĐV CHUẨN BỊ:
+            </span>
+            ${nextMatch ? `
+              <div class="bg-slate-100 dark:bg-slate-800 p-2.5 rounded-xl text-xs font-semibold space-y-0.5">
+                <div class="font-bold text-slate-800 dark:text-slate-200">${nextMatch.team1.name} vs ${nextMatch.team2.name}</div>
+                <div class="text-[10px] text-slate-400">${nextMatch.groupLabel}</div>
+              </div>
+            ` : '<p class="text-xs text-slate-400 font-medium italic">Hết trận chờ</p>'}
+          </div>
+        `;
+        container.appendChild(card);
+      }
+    }
+
+    // Render View 3: Group Standings Algorithm
+    function renderStandings() {
+      const container = $('group-standings-container');
+      container.innerHTML = '';
+
+      const groups = {};
+      STATE.teams.forEach(t => {
+        const g = t.group || 'A';
+        if (!groups[g]) groups[g] = [];
+        groups[g].push(t);
+      });
+
+      Object.keys(groups).sort().forEach(gKey => {
+        const teamsInGroup = groups[gKey];
+        const stats = teamsInGroup.map(t => {
+          let played = 0, won = 0, lost = 0, ptsFor = 0, ptsAgainst = 0;
+          STATE.matches.filter(m => m.stage === 'GROUP' && m.status === 'FINISHED').forEach(m => {
+            if (m.team1.id === t.id) {
+              played++;
+              ptsFor += m.score1;
+              ptsAgainst += m.score2;
+              if (m.score1 > m.score2) won++; else lost++;
+            } else if (m.team2.id === t.id) {
+              played++;
+              ptsFor += m.score2;
+              ptsAgainst += m.score1;
+              if (m.score2 > m.score1) won++; else lost++;
+            }
+          });
+          return {
+            team: t,
+            played, won, lost, ptsFor, ptsAgainst,
+            diff: ptsFor - ptsAgainst,
+            points: won * 2
+          };
+        });
+
+        // Sort algorithm: Points > Diff > Total Points
+        stats.sort((a,b) => b.points - a.points || b.diff - a.diff || b.ptsFor - a.ptsFor);
+
+        const groupEl = document.createElement('div');
+        groupEl.className = "bg-slate-50 dark:bg-slate-700/40 p-4 rounded-2xl border border-slate-200 dark:border-slate-600 space-y-3";
+        groupEl.innerHTML = `
+          <h3 class="font-black text-sm text-slate-900 dark:text-white flex items-center justify-between">
+            <span>🚩 BẢNG ${gKey}</span>
+            <span class="text-xs text-amber-500 font-bold">${stats.length} Đội</span>
+          </h3>
+          <table class="w-full text-xs text-left">
+            <thead class="text-[10px] text-slate-400 uppercase font-black border-b border-slate-200 dark:border-slate-600">
+              <tr>
+                <th class="py-1.5">Đội</th>
+                <th class="py-1.5 text-center">T</th>
+                <th class="py-1.5 text-center">B</th>
+                <th class="py-1.5 text-center">HS</th>
+                <th class="py-1.5 text-right">Điểm</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200 dark:divide-slate-600 font-semibold">
+              ${stats.map((s, idx) => `
+                <tr class="${idx < STATE.config.advanceCount ? 'text-amber-500 font-bold' : ''}">
+                  <td class="py-2 flex items-center gap-1.5">
+                    <span class="w-4 text-center font-black">${idx + 1}</span>
+                    <span>${s.team.name}</span>
+                  </td>
+                  <td class="py-2 text-center text-emerald-500">${s.won}</td>
+                  <td class="py-2 text-center text-rose-500">${s.lost}</td>
+                  <td class="py-2 text-center">${s.diff > 0 ? '+' + s.diff : s.diff}</td>
+                  <td class="py-2 text-right font-black text-amber-500">${s.points}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+        container.appendChild(groupEl);
+      });
+    }
+
+    // Render View 5: Print & QR View
+    function renderPrintView() {
+      const container = $('print-courts-container');
+      container.innerHTML = '';
+
+      for (let c = 1; c <= STATE.config.courtCount; c++) {
+        const matches = STATE.matches.filter(m => m.court === c);
+        const section = document.createElement('div');
+        section.className = "p-4 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-3 break-inside-avoid";
+        section.innerHTML = `
+          <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-2">
+            <h3 class="font-black text-base text-slate-900 dark:text-white">🏟️ LỊCH THI ĐẤU SÂN SỐ ${c}</h3>
+            <div id="qrcode-court-${c}" class="w-12 h-12"></div>
+          </div>
+          <table class="w-full text-xs text-left">
+            <thead class="bg-slate-100 dark:bg-slate-700 font-bold">
+              <tr>
+                <th class="p-2">Mã</th>
+                <th class="p-2">Vòng</th>
+                <th class="p-2">Đội 1</th>
+                <th class="p-2">Đội 2</th>
+                <th class="p-2 text-center">Tỷ Số</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
+              ${matches.map(m => `
+                <tr>
+                  <td class="p-2 font-bold">${m.code}</td>
+                  <td class="p-2">${m.groupLabel}</td>
+                  <td class="p-2 font-semibold">${m.team1.name}</td>
+                  <td class="p-2 font-semibold">${m.team2.name}</td>
+                  <td class="p-2 text-center font-black">${m.score1} - ${m.score2}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+        container.appendChild(section);
+
+        // Generate QR Code for Court
+        setTimeout(() => {
+          const qrDiv = $(`qrcode-court-${c}`);
+          if (qrDiv) {
+            const qr = qrcode(0, 'M');
+            qr.addData(window.location.href);
+            qr.make();
+            qrDiv.innerHTML = qr.createImgTag(3);
+          }
+        }, 100);
+      }
+    }
+
+    // Render View 6: Zalo Export Format
+    function renderZaloText() {
+      let txt = `🏆 ${STATE.config.tournamentName.toUpperCase()} 🏆\n`;
+      txt += `📅 TỔNG HỢP KẾT QUẢ THI ĐẤU CẬP NHẬT TỰ ĐỘNG\n`;
+      txt += `-----------------------------------\n\n`;
+
+      for (let c = 1; c <= STATE.config.courtCount; c++) {
+        txt += `🏟️ SÂN THI ĐẤU SỐ ${c}:\n`;
+        const matches = STATE.matches.filter(m => m.court === c);
+        matches.forEach(m => {
+          const status = m.status === 'FINISHED' ? `[${m.score1} - ${m.score2}]` : `(Chờ đấu)`;
+          txt += `• ${m.code} (${m.groupLabel}): ${m.team1.name} vs ${m.team2.name} ${status}\n`;
+        });
+        txt += `\n`;
+      }
+
+      txt += `👉 Tra cứu trực tiếp bảng xếp hạng tại link giải đấu!`;
+      $('zalo-text-area').value = txt;
+    }
+
+    // UMPIRE SCOREBOARD CONTROLLER & RULES
+    let currentMatchId = null;
+
+    function openUmpireScoreboard(matchId) {
+      currentMatchId = matchId;
+      const match = STATE.matches.find(m => m.id === matchId);
+      if (!match) return;
+
+      $('umpire-match-title').textContent = `TRẬN SÂN ${match.court} · ${match.code}`;
+      $('umpire-match-subtitle').textContent = `${match.groupLabel} · ${STATE.config.formatGroup}`;
+
+      $('umpire-t1-name').textContent = match.team1.name;
+      $('umpire-t1-players').textContent = match.team1.players;
+
+      $('umpire-t2-name').textContent = match.team2.name;
+      $('umpire-t2-players').textContent = match.team2.players;
+
+      updateUmpireUI();
+
+      // Button Binds
+      $('btn-add-t1').onclick = () => addPoint(1);
+      $('btn-add-t2').onclick = () => addPoint(2);
+      $('btn-umpire-fault').onclick = handleFault;
+      $('btn-umpire-golden-point').onclick = () => addPoint(match.servingTeam);
+      $('btn-umpire-undo').onclick = handleUndo;
+      $('btn-close-umpire').onclick = closeUmpireScoreboard;
+      $('btn-umpire-finish').onclick = finishMatch;
+
+      $('view-umpire').classList.remove('hidden');
+    }
+
+    function closeUmpireScoreboard() {
+      $('view-umpire').classList.add('hidden');
+      renderAll();
+    }
+
+    function updateUmpireUI() {
+      const m = STATE.matches.find(m => m.id === currentMatchId);
+      if (!m) return;
+
+      $('umpire-t1-score').textContent = m.score1;
+      $('umpire-t2-score').textContent = m.score2;
+
+      // Update Serve Badges
+      const b1 = $('umpire-t1-serve-badge');
+      const b2 = $('umpire-t2-serve-badge');
+
+      if (m.servingTeam === 1) {
+        b1.classList.remove('invisible');
+        b2.classList.add('invisible');
+        b1.textContent = `🎾 GIAO BÓNG (Server ${m.server})`;
+      } else {
+        b2.classList.remove('invisible');
+        b1.classList.add('invisible');
+        b2.textContent = `🎾 GIAO BÓNG (Server ${m.server})`;
+      }
+
+      // Check Court Switch Rule (At 6 points in decisive ván)
+      if (m.score1 === 6 || m.score2 === 6) {
+        $('umpire-court-switch-banner').classList.remove('hidden');
+      } else {
+        $('umpire-court-switch-banner').classList.add('hidden');
+      }
+    }
+
+    function addPoint(teamNum) {
+      const m = STATE.matches.find(m => m.id === currentMatchId);
+      if (!m) return;
+
+      // Log Undo State
+      m.logs.push(JSON.parse(JSON.stringify({ score1: m.score1, score2: m.score2, server: m.server, servingTeam: m.servingTeam })));
+
+      if (teamNum === 1) m.score1++; else m.score2++;
+      m.status = 'PLAYING';
+
+      updateUmpireUI();
+      saveState();
+    }
+
+    function handleFault() {
+      const m = STATE.matches.find(m => m.id === currentMatchId);
+      if (!m) return;
+
+      m.logs.push(JSON.parse(JSON.stringify({ score1: m.score1, score2: m.score2, server: m.server, servingTeam: m.servingTeam })));
+
+      if (m.server === 1) {
+        m.server = 2;
+      } else {
+        // Sideout -> Change serving team
+        m.server = 1;
+        m.servingTeam = m.servingTeam === 1 ? 2 : 1;
+      }
+
+      updateUmpireUI();
+      saveState();
+    }
+
+    function handleUndo() {
+      const m = STATE.matches.find(m => m.id === currentMatchId);
+      if (!m || !m.logs || m.logs.length === 0) return;
+
+      const lastState = m.logs.pop();
+      m.score1 = lastState.score1;
+      m.score2 = lastState.score2;
+      m.server = lastState.server;
+      m.servingTeam = lastState.servingTeam;
+
+      updateUmpireUI();
+      saveState();
+    }
+
+    function finishMatch() {
+      const m = STATE.matches.find(m => m.id === currentMatchId);
+      if (!m) return;
+
+      m.status = 'FINISHED';
+      saveState();
+      
+      confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+      alert('🎉 Trận đấu đã kết thúc thành công và ghi nhận kết quả!');
+      closeUmpireScoreboard();
+    }
+  </script>
+</body>
+</html>
