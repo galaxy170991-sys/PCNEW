@@ -62,28 +62,41 @@
   button { touch-action: manipulation; }
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  .input-sm { font-size: 0.875rem; padding: 0.5rem 0.75rem; }
+  .tag { display: inline-block; padding: 0.125rem 0.5rem; border-radius: 0.375rem; font-size: 0.75rem; font-weight: 600; }
+  .tag-pending { background: #fef3c7; color: #92400e; }
+  .tag-live { background: #d1fae5; color: #065f46; }
+  .tag-done { background: #e0e7ff; color: #3730a3; }
+  .tag-cancelled { background: #fee2e2; color: #991b1b; }
+  .modal-backdrop { background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(4px); }
 </style>
 </head>
 <body class="min-h-screen pb-12 transition-colors duration-200">
 <main class="max-w-4xl mx-auto px-3 sm:px-4 pt-4">
-
   <!-- Toast Notification -->
   <div id="toast" class="fixed bottom-4 right-4 z-50 transform translate-y-20 opacity-0 transition-all duration-300 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl border border-slate-700 text-sm flex items-center gap-2 pointer-events-none">
     <span id="toast-icon">ℹ️</span>
     <span id="toast-msg"></span>
   </div>
 
-  <!-- Modal Nhập Pass Admin -->
-  <div id="pass-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm hidden">
+  <!-- Modal Xác thực Admin -->
+  <div id="pass-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop hidden">
     <div class="bg-card w-full max-w-sm rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4">
       <div class="text-center">
         <div class="text-3xl mb-2">🔐</div>
         <h3 class="font-extrabold text-lg text-slate-800 dark:text-slate-100">Xác thực Ban Tổ Chức</h3>
-        <p class="text-xs text-slate-500 mt-1">Vui lòng nhập mật khẩu Admin để quản trị giải đấu</p>
+        <p class="text-xs text-slate-500 mt-1">Nhập tên và mật khẩu để quản trị giải đấu</p>
       </div>
-      <div>
-        <input type="password" id="pass-input" placeholder="Nhập mật khẩu..." class="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-center text-lg font-bold outline-none focus:ring-2 focus:ring-brand-500">
-        <div id="pass-error" class="text-xs text-red-500 font-bold text-center mt-1.5 hidden">Mật khẩu không chính xác!</div>
+      <div class="space-y-3">
+        <div>
+          <label class="text-sm font-medium text-slate-600 dark:text-slate-400 block mb-1">Tên người dùng</label>
+          <input type="text" id="admin-name" placeholder="Tên BTC / Trọng tài" class="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-center outline-none focus:ring-2 focus:ring-brand-500">
+        </div>
+        <div>
+          <label class="text-sm font-medium text-slate-600 dark:text-slate-400 block mb-1">Mật khẩu Admin</label>
+          <input type="password" id="pass-input" placeholder="Nhập mật khẩu..." class="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-center text-lg font-bold outline-none focus:ring-2 focus:ring-brand-500">
+          <div id="pass-error" class="text-xs text-red-500 font-bold text-center mt-1.5 hidden">Mật khẩu không chính xác!</div>
+        </div>
       </div>
       <div class="flex gap-2 pt-1">
         <button id="pass-cancel" class="flex-1 py-2.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-sm rounded-xl">Hủy</button>
@@ -92,17 +105,29 @@
     </div>
   </div>
 
-  <!-- Modal Confirm cho Trọng tài / Admin -->
-  <div id="confirm-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm hidden">
+  <!-- Modal Xác nhận -->
+  <div id="confirm-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop hidden">
     <div class="bg-card w-full max-w-sm rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4">
       <div class="text-center">
-        <div class="text-3xl mb-2">🏁</div>
-        <h3 class="font-extrabold text-lg text-slate-800 dark:text-slate-100">Xác nhận kết thúc trận đấu</h3>
-        <p id="modal-desc" class="text-sm text-slate-600 dark:text-slate-400 mt-1"></p>
+        <div class="text-3xl mb-2" id="confirm-icon">🏁</div>
+        <h3 class="font-extrabold text-lg text-slate-800 dark:text-slate-100" id="confirm-title">Xác nhận</h3>
+        <p id="confirm-desc" class="text-sm text-slate-600 dark:text-slate-400 mt-1"></p>
       </div>
       <div class="flex gap-2 pt-2">
-        <button id="modal-cancel" class="flex-1 py-2.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-sm rounded-xl">Hủy</button>
-        <button id="modal-confirm" class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm rounded-xl shadow">Xác nhận</button>
+        <button id="confirm-cancel" class="flex-1 py-2.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-sm rounded-xl">Hủy</button>
+        <button id="confirm-ok" class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm rounded-xl shadow">Xác nhận</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Ghi chú trận đấu -->
+  <div id="note-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop hidden">
+    <div class="bg-card w-full max-w-sm rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4">
+      <h3 class="font-bold text-lg">📝 Ghi chú trận đấu</h3>
+      <textarea id="note-content" rows="4" placeholder="Nhập ghi chú: chấn thương, cảnh báo, tranh chấp, lý do trễ..." class="w-full p-3 border border-slate-300 dark:border-slate-700 rounded-lg dark:bg-slate-800"></textarea>
+      <div class="flex gap-2">
+        <button id="note-cancel" class="flex-1 py-2 bg-slate-200 dark:bg-slate-700 rounded-lg">Đóng</button>
+        <button id="note-save" class="flex-1 py-2 bg-brand-600 text-white rounded-lg">Lưu</button>
       </div>
     </div>
   </div>
@@ -111,21 +136,36 @@
   <header class="bg-gradient-to-r from-brand-700 via-brand-600 to-teal-700 text-white p-4 sm:p-6 rounded-2xl shadow-xl mb-4">
     <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
       <div class="flex items-center gap-3 flex-1 min-w-[240px]">
-        <span class="bg-white/10 p-2 rounded-2xl shadow-inner inline-flex"><svg viewBox="0 0 24 24" style="display:block;width:2.4rem;height:2.4rem" aria-hidden="true"><circle cx="12" cy="12" r="10.6" fill="#fbbf24" stroke="#b45309" stroke-width="1.2"/><g fill="#b45309"><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="6.4" r="1.5"/><circle cx="12" cy="17.6" r="1.5"/><circle cx="7.2" cy="9.2" r="1.5"/><circle cx="16.8" cy="9.2" r="1.5"/><circle cx="7.2" cy="14.8" r="1.5"/><circle cx="16.8" cy="14.8" r="1.5"/><circle cx="4.9" cy="12" r="1"/><circle cx="19.1" cy="12" r="1"/></g></svg></span>
+        <span class="bg-white/10 p-2 rounded-2xl shadow-inner inline-flex">
+          <svg viewBox="0 0 24 24" style="display:block;width:2.4rem;height:2.4rem" aria-hidden="true">
+            <circle cx="12" cy="12" r="10.6" fill="#fbbf24" stroke="#b45309" stroke-width="1.2"/>
+            <g fill="#b45309">
+              <circle cx="12" cy="12" r="1.5"/>
+              <circle cx="12" cy="6.4" r="1.5"/>
+              <circle cx="12" cy="17.6" r="1.5"/>
+              <circle cx="7.2" cy="9.2" r="1.5"/>
+              <circle cx="16.8" cy="9.2" r="1.5"/>
+              <circle cx="7.2" cy="14.8" r="1.5"/>
+              <circle cx="16.8" cy="14.8" r="1.5"/>
+              <circle cx="4.9" cy="12" r="1"/>
+              <circle cx="19.1" cy="12" r="1"/>
+            </g>
+          </svg>
+        </span>
         <div class="flex-1">
           <span class="text-[11px] uppercase tracking-widest text-emerald-200 font-bold block mb-0.5">GIẢI ĐẤU PICKLEBALL</span>
-          <!-- Tên giải đấu được làm nổi bật và dễ nhận diện hơn trên điện thoại -->
           <input id="name" aria-label="Tên giải đấu" class="text-2xl sm:text-3xl font-black bg-transparent border-b-2 border-white/50 focus:border-white outline-none w-full text-white placeholder-white/60 transition-colors py-0.5">
         </div>
       </div>
       
-      <div class="flex items-center gap-2">
-        <button id="btn-share-view" title="Chia sẻ đường dẫn xem giải cho VĐV" class="bg-white/20 hover:bg-white/30 backdrop-blur-md text-white font-medium text-xs sm:text-sm px-3 py-2 rounded-xl border border-white/20 flex items-center gap-1.5 transition-all">
+      <div class="flex items-center gap-2 flex-wrap">
+        <button id="btn-backup" title="Sao lưu / Khôi phục dữ liệu" class="bg-white/20 hover:bg-white/30 backdrop-blur-md text-white font-medium text-xs px-2 py-1.5 rounded-xl border border-white/20 flex items-center gap-1">💾 <span class="hidden sm:inline">Sao lưu</span></button>
+        <button id="btn-share-view" title="Chia sẻ link xem giải cho VĐV" class="bg-white/20 hover:bg-white/30 backdrop-blur-md text-white font-medium text-xs sm:text-sm px-3 py-2 rounded-xl border border-white/20 flex items-center gap-1.5 transition-all">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
           <span class="hidden sm:inline">🔗 Link Xem Giải</span>
         </button>
         <button id="btn-admin-toggle" title="Chuyển sang chế độ Admin Ban Tổ Chức" class="bg-amber-400 hover:bg-amber-300 text-slate-900 font-bold text-xs sm:text-sm px-3 py-2 rounded-xl border border-amber-300 flex items-center gap-1.5 transition-all shadow-md">
-          🔐 <span class="hidden sm:inline">Vào BTC (Admin)</span>
+          🔐 <span class="hidden sm:inline">Vào BTC</span>
         </button>
         <button id="btn-theme" title="Đổi giao diện Sáng/Tối" class="bg-white/20 hover:bg-white/30 backdrop-blur-md text-white p-2 rounded-xl border border-white/20 transition-all">
           🌙
@@ -147,1857 +187,109 @@
 
   <!-- Main View -->
   <div id="view" class="space-y-4"></div>
-
 </main>
 
 <script>
+// ============================================================
+// CẤU HÌNH CƠ SỞ
+// ============================================================
 const KEY = 'pb-tournament-v8';
 const BALL = '<svg viewBox="0 0 24 24" style="display:inline-block;width:1.15em;height:1.15em;vertical-align:-0.2em" aria-hidden="true"><circle cx="12" cy="12" r="10.6" fill="#fbbf24" stroke="#b45309" stroke-width="1.2"/><g fill="#b45309"><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="6.4" r="1.5"/><circle cx="12" cy="17.6" r="1.5"/><circle cx="7.2" cy="9.2" r="1.5"/><circle cx="16.8" cy="9.2" r="1.5"/><circle cx="7.2" cy="14.8" r="1.5"/><circle cx="16.8" cy="14.8" r="1.5"/><circle cx="4.9" cy="12" r="1"/><circle cx="19.1" cy="12" r="1"/></g></svg>';
 const DEFAULT_DB = 'https://pickleball-34cb5-default-rtdb.asia-southeast1.firebasedatabase.app';
 
-const def = () => ({
-  name: 'Giải Pickleball Mở Rộng',
-  adminPass: '1234',
-  date: '',
-  loc: '',
-  mode: 'double',
-  g: 2,
-  sizes: [4, 4],
-  pool: [],
-  ord: [],
-  courts: 2,
-  mins: 20,
-  tstart: '',
-  advA: 2,
-  advB: 2,
-  rules: {
-    rr: { pts: 11, w2: true },
-    ko: { pts: 11, w2: true },
-    f:  { pts: 15, w2: true }
-  },
-  notes: '',
-  started: false,
-  teams: [],
-  tg: [],
-  matches: [],
-  ko: { A: {}, B: {} },
-  manualRank: {},
-  db: DEFAULT_DB,
-  tid: ''
-});
-
-function rd(k) { try { return JSON.parse(localStorage.getItem(k)); } catch(x) { return null; } }
+function def() {
+  return {
+    name: 'Giải Pickleball Mở Rộng',
+    adminPass: '1234',  // ⚠️ NHỚ ĐỔI MẬT KHẨU NÀY TRƯỚC KHI DÙNG!
+    date: '',
+    loc: '',
+    mode: 'double',
+    g: 2,
+    sizes: [4, 4],
+    pool: [],
+    ord: [],
+    courts: 2,
+    mins: 20,
+    tstart: '',
+    advA: 2,
+    advB: 2,
+    advMode: 'fixed',      // fixed | best
+    advBestCount: 0,
+    haveThird: true,
+    consolation: false,
+    rules: {
+      rr: { pts: 11, w2: true, format: 'bo1' },
+      ko: { pts: 11, w2: true, format: 'bo1' },
+      f:  { pts: 15, w2: true, format: 'bo1' }
+    },
+    notes: '',
+    started: false,
+    teams: [],
+    teamDetails: {},       // {idx: {name, contact, club, dupr}}
+    tg: [],
+    matches: [],
+    ko: { A: {}, B: {} },
+    manualRank: {},
+    db: DEFAULT_DB,
+    tid: '',
+    log: [],               // Nhật ký thay đổi
+    matchNotes: {},        // Ghi chú trận đấu
+    withdrawals: {},       // Đội rút lui
+    backups: []
+  };
+}
 
 let S = def(), SC = {}, tab = 'sched', armed = false, err = '', ADMIN = false, MODE = 'view', pendingConfirm = null, OPEN = {};
 let POSEDIT = false, PRE = {}, RESTART_ARM = {};
 let SYNC = { db: '', tid: '' }, DIRTY = {}, SYNC_OK = null, SNAP_RT = null, HIST = {};
 let STORE = KEY, SHARED = false, SNAP_T = 0, SNAP_ERR = false, CH = {}, ROUTED = false;
+let CURRENT_MATCH_NOTE_ID = null;
 
+// ============================================================
+// HÀM TIỆN ÍCH
+// ============================================================
 function showToast(msg, icon = 'ℹ️') {
   const el = document.getElementById('toast');
   document.getElementById('toast-msg').innerText = msg;
   document.getElementById('toast-icon').innerText = icon;
   el.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
-  setTimeout(() => {
-    el.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
-  }, 3000);
+  setTimeout(() => el.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none'), 3000);
+}
+
+function showConfirm(title, desc, icon = '⚠️') {
+  return new Promise(resolve => {
+    document.getElementById('confirm-title').innerText = title;
+    document.getElementById('confirm-desc').innerText = desc;
+    document.getElementById('confirm-icon').innerText = icon;
+    document.getElementById('confirm-modal').classList.remove('hidden');
+    const okBtn = document.getElementById('confirm-ok');
+    const cancelBtn = document.getElementById('confirm-cancel');
+    const cleanup = () => {
+      okBtn.removeEventListener('click', onOk);
+      cancelBtn.removeEventListener('click', onCancel);
+      document.getElementById('confirm-modal').classList.add('hidden');
+    };
+    function onOk() { cleanup(); resolve(true); }
+    function onCancel() { cleanup(); resolve(false); }
+    okBtn.addEventListener('click', onOk);
+    cancelBtn.addEventListener('click', onCancel);
+  });
 }
 
 function copyText(text) {
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(text).then(() => showToast('Đã sao chép liên kết vào bộ nhớ tạm!', '📋'))
-    .catch(() => fallbackCopy(text));
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(() => showToast('Đã sao chép liên kết!', '📋'));
   } else {
-    fallbackCopy(text);
-  }
-}
-
-function fallbackCopy(text) {
-  const input = document.createElement('textarea');
-  input.value = text;
-  document.body.appendChild(input);
-  input.select();
-  try {
-    document.execCommand('copy');
+    const t = document.createElement('textarea'); t.value = text;
+    document.body.appendChild(t); t.select(); document.execCommand('copy'); document.body.removeChild(t);
     showToast('Đã sao chép liên kết!', '📋');
-  } catch (err) {
-    showToast('Vui lòng sao chép thủ công: ' + text, '⚠️');
-  }
-  document.body.removeChild(input);
-}
-
-function getBaseUrl() {
-  const loc = window.location.href;
-  const idx = loc.indexOf('#');
-  const qIdx = loc.indexOf('?');
-  let clean = loc;
-  if (idx !== -1) clean = clean.substring(0, idx);
-  if (qIdx !== -1) clean = clean.substring(0, qIdx);
-  return clean;
-}
-
-// -------------------------------------------------------------
-// CHIA SẺ DỮ LIỆU QUA LINK (không cần máy chủ)
-// Dữ liệu giải được nén gọn và nhúng thẳng vào tham số ?d=... của link,
-// nên trọng tài / VĐV mở link trên máy khác (Zalo) vẫn thấy đủ trận đấu.
-// -------------------------------------------------------------
-function b64enc(o) {
-  return btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-function b64dec(str) {
-  str = String(str).trim().replace(/-/g, '+').replace(/_/g, '/');
-  while (str.length % 4) str += '=';
-  return JSON.parse(decodeURIComponent(escape(atob(str))));
-}
-
-function snapObj(withSC) {
-  return {
-    v: 1, t: Date.now(),
-    n: S.name, dt: S.date, lc: S.loc, md: S.mode, g: S.g, ad: S.advA, bd: S.advB,
-    r: S.rules, nt: S.notes, c: S.courts, ns: S.nslots,
-    tm: S.teams, tg: S.tg, mr: S.manualRank,
-    m: S.matches.map(m => [m.g, m.a, m.b, m.r, m.slot, m.court, m.ref || '']),
-    SC: withSC ? SC : undefined
-  };
-}
-function snapParam() { return b64enc(snapObj(true)); }
-
-// Tham số đồng bộ gắn vào link (nếu BTC đã bật đồng bộ)
-function syncQS() { return syncOn() ? `&db=${encodeURIComponent(SYNC.db)}&tid=${encodeURIComponent(SYNC.tid)}` : ''; }
-
-function fromSnap(p) {
-  const s = def();
-  s.name = p.n; s.date = p.dt; s.loc = p.lc; s.mode = p.md; s.g = p.g;
-  s.advA = p.ad; s.advB = p.bd; s.rules = p.r; s.notes = p.nt || ''; s.courts = p.c;
-  s.teams = p.tm; s.tg = p.tg; s.nslots = p.ns; s.manualRank = p.mr || {};
-  s.started = true;
-  s.adminPass = '\u0000' + Math.random(); // link chia sẻ không chứa mật khẩu Admin
-  s.matches = p.m.map(a => ({ g: a[0], a: a[1], b: a[2], r: a[3], slot: a[4], court: a[5], ref: a[6] || undefined, sa: null, sb: null }));
-  s.sizes = [...Array(s.g).keys()].map(k => s.tg.filter(x => x === k).length);
-  return s;
-}
-
-// Tải dữ liệu 1 lần khi mở trang
-(function loadData() {
-  const params = new URLSearchParams(window.location.search);
-  const d = params.get('d');
-  let loaded = false;
-  if (params.get('db') && params.get('tid')) {
-    SYNC = { db: params.get('db'), tid: params.get('tid') };
-    if (!d) { SHARED = true; STORE = KEY + '-shared'; loaded = true; S = def(); S.adminPass = '\u0000' + Math.random(); }
-  }
-  if (d) {
-    try {
-      const p = b64dec(d);
-      SHARED = true;
-      STORE = KEY + '-shared';
-      SNAP_T = p.t;
-      const sv = rd(STORE);
-      if (sv && sv.t === p.t && sv.S) {         // cùng link -> giữ điểm trọng tài đã chấm
-        S = Object.assign(def(), sv.S);
-        SC = sv.SC || {};
-        CH = sv.CH || {};
-      } else {                                   // link mới -> dùng dữ liệu trong link
-        S = fromSnap(p);
-        SC = p.SC || {};
-        CH = {};
-      }
-      loaded = true;
-    } catch (x) {
-      SNAP_ERR = true;
-    }
-  }
-  if (!loaded) {
-    const saved = rd(KEY);
-    if (saved && saved.S) {
-      S = Object.assign(def(), saved.S);
-      SC = saved.SC || {};
-    }
-  }
-  if (!SHARED) {
-    if (!S.db && !S.dbOff) S.db = DEFAULT_DB;
-    if (S.db && !S.tid) S.tid = Math.random().toString(36).slice(2, 10);
-    SYNC = { db: S.db || '', tid: S.tid || '' };
-    persistLocal();
-  }
-})();
-
-// -------------------------------------------------------------
-// ĐỒNG BỘ ĐIỂM TỰ ĐỘNG QUA FIREBASE REALTIME DATABASE (REST)
-// -------------------------------------------------------------
-const syncOn = () => !!(SYNC.db && SYNC.tid);
-const dbBase = () => SYNC.db.replace(/\/+$/, '') + '/t/' + encodeURIComponent(SYNC.tid);
-async function dbReq(path, method, body) {
-  const url = dbBase() + path + '.json' + (method === 'GET' ? '?_=' + Date.now() : '');
-  const r = await fetch(url, body !== undefined ? { method, body: JSON.stringify(body) } : { method });
-  if (!r.ok) throw new Error('HTTP ' + r.status);
-  return r.json();
-}
-function updateBadge() {
-  const el = document.getElementById('role-badge');
-  if (!el) return;
-  const base = MODE === 'admin' ? 'Quyền Admin (BTC)' : MODE === 'referee' ? 'Bàn Trọng Tài' : 'Quyền Xem VĐV';
-  el.innerText = base + (syncOn() ? (SYNC_OK === false ? ' · 🔴 Mất kết nối' : ' · 🟢 Đồng bộ') : '');
-}
-function setSync(ok) {
-  if (SYNC_OK !== ok) { SYNC_OK = ok; updateBadge(); if (MODE === 'referee') render(); }
-}
-function pushScore(id) {
-  if (!syncOn() || !SC[id]) return Promise.resolve();
-  return dbReq('/sc/' + id, 'PUT', SC[id]).then(() => { delete DIRTY[id]; setSync(true); }).catch(() => { DIRTY[id] = 1; setSync(false); });
-}
-// Nhận điểm tức thì (Server-Sent Events của Firebase), có polling dự phòng
-let ES = null;
-function mergeRemote(id, rv) {
-  if (!rv || typeof rv !== 'object') return false;
-  const lv = SC[id];
-  if (!lv || (rv.ts || 0) > (lv.ts || 0)) { SC[id] = rv; return true; }
-  return false;
-}
-function onStream(ev) {
-  let d; try { d = JSON.parse(ev.data); } catch (x) { return; }
-  if (!d) return;
-  const seg = String(d.path || '/').split('/').filter(Boolean);
-  let ch = false;
-  if (seg.length === 0) {
-    Object.keys(d.data || {}).forEach(id => { if (mergeRemote(id, d.data[id])) ch = true; });
-  } else if (seg.length === 1) {
-    ch = mergeRemote(seg[0], d.data);
-  }
-  setSync(true);
-  if (ch) {
-    applyScores(); persistLocal();
-    const ae = document.activeElement;
-    if (!(ae && /INPUT|TEXTAREA|SELECT/.test(ae.tagName))) render();
-  }
-}
-function startStream() {
-  if (!syncOn() || typeof EventSource === 'undefined') return;
-  const url = dbBase() + '/sc.json';
-  if (ES && ES.__url === url) return;
-  if (ES) ES.close();
-  try {
-    ES = new EventSource(url);
-    ES.__url = url;
-    ES.addEventListener('put', onStream);
-    ES.addEventListener('patch', onStream);
-    ES.onopen = () => setSync(true);
-  } catch (x) { ES = null; }
-}
-
-let snapTimer = null;
-function pushSnapSoon() {
-  if (!syncOn() || SHARED) return;
-  clearTimeout(snapTimer);
-  snapTimer = setTimeout(() => { dbReq('/snap', 'PUT', snapObj(false)).then(() => setSync(true)).catch(() => setSync(false)); }, 800);
-}
-async function pull() {
-  if (!syncOn()) return;
-  try {
-    for (const id of Object.keys(DIRTY)) await pushScore(id);
-    const r = (await dbReq('/sc', 'GET')) || {};
-    if (!SHARED) Object.keys(SC).forEach(id => { if (!r[id]) pushScore(id); });
-    let ch = false;
-    if (SHARED) {
-      const rt = await dbReq('/snap/t', 'GET');
-      if (rt && rt !== SNAP_RT) {
-        const p = await dbReq('/snap', 'GET');
-        if (p) {
-          const keep = {};
-          Object.keys(DIRTY).forEach(id => { if (SC[id]) keep[id] = SC[id]; });
-          S = fromSnap(p); fit();
-          SC = Object.assign({}, r, keep);
-          SNAP_RT = rt; ch = true;
-        }
-      }
-    }
-    Object.keys(r).forEach(id => {
-      const lv = SC[id], rv = r[id];
-      if (!lv || (rv.ts || 0) > (lv.ts || 0)) { SC[id] = rv; ch = true; }
-    });
-    setSync(true);
-    if (ch) {
-      applyScores(); persistLocal();
-      const ae = document.activeElement;
-      if (!(ae && /INPUT|TEXTAREA|SELECT/.test(ae.tagName))) render();
-    }
-  } catch (x) { setSync(false); }
-}
-
-// Xác định vai trò (Admin / Trọng tài / Xem) dựa trên URL
-function parseRoute() {
-  const hash = window.location.hash || '';
-  const params = new URLSearchParams(window.location.search);
-  const roleParam = params.get('role');
-  const refW = params.get('ref_w');
-
-  if (refW != null || roleParam === 'referee' || hash.startsWith('#referee-')) {
-    ADMIN = false;
-    MODE = 'referee';
-    if (!ROUTED) tab = 'referee';
-  } else if (!SHARED && (hash === '#admin' || params.get('admin') === '1') && sessionStorage.getItem('pb-admin-auth') === 'true') {
-    ADMIN = true;
-    MODE = 'admin';
-  } else {
-    ADMIN = false;
-    MODE = 'view';
-    if (tab === 'setup' || tab === 'referee') tab = 'sched';
-  }
-  ROUTED = true;
-}
-parseRoute();
-
-// Kiểm tra link có dùng được không (mở trực tiếp file trên máy thì không chia sẻ được)
-function linkOk() {
-  if (window.location.protocol === 'file:') {
-    showToast('Bạn đang mở file trực tiếp từ máy nên link không dùng được. Hãy đưa file lên web (GitHub Pages, Netlify...) rồi mở bằng link https.', '⚠️');
-    return false;
-  }
-  if (!S.started) {
-    showToast('Hãy tạo lịch thi đấu trước khi chia sẻ link.', '⚠️');
-    return false;
-  }
-  return true;
-}
-
-// Mã kết quả: trọng tài gửi lại cho BTC các trận đã chấm
-function resCode() {
-  const out = {};
-  Object.keys(CH).forEach(id => { if (SC[id]) out[id] = SC[id]; });
-  return b64enc({ t: SNAP_T, SC: out });
-}
-
-function applyResults(code) {
-  try {
-    const p = b64dec(code);
-    if (SHARED || !S.started) {
-      showToast('Hãy mở link này bằng trình duyệt/thiết bị của BTC (nơi đã tạo giải).', '⚠️');
-      return false;
-    }
-    let n = 0;
-    Object.keys(p.SC || {}).forEach(id => {
-      const mm = /^m(\d+)$/.exec(id);
-      if (mm && !S.matches[+mm[1]]) return;
-      SC[id] = p.SC[id];
-      n++;
-    });
-    applyScores();
-    persistLocal();
-    render();
-    showToast(`Đã cập nhật kết quả ${n} trận từ trọng tài!`, '✅');
-    return true;
-  } catch (x) {
-    showToast('Mã kết quả không hợp lệ hoặc bị cắt mất.', '⚠️');
-    return false;
   }
 }
 
-function fit() {
-  while (S.sizes.length < S.g) S.sizes.push(4);
-  S.sizes.length = S.g;
-  const tot = S.sizes.reduce((a, b) => a + b, 0);
-  while (S.pool.length < tot) S.pool.push(['', '']);
-  S.pool.length = tot;
-  if (S.ord.length !== tot) S.ord = [...Array(tot).keys()];
-}
-
-function applyScores() {
-  (S.matches || []).forEach((m, i) => {
-    const d = SC['m' + i] || {};
-    m.sa = d.sa ?? null;
-    m.sb = d.sb ?? null;
-    m.st = d.st || null;
-    m.sv = d.sv || null;
-    m.sn = d.sn || null;
-    m.ar = d.ar ?? null;
-    m.br = d.br ?? null;
-    m.sw = d.sw ? 1 : 0;
-    m.si = d.si ?? null;
-  });
-  const ko = { A: {}, B: {} };
-  Object.keys(SC).forEach(id => {
-    const r = /^k([AB])_(.+)$/.exec(id);
-    if (r) ko[r[1]][r[2].replace(/^(\d+)_(\d+)$/, '$1-$2')] = SC[id];
-  });
-  S.ko = ko;
-}
-
-function persistLocal() {
-  try {
-    localStorage.setItem(STORE, JSON.stringify(SHARED ? { S, SC, t: SNAP_T, CH } : { S, SC }));
-  } catch (x) {}
-}
-
-function putScore(k, i, patch) {
-  const id = k === 'm' ? 'm' + i : 'k' + k + '_' + String(i).replace('-', '_');
-  SC[id] = { ...(SC[id] || {}), ...patch, ts: Date.now() };
-  if (SHARED) CH[id] = 1;
-  applyScores();
-  persistLocal();
-  render();
-  pushScore(id);
-}
-
-function clearScores() {
-  SC = {}; DIRTY = {};
-  persistLocal();
-  if (syncOn() && !SHARED) dbReq('/sc', 'PUT', {}).catch(() => {});
-}
-
-fit();
-applyScores();
-
+function e(s) { return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]); }
 const GN = k => 'ABCDEFGH'[k];
-const e = s => String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const T = i => e(S.teams[i] || 'Đội ' + (i + 1));
-const RN = { rr: 'Vòng bảng', ko: 'Playoff / Vòng loại trực tiếp', f: 'Chung kết' };
-const rt = k => { const r = S.rules[k]; return `Chơi đến ${r.pts} điểm${r.w2 ? ', cách biệt ≥ 2' : ''}`; };
-const done = m => m && m.sa != null && m.sb != null && m.sa !== m.sb && m.st !== 'live';
-const valid = (m, r) => Math.max(m.sa, m.sb) >= r.pts && Math.abs(m.sa - m.sb) >= (r.w2 ? 2 : 1);
-
-function schedule() {
-  S.matches = [];
-  for (let k = 0; k < S.g; k++) {
-    let a = S.teams.map((_, i) => i).filter(i => S.tg[i] === k);
-    if (a.length % 2) a.push(-1);
-    const m = a.length;
-    for (let r = 0; r < m - 1; r++) {
-      for (let i = 0; i < m / 2; i++) {
-        const x = a[i], y = a[m - 1 - i];
-        if (x >= 0 && y >= 0) S.matches.push({ g: k, a: x, b: y, r: r + 1, sa: null, sb: null });
-      }
-      a.splice(1, 0, a.pop());
-    }
-  }
-}
-
-// -------------------------------------------------------------
-// THUẬT TOÁN XẾP HẠNG BẢNG ĐẤU 5 BƯỚC CHUẨN
-// 1) Điểm thắng (Wins)
-// 2) Hiệu số điểm thắng/thua toàn giải (Point Diff)
-// 3) Đối đầu (Head to Head - Áp dụng khi CHÍNH XÁC 2 ĐỘI BẰNG ĐIỂM HÒA CHỈ SỐ)
-// 4) Tổng điểm thắng toàn giải (Total Points Scored)
-// 5) Bốc thăm / Tùy chỉnh thủ công
-// -------------------------------------------------------------
-function stand(k) {
-  const mem = S.teams.map((_, i) => i).filter(i => S.tg[i] === k);
-  const by = {};
-  const t = mem.map(i => by[i] = { i, p: 0, w: 0, l: 0, pf: 0, pa: 0, d: 0 });
-  const ms = S.matches.filter(m => m.g === k && done(m));
-
-  ms.forEach(m => {
-    const A = by[m.a], B = by[m.b];
-    if (!A || !B) return;
-    A.p++; B.p++;
-    A.pf += m.sa; A.pa += m.sb;
-    B.pf += m.sb; B.pa += m.sa;
-    if (m.sa > m.sb) { A.w++; B.l++; } else { B.w++; A.l++; }
-  });
-
-  t.forEach(x => x.d = x.pf - x.pa);
-
-  t.sort((x, y) => {
-    if (y.w !== x.w) return y.w - x.w; // 1. Số trận thắng
-    if (y.d !== x.d) return y.d - x.d; // 2. Hiệu số toàn giải
-
-    // 3. Đối đầu (chỉ xét khi có đúng 2 đội)
-    const tieGroup = t.filter(o => o.w === x.w && o.d === x.d);
-    if (tieGroup.length === 2) {
-      const headMatch = ms.find(m => (m.a === x.i && m.b === y.i) || (m.a === y.i && m.b === x.i));
-      if (headMatch) {
-        const winner = headMatch.sa > headMatch.sb ? headMatch.a : headMatch.b;
-        if (winner === x.i) return -1;
-        if (winner === y.i) return 1;
-      }
-    }
-
-    if (y.pf !== x.pf) return y.pf - x.pf; // 4. Tổng điểm thắng toàn giải
-
-    // 5. Bốc thăm / Thứ tự thủ công do Admin điều chỉnh
-    const key = k + '_' + x.i, keyY = k + '_' + y.i;
-    const manualX = S.manualRank[key] ?? 0;
-    const manualY = S.manualRank[keyY] ?? 0;
-    return manualX - manualY;
-  });
-
-  t.forEach((x, n) => {
-    if (!n) { x.why = ''; return; }
-    const p = t[n - 1];
-    if (p.w !== x.w) x.why = 'Điểm thắng';
-    else if (p.d !== x.d) x.why = 'Hiệu số toàn giải';
-    else {
-      const headMatch = ms.find(m => (m.a === x.i && m.b === p.i) || (m.a === p.i && m.b === x.i));
-      if (headMatch && done(headMatch)) x.why = 'Đối đầu (2 đội)';
-      else if (p.pf !== x.pf) x.why = 'Tổng điểm thắng';
-      else x.why = 'Bốc thăm / Thủ công';
-    }
-  });
-
-  return t;
-}
-
-const allDone = () => S.matches.length > 0 && S.matches.every(done);
-
-function qual(sr) {
-  const lo = sr === 'A' ? 0 : S.advA;
-  const hi = sr === 'A' ? S.advA : S.advA + S.advB;
-  const out = [];
-  for (let k = 0; k < S.g; k++) {
-    stand(k).forEach((x, n) => {
-      if (n >= lo && n < hi) out.push({ i: x.i, rk: n, w: x.w, d: x.d, pf: x.pf });
-    });
-  }
-  return out.sort((x, y) => x.rk - y.rk || y.w - x.w || y.d - x.d || y.pf - x.pf).map(x => x.i);
-}
-
-function winner(m) {
-  if (m.bye) return m.a != null ? m.a : m.b;
-  return done(m) && m.a != null && m.b != null ? (m.sa > m.sb ? m.a : m.b) : null;
-}
-
-function bracketRaw(sr) {
-  const seeds = qual(sr), n = seeds.length;
-  if (n < 2) return null;
-  let P = 1; while (P < n) P *= 2;
-  let ord = [1];
-  while (ord.length < P) {
-    const m = ord.length * 2;
-    ord = ord.flatMap(x => [x, m + 1 - x]);
-  }
-  const get = (r, i) => S.ko[sr][r + '-' + i] || {};
-  let cur = [];
-  for (let i = 0; i < P / 2; i++) {
-    const x = ord[2 * i], y = ord[2 * i + 1];
-    const a = x <= n ? seeds[x - 1] : null;
-    const b = y <= n ? seeds[y - 1] : null;
-    cur.push({ a, b, bye: a == null || b == null, key: '0-' + i, ...get(0, i) });
-  }
-  // Tránh gặp lại đội cùng bảng ngay vòng đầu: hoán đổi đối thủ giữa các cặp nếu có thể
-  const sg = i => (i == null ? -1 : S.tg[i]);
-  const fresh = m => m.sa == null && m.sb == null;
-  for (let i = 0; i < cur.length; i++) {
-    const x = cur[i];
-    if (x.bye || sg(x.a) !== sg(x.b) || !fresh(x)) continue;
-    for (let j = 0; j < cur.length; j++) {
-      const y = cur[j];
-      if (j === i || y.bye || !fresh(y)) continue;
-      if (sg(x.a) !== sg(y.b) && sg(y.a) !== sg(x.b)) { const t = x.b; x.b = y.b; y.b = t; break; }
-    }
-  }
-  const rounds = [cur];
-  for (let r = 1; cur.length > 1; r++) {
-    const nx = [];
-    for (let i = 0; i < cur.length / 2; i++) {
-      nx.push({ a: winner(cur[2 * i]), b: winner(cur[2 * i + 1]), key: r + '-' + i, ...get(r, i) });
-    }
-    rounds.push(nx); cur = nx;
-  }
-  rounds.forEach(R => {
-    const c = R.length;
-    R.nm = c === 1 ? 'Chung kết' : c === 2 ? 'Bán kết' : c === 4 ? 'Tứ kết' : 'Vòng loại 1/' + c;
-    R.rk = c === 1 ? 'f' : 'ko';
-  });
-  return rounds;
-}
-
-// Ước lượng số lượt đấu vòng bảng để hiển thị ở phần thiết lập
-function courtEstimate() {
-  const C = Math.max(1, S.courts | 0);
-  const total = S.sizes.reduce((t, n) => t + n * (n - 1) / 2, 0);
-  const rounds = Math.max(...S.sizes.map(n => (n % 2 ? n : n - 1)));
-  const lb = Math.max(Math.ceil(total / C), rounds);
-  return `Vòng bảng có ${total} trận, dùng ${C} sân → dự kiến khoảng ${lb} lượt đấu. Các bảng được xếp đấu song song; vòng sau cũng tự chia sân.`;
-}
-
-// Xếp lịch vòng bảng vào sân: các bảng đấu song song, ít lượt nhất, hạn chế đấu liên tiếp.
-// Chạy nhiều phương án (có xáo trộn nhẹ) và chọn phương án tốt nhất.
-function courtSched() {
-  const C = Math.max(1, S.courts | 0), ms = S.matches, N = ms.length;
-  const rng = seed => () => {
-    seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
-    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-  let best = null;
-  const runs = N > 150 ? 40 : 300;
-  for (let run = 0; run < runs; run++) {
-    const rnd = rng(1000 + run * 7919), jit = run === 0 ? 0 : 1;
-    let rest = ms.map((_, i) => i), slot = 0;
-    const last = {}, cnt = {}, gc = {}, asg = new Array(N), gEnd = {};
-    let b2b = 0;
-    while (rest.length) {
-      const used = new Set(), picks = [];
-      while (picks.length < C) {
-        let bi = -1, bs = Infinity;
-        for (const i of rest) {
-          const m = ms[i];
-          if (used.has(m.a) || used.has(m.b)) continue;
-          const tired = (last[m.a] === slot - 1) + (last[m.b] === slot - 1);
-          const sc = tired * 40 + ((cnt[m.a] || 0) + (cnt[m.b] || 0)) * 6 + (gc[m.g] || 0) * 2 + m.r * 0.01 + jit * rnd() * 8;
-          if (sc < bs) { bs = sc; bi = i; }
-        }
-        if (bi < 0) break;
-        const m = ms[bi];
-        used.add(m.a); used.add(m.b); picks.push(bi);
-        gc[m.g] = (gc[m.g] || 0) + 1;
-        rest = rest.filter(x => x !== bi);
-      }
-      if (!picks.length) break;
-      picks.forEach(i => {
-        const m = ms[i];
-        b2b += (last[m.a] === slot - 1) + (last[m.b] === slot - 1);
-        asg[i] = slot; gEnd[m.g] = slot;
-      });
-      picks.forEach(i => {
-        const m = ms[i];
-        last[m.a] = last[m.b] = slot;
-        cnt[m.a] = (cnt[m.a] || 0) + 1; cnt[m.b] = (cnt[m.b] || 0) + 1;
-      });
-      slot++;
-    }
-    const ends = Object.values(gEnd);
-    const spread = ends.length ? Math.max(...ends) - Math.min(...ends) : 0;
-    const cost = slot * 10000 + b2b * 100 + spread * 30;
-    if (!best || cost < best.cost) best = { cost, asg, slots: slot };
-  }
-  // Gán số sân trong từng lượt: gom theo bảng để mỗi bảng thường ở cạnh nhau
-  for (let k = 0; k < best.slots; k++) {
-    const idx = ms.map((m, i) => i).filter(i => best.asg[i] === k).sort((x, y) => ms[x].g - ms[y].g || ms[x].r - ms[y].r);
-    idx.forEach((i, c) => { ms[i].slot = k; ms[i].court = c + 1; });
-  }
-  S.nslots = best.slots;
-}
-
-// Xếp sân cho vòng loại trực tiếp: các seri chạy song song, vòng sau nối tiếp vòng trước
-function koPlan() {
-  const C = Math.max(1, S.courts | 0);
-  const br = { A: bracketRaw('A'), B: S.advB > 0 ? bracketRaw('B') : null };
-  const maxL = Math.max(br.A ? br.A.length : 0, br.B ? br.B.length : 0);
-  const stages = [];
-  const third3 = [];
-  ['A', 'B'].forEach(sr => {
-    const b = br[sr];
-    if (b && b.length >= 2 && b[b.length - 2].length === 2 && !b[b.length - 2].some(m => m.bye)) third3.push([sr, 't']);
-  });
-  for (let d = maxL - 1; d >= 0; d--) {
-    if (d === 0 && third3.length) stages.push(third3);
-    const items = [];
-    ['A', 'B'].forEach(sr => {
-      const b = br[sr];
-      if (!b) return;
-      const ri = b.length - 1 - d;
-      if (ri < 0) return;
-      b[ri].forEach(m => { if (!m.bye) items.push([sr, m.key]); });
-    });
-    stages.push(items);
-  }
-  const plan = {};
-  let turn = S.nslots || 0;
-  stages.forEach(items => {
-    for (let k = 0; k < items.length; k += C) {
-      turn++;
-      items.slice(k, k + C).forEach(([sr, key], j) => { plan[sr + '|' + key] = { court: j + 1, turn }; });
-    }
-  });
-  return plan;
-}
-
-function groupsOf() {
-  let p = 0;
-  return S.sizes.map(z => {
-    const a = S.ord.slice(p, p + z).map(j => S.pool[j]);
-    p += z; return a;
-  });
-}
-const tn = (p, k, i) => (S.mode === 'double' ? p : [p[0]]).filter(Boolean).join(' / ') || `Đội ${GN(k)}${i + 1}`;
-
-// Bảng đấu kèm sân & lượt đấu tự động (sân nhập tay của BTC được ưu tiên)
-function bracket(sr) {
-  const br = bracketRaw(sr);
-  if (!br) return null;
-  const plan = koPlan();
-  br.forEach(R => R.forEach(m => {
-    const pl = plan[sr + '|' + m.key];
-    if (pl) { m.court = m.court ?? pl.court; m.turn = pl.turn; m.autoCourt = pl.court; }
-  }));
-  return br;
-}
-
-function getM(k, i) {
-  if (k === 'm') return { m: S.matches[+i], rk: 'rr', rn: 'Vòng bảng' };
-  const br = bracket(k); if (!br) return null;
-  if (i === 't') return { m: third(k, br), rk: 'ko', rn: 'Tranh hạng 3' };
-  for (const R of br) for (const m of R) if (m.key === i) return { m, rk: R.rk, rn: R.nm };
-  return null;
-}
-
-function livePanel(m, key, i) {
-  const live = m.st === 'live', fin = !live && done(m), a = m.sa ?? 0, b = m.sb ?? 0, at = `data-w="${key}" data-i="${i}"`;
-  const bt = (c, t) => `<button data-sc="${c}" ${at} ${live ? '' : 'disabled'} class="px-4 py-2.5 bg-brand-600 hover:bg-brand-500 disabled:opacity-40 text-white font-extrabold text-lg rounded-xl shadow transition-all flex-1">${t}</button>`;
-  const side = (n, v, c) => `
-    <div class="flex-1 text-center bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
-      <div class="font-extrabold text-sm text-slate-700 dark:text-slate-200 truncate mb-1">${T(n)}</div>
-      <div class="text-4xl font-black text-brand-600 dark:text-brand-400 my-1">${v}</div>
-      <div class="flex gap-1.5 mt-2">${bt(c + '+', '+1')}${bt(c + '-', '−1')}</div>
-    </div>`;
-
-  const ctl = live ? `<button class="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm rounded-xl shadow transition-all" data-sc="fin" ${at}>🏁 Kết thúc trận đấu</button>`
-    : fin ? `<div class="flex items-center justify-between w-full"><span class="text-xs font-bold text-emerald-600 dark:text-emerald-400">✅ Đã kết thúc</span><button class="px-3 py-1.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-lg" data-sc="open" ${at}>🔓 Mở lại trận đấu</button></div>`
-    : `<button class="w-full py-2.5 bg-brand-600 hover:bg-brand-500 text-white font-bold text-sm rounded-xl shadow transition-all" data-sc="start" ${at}>▶️ Bắt đầu trận đấu</button>`;
-
-  return `<div class="mt-3 p-3 bg-slate-100 dark:bg-slate-900/80 rounded-xl border border-slate-200 dark:border-slate-800 space-y-3">
-    <div class="flex gap-2">${side(m.a, a, 'a')}${side(m.b, b, 'b')}</div>
-    <div>${ctl}</div>
-  </div>`;
-}
-
-function matchRow(m, key, i, rk, tag) {
-  const dis = ADMIN ? '' : 'disabled';
-  const live = m.st === 'live';
-  const tagHtml = tag ? `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${live ? 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300 animate-pulse' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'}">${live ? '🔴 LIVE · ' : ''}${tag}</span>` : '';
-
-  if (m.bye) {
-    const t = m.a != null ? m.a : m.b;
-    return `<div class="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700/60 text-xs text-slate-500">${tagHtml} Đội <span class="font-bold text-slate-700 dark:text-slate-300">${T(t)}</span> được miễn đấu (bye).</div>`;
-  }
-  if (m.a == null || m.b == null) {
-    return `<div class="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700/60 text-xs text-slate-500">${tagHtml} Đang chờ xác định đội thắng từ vòng trước.</div>`;
-  }
-
-  const d = done(m);
-  const bad = d && !valid(m, S.rules[rk]);
-  const k2 = key + '|' + i;
-  const op = !!OPEN[k2];
-  const curRef = m.ref || '';
-  
-
-  return `
-    <div class="p-3 bg-card rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm transition-all hover:border-slate-300 dark:hover:border-slate-700">
-      <div class="flex items-center justify-between gap-2 mb-2">
-        ${tagHtml}
-        <div class="flex items-center gap-1.5">
-          ${ADMIN ? `<button data-ref-w="${key}" data-ref-i="${i}" class="px-2.5 py-1 bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 rounded-lg text-xs font-bold hover:bg-amber-200 transition-all flex items-center gap-1 border border-amber-300 dark:border-amber-800">
-            <span>🔗 Link Trọng tài</span>
-          </button>` : ''}
-          ${d ? '<span class="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">✓ Đã xong</span>' : ''}
-        </div>
-      </div>
-
-      <div class="grid grid-cols-[1fr_48px_12px_48px_1fr] items-center gap-1 sm:gap-2">
-        <div class="text-right font-medium text-sm sm:text-base truncate ${d && m.sa > m.sb ? 'text-brand-600 dark:text-brand-400 font-bold' : ''}">
-          ${T(m.a)}
-        </div>
-
-        <input type="number" min="0" inputmode="numeric" ${dis} data-k="${key}" data-i="${i}" data-s="sa" value="${m.sa ?? ''}"
-               class="w-full text-center py-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg font-bold text-base focus:ring-2 focus:ring-brand-500 outline-none">
-        
-        <span class="text-center font-bold text-slate-400">:</span>
-
-        <input type="number" min="0" inputmode="numeric" ${dis} data-k="${key}" data-i="${i}" data-s="sb" value="${m.sb ?? ''}"
-               class="w-full text-center py-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg font-bold text-base focus:ring-2 focus:ring-brand-500 outline-none">
-
-        <div class="text-left font-medium text-sm sm:text-base truncate ${d && m.sb > m.sa ? 'text-brand-600 dark:text-brand-400 font-bold' : ''}">
-          ${T(m.b)}
-        </div>
-      </div>
-
-      ${bad ? `<div class="mt-2 text-xs text-red-500 font-medium">⚠️ Tỉ số chưa đúng luật giải (${rt(rk)})</div>` : ''}
-
-      <div class="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
-        <div class="flex-1">
-          ${ADMIN ? `
-            <div class="flex gap-1.5">
-              <input type="text" data-ref="${k2}" value="${e(curRef)}" placeholder="Tên trọng tài..." 
-                     class="flex-1 min-w-0 text-xs px-2.5 py-1 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-md text-slate-600 dark:text-slate-300 focus:outline-none focus:border-brand-500">
-              ${key !== 'm' ? `<input type="number" min="1" inputmode="numeric" data-kocourt="${k2}" value="${m.court ?? ''}" placeholder="Sân" class="w-16 text-xs px-2 py-1 text-center bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-md">` : ''}
-            </div>
-          ` : `
-            <span class="text-xs text-slate-500">${curRef ? 'Trọng tài: <b>' + e(curRef) + '</b>' : ''}</span>
-          `}
-        </div>
-
-        ${ADMIN ? `
-          <button data-tgl="${k2}" class="px-3 py-1 rounded-lg text-xs font-semibold transition-all ${op ? 'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200' : 'bg-brand-50 dark:bg-brand-950/50 text-brand-600 dark:text-brand-400 border border-brand-200 dark:border-brand-800 hover:bg-brand-100'}">
-            ${op ? 'Thu gọn' : '⚡ Bảng chấm điểm'}
-          </button>
-        ` : ''}
-      </div>
-
-      ${op && ADMIN ? livePanel(m, key, i) : ''}
-    </div>`;
-}
-
-// ---------------- SƠ ĐỒ SÂN PICKLEBALL CHO TRỌNG TÀI ----------------
-function teamPlayers(idx) {
-  const dbl = S.mode === 'double';
-  let p = String(S.teams[idx] ?? '').split(' / ').map(x => x.trim()).filter(Boolean);
-  if (dbl) { while (p.length < 2) p.push('VĐV ' + (p.length + 1)); return p.slice(0, 2); }
-  return [p[0] || 'VĐV'];
-}
-const shortName = n => { n = String(n); if (n.length <= 11) return n; const w = n.split(/\s+/); return w[w.length - 1].slice(0, 11); };
-
-// Vị trí VĐV theo luật: người giao đứng ô theo vị trí hiện tại, người nhận đứng ô chéo.
-// Đánh đôi: ar/br = chỉ số VĐV đang đứng ô PHẢI của mỗi đội; si = chỉ số người đang giao.
-function courtState(m) {
-  const dbl = S.mode === 'double';
-  const hasSv = !!m.sv, sv = m.sv || 'a';
-  const rightIdx = { a: m.ar ?? 0, b: m.br ?? 0 };
-  const score = { a: m.sa ?? 0, b: m.sb ?? 0 };
-  let svCourt = 'R';
-  if (dbl) {
-    const si = m.si ?? rightIdx[sv];
-    svCourt = rightIdx[sv] === si ? 'R' : 'L';
-  } else {
-    svCourt = score[sv] % 2 === 0 ? 'R' : 'L';   // đánh đơn: điểm chẵn → phải, lẻ → trái
-  }
-  const out = [];
-  ['a', 'b'].forEach(t => {
-    const names = teamPlayers(t === 'a' ? m.a : m.b);
-    names.forEach((nm, idx) => {
-      const court = dbl ? (idx === rightIdx[t] ? 'R' : 'L') : (hasSv ? svCourt : 'R');
-      let role = '';
-      if (hasSv) {
-        if (t === sv) { if (!dbl || idx === (m.si ?? rightIdx[sv])) role = 'server'; }
-        else if (!dbl || court === svCourt) role = 'receiver';
-      }
-      out.push({ t, idx, name: nm, court, role });
-    });
-  });
-  return out;
-}
-
-// Tách tên VĐV thành tối đa 2 dòng (ngắt theo từ) để hiện đầy đủ trên sơ đồ
-function nameLines(n) {
-  n = String(n).trim();
-  const w = n.split(/\s+/);
-  if (n.length <= 14 || w.length < 2) return [n];
-  let best = null;
-  for (let k = 1; k < w.length; k++) {
-    const l1 = w.slice(0, k).join(' '), l2 = w.slice(k).join(' ');
-    const mx = Math.max(l1.length, l2.length);
-    if (!best || mx < best.mx) best = { mx, lines: [l1, l2] };
-  }
-  return best.lines;
-}
-
-function courtSvg(m, at, editTeam) {
-  const X0 = 20, X1 = 420, Y0 = 106, Y1 = 306, NX = 220, KL = 156.4, KR = 283.6, YM = 206;
-  const leftKey = m.sw ? 'b' : 'a', rightKey = m.sw ? 'a' : 'b';
-  const dbl = S.mode === 'double';
-  const st = courtState(m);
-  const sv = m.sv, hasSv = !!m.sv;
-  const spot = (t, court) => {
-    const left = t === leftKey;
-    const cx = left ? (X0 + KL) / 2 : (KR + X1) / 2;
-    const top = left ? court === 'L' : court === 'R';
-    return [cx, top ? (Y0 + YM) / 2 : (YM + Y1) / 2];
-  };
-  let g = '';
-  ['a', 'b'].forEach(t => {
-    const mine = st.filter(p => p.t === t);
-    const inner = mine.map(p => {
-      const [cx, cy0] = spot(t, p.court);
-      const cy = cy0 - 20;                       // tâm vòng tròn VĐV
-      const col = p.role === 'server' ? '#fbbf24' : p.role === 'receiver' ? '#22d3ee' : '#e2e8f0';
-      const tx = p.role === 'server' ? '#fde047' : p.role === 'receiver' ? '#67e8f9' : '#ffffff';
-      const lines = nameLines(p.name);
-      const fs = Math.max(9, Math.min(14, Math.round(124 / (Math.max(...lines.map(x => x.length)) * 0.6))));
-      const ring = editTeam === t ? `<circle cx="${cx}" cy="${cy}" r="23" fill="none" stroke="#fff" stroke-width="1.8" stroke-dasharray="4 3"/>` : '';
-      const ball = p.role === 'server' ? `<circle cx="${cx + 17}" cy="${cy - 17}" r="7.5" fill="#fef08a" stroke="#a16207" stroke-width="1.6"/><circle cx="${cx + 15}" cy="${cy - 18.5}" r="1.1" fill="#a16207"/><circle cx="${cx + 19.5}" cy="${cy - 15.5}" r="1.1" fill="#a16207"/><circle cx="${cx + 15.5}" cy="${cy - 14}" r="1.1" fill="#a16207"/>` : '';
-      const txt = lines.map((ln, k) => `<text x="${cx}" y="${cy + 33 + k * (fs + 3)}" text-anchor="middle" font-size="${fs}" font-weight="${p.role ? 800 : 700}" fill="${tx}" stroke="#0f172a" stroke-width="0.4" paint-order="stroke">${e(ln)}</text>`).join('');
-      return `${ring}<circle cx="${cx}" cy="${cy}" r="17" fill="${col}" stroke="#0f172a" stroke-width="1.6"/>
-        <text x="${cx}" y="${cy + 6}" text-anchor="middle" font-size="17" font-weight="800" fill="#0f172a">${e(String(p.name).charAt(0).toUpperCase())}</text>${ball}${txt}`;
-    }).join('');
-    g += dbl ? `<g data-swap="${t}" ${at} style="cursor:${editTeam === t ? 'pointer' : 'default'}">${inner}</g>` : `<g>${inner}</g>`;
-  });
-
-  // Phần đầu: tên đội (mỗi VĐV một dòng) + điểm số lớn cho từng bên
-  const head = (t, x) => {
-    const idx = t === 'a' ? m.a : m.b;
-    const pl = teamPlayers(idx);
-    const isSv = hasSv && sv === t;
-    const nmTxt = pl.map((nm, k) => {
-      const fs = Math.max(9, Math.min(15, 200 / (String(nm).length * 0.6)));
-      return `<text x="${x}" y="${29 + k * 16}" text-anchor="middle" font-size="${fs.toFixed(1)}" font-weight="800" class="fill-slate-800 dark:fill-slate-100">${e(nm)}</text>`;
-    }).join('');
-    const scY = pl.length > 1 ? 92 : 80;
-    return `
-      <text x="${x}" y="12" text-anchor="middle" font-size="11" font-weight="800" class="fill-slate-400">ĐỘI ${t === 'a' ? '1' : '2'} ${t === leftKey ? '◀' : '▶'}${isSv ? ' · ĐANG GIAO' : ''}</text>
-      ${nmTxt}
-      <text x="${x}" y="${scY}" text-anchor="middle" font-size="50" font-weight="900" class="${isSv ? 'fill-amber-500' : 'fill-slate-800 dark:fill-slate-100'}">${t === 'a' ? (m.sa ?? 0) : (m.sb ?? 0)}</text>`;
-  };
-  const lx = (X0 + NX) / 2, rx = (NX + X1) / 2;
-  return `
-  <svg viewBox="0 0 440 322" class="w-full h-auto select-none" role="img" aria-label="Sơ đồ sân pickleball">
-    ${head(leftKey, lx)}${head(rightKey, rx)}
-    <rect x="${X0 - 8}" y="${Y0 - 8}" width="${X1 - X0 + 16}" height="${Y1 - Y0 + 16}" rx="10" fill="#1e3a5f"/>
-    <rect x="${X0}" y="${Y0}" width="${X1 - X0}" height="${Y1 - Y0}" fill="#2b6cb0"/>
-    <rect x="${KL}" y="${Y0}" width="${KR - KL}" height="${Y1 - Y0}" fill="#2c5282"/>
-    <g stroke="#fff" stroke-width="2.2" fill="none">
-      <rect x="${X0}" y="${Y0}" width="${X1 - X0}" height="${Y1 - Y0}"/>
-      <line x1="${KL}" y1="${Y0}" x2="${KL}" y2="${Y1}"/><line x1="${KR}" y1="${Y0}" x2="${KR}" y2="${Y1}"/>
-      <line x1="${X0}" y1="${YM}" x2="${KL}" y2="${YM}"/><line x1="${KR}" y1="${YM}" x2="${X1}" y2="${YM}"/>
-    </g>
-    <line x1="${NX}" y1="${Y0 - 8}" x2="${NX}" y2="${Y1 + 8}" stroke="#f8fafc" stroke-width="4" stroke-dasharray="3 3"/>
-    <g font-size="9" fill="#fff" opacity="0.55" font-weight="700">
-      <text x="${X0 + 6}" y="${Y0 + 13}">TRÁI</text><text x="${X0 + 6}" y="${YM + 13}">PHẢI</text>
-      <text x="${KR + 6}" y="${Y0 + 13}">PHẢI</text><text x="${KR + 6}" y="${YM + 13}">TRÁI</text>
-      <text x="${(KL + NX) / 2}" y="${(Y0 + Y1) / 2 + 3}" text-anchor="middle">BẾP</text><text x="${(NX + KR) / 2}" y="${(Y0 + Y1) / 2 + 3}" text-anchor="middle">BẾP</text>
-    </g>
-    ${g}
-  </svg>`;
-}
-
-function vReferee() {
-  const params = new URLSearchParams(window.location.search);
-  const hash = window.location.hash || '';
-  
-  let w = params.get('ref_w');
-  let i = params.get('ref_i');
-
-  // Dự phòng nếu mở dạng link hash cũ #referee-m-6
-  if ((!w || i == null) && hash.startsWith('#referee-')) {
-    const parts = hash.replace('#referee-', '').split('-');
-    if (parts.length >= 2) {
-      w = parts[0];
-      i = parts.slice(1).join('-');
-    }
-  }
-
-  if (!w || i == null) {
-    return `
-      <div class="bg-card p-6 rounded-2xl border border-slate-200 dark:border-slate-800 text-center space-y-3">
-        <div class="text-4xl">${BALL}</div>
-        <h3 class="font-extrabold text-lg text-slate-800 dark:text-slate-100">Bàn Trọng Tài</h3>
-        <p class="text-sm text-slate-500">Vui lòng bấm vào nút <b>🔗 Link Trọng tài</b> ở trận đấu tương ứng để mở bảng chấm điểm trực tiếp.</p>
-      </div>`;
-  }
-
-  const g = getM(w, i);
-  if ((!g || !g.m) && SHARED && syncOn() && SNAP_RT === null && SYNC_OK !== false) {
-    return '<div class="p-8 text-center text-slate-500 bg-card rounded-2xl border border-slate-200 dark:border-slate-800">⏳ Đang tải dữ liệu giải...</div>';
-  }
-  if (!g || !g.m) {
-    return `
-      <div class="bg-card p-6 rounded-2xl border border-slate-200 dark:border-slate-800 text-center space-y-3">
-        <div class="text-4xl">⚠️</div>
-        <h3 class="font-extrabold text-base text-red-500">Không tìm thấy thông tin trận đấu này (${w} - ${i}).</h3>
-        <p class="text-xs text-slate-500">Link này thiếu dữ liệu giải. Vui lòng yêu cầu Ban tổ chức bấm lại <b>🔗 Link Trọng tài</b> (bản mới) và gửi lại.</p>
-        <button onclick="window.location.reload()" class="mt-2 px-4 py-2 bg-brand-600 text-white text-xs font-bold rounded-xl">Tải lại trang</button>
-      </div>`;
-  }
-
-  const m = g.m;
-  if (m.bye || m.a == null || m.b == null) {
-    return `
-      <div class="bg-card p-6 rounded-2xl border border-slate-200 dark:border-slate-800 text-center space-y-2">
-        <div class="text-4xl">⏳</div>
-        <h3 class="font-extrabold text-base text-slate-700 dark:text-slate-200">Trận này chưa xác định đủ hai đội</h3>
-        <p class="text-xs text-slate-500">Vui lòng chờ các trận trước kết thúc rồi bấm lại link.</p>
-      </div>`;
-  }
-  const live = m.st === 'live';
-  const fin = !live && done(m);
-  const sa = m.sa ?? 0, sb = m.sb ?? 0;
-  const dbl = S.mode === 'double';
-  const rule = S.rules[g.rk];
-  const at = `data-w="${w}" data-i="${i}"`;
-  const roundTitle = w === 'm' ? `Vòng bảng · Bảng ${GN(m.g)}` : `Seri ${w} · ${g.rn || 'Playoff'}${i === 't' ? '' : ' · Trận ' + ((parseInt(String(i).split('-')[1], 10) || 0) + 1)}`;
-  const turnTitle = w === 'm' ? `Thứ ${(m.slot ?? 0) + 1}${S.nslots ? ' / ' + S.nslots : ''}` : (m.turn ? `Thứ ${m.turn}` : (i === 't' ? 'Tranh hạng 3' : `Số ${(parseInt(String(i).split('-')[1], 10) || 0) + 1}`));
-  const hasSv = !!m.sv;
-  const sv = m.sv || 'a';
-  const sn = m.sn || (dbl ? 2 : 1);
-  const svScore = sv === 'a' ? sa : sb;
-  const rvScore = sv === 'a' ? sb : sa;
-  const csNow = courtState(m);
-  const srvP = csNow.find(x => x.role === 'server');
-  const courtSide = srvP ? (srvP.court === 'R' ? 'PHẢI' : 'TRÁI') : (svScore % 2 === 0 ? 'PHẢI' : 'TRÁI');
-  const canFinish = live && sa !== sb && valid({ sa, sb }, rule);
-  const call = dbl ? `${svScore} – ${rvScore} – ${sn}` : `${svScore} – ${rvScore}`;
-  const svName = srvP ? srvP.name : (sv === 'a' ? T(m.a) : T(m.b));
-  const svTeamNo = sv === 'a' ? 1 : 2;
-
-  const leftKey = m.sw ? 'b' : 'a', rightKey = m.sw ? 'a' : 'b';
-  const preKey = w + '|' + i;
-  const preTeam = PRE[preKey] || null;
-  // Chỉ được sửa vị trí đội ĐỠ giao; người giao đầu tiên luôn đứng ô phải và vị trí đội giao tự đổi theo luật
-  const curSv = hasSv ? sv : preTeam;
-  const editTeam = (dbl && !fin && curSv && (!hasSv || POSEDIT)) ? (curSv === 'a' ? 'b' : 'a') : null;
-  const teamCard = (key, nm, score) => {
-    const isSv = hasSv && sv === key && !fin;
-    const win = fin && ((key === 'a' && sa > sb) || (key === 'b' && sb > sa));
-    return `
-      <div class="bg-card p-3 sm:p-5 rounded-2xl border-2 text-center space-y-1 ${win ? 'border-emerald-500' : isSv ? 'border-amber-400 bg-amber-50/60 dark:bg-amber-950/20' : 'border-slate-200 dark:border-slate-800'}">
-        <div class="text-[11px] font-bold uppercase text-slate-400">ĐỘI ${key === 'a' ? '1' : '2'} · ${key === leftKey ? '◀ BÊN TRÁI' : 'BÊN PHẢI ▶'}</div>
-        <div class="font-extrabold text-base sm:text-xl text-slate-800 dark:text-slate-100 break-words">${nm}</div>
-        <div class="text-6xl sm:text-8xl font-black text-brand-600 dark:text-brand-400 leading-none py-2">${score}</div>
-        <div class="min-h-[28px]">${isSv ? `<span class="inline-block px-2.5 py-1 rounded-full bg-amber-400 text-slate-900 text-xs font-black">${BALL} ĐANG GIAO${dbl ? ' · NGƯỜI GIAO SỐ ' + sn : ''}</span>` : win ? '<span class="inline-block px-2.5 py-1 rounded-full bg-emerald-500 text-white text-xs font-black">🏆 THẮNG</span>' : '<span class="text-xs text-slate-400">Đội nhận bóng</span>'}</div>
-      </div>`;
-  };
-
-  const rallyBtn = (key, nm) => {
-    const isSv = sv === key;
-    const sub = isSv ? (dbl ? '+1 điểm · người giao đổi ô trái/phải' : '+1 điểm cho người giao') : (dbl && sn === 1 ? 'Đội giao lỗi → đồng đội giao tiếp (người giao số 2)' : 'Đội giao lỗi → đổi giao, người đứng ô PHẢI của đội kia giao đầu');
-    return `
-      <button data-rally="${key}" ${at} class="w-full py-4 sm:py-5 ${isSv ? 'bg-brand-600 hover:bg-brand-500' : 'bg-slate-700 hover:bg-slate-600'} active:scale-[0.98] text-white rounded-2xl shadow-lg transition-all">
-        <div class="font-black text-base sm:text-xl">✅ ${nm} THẮNG PHA BÓNG</div>
-        <div class="text-[11px] sm:text-xs font-medium opacity-90 mt-0.5">${sub}</div>
-      </button>`;
-  };
-
-  const courtBlock = fin ? '' : `
-    <div class="bg-card p-3 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
-      <div class="flex items-center justify-between gap-2">
-        <div class="text-xs font-extrabold text-slate-600 dark:text-slate-300">🗺️ SƠ ĐỒ SÂN</div>
-        <button data-swapends="1" ${at} class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl shadow">🔄 ĐỔI SÂN</button>
-      </div>
-      ${dbl && !hasSv ? `<div class="text-xs font-bold text-amber-600">${preTeam ? 'Chạm vào VĐV của đội ĐỠ giao (viền nét đứt) để đổi chỗ phải/trái cho đúng thực tế. Người giao đầu tiên luôn đứng ô PHẢI.' : 'Chọn đội giao bóng đầu tiên ở bên dưới. Người giao đầu tiên sẽ đứng ô PHẢI; chỉ sửa được vị trí đội đỡ giao.'}</div>` : ''}
-      ${courtSvg(m, at, editTeam)}
-      <div class="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500">
-        <span><b style="color:#d97706">●</b> Người giao &nbsp; <b style="color:#0891b2">●</b> Người nhận &nbsp; <span class="opacity-70">(vị trí tự đổi theo luật)</span></span>
-        ${dbl && hasSv ? `<button data-posedit="1" class="px-2.5 py-1 rounded-lg font-bold ${POSEDIT ? 'bg-amber-500 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200'}">${POSEDIT ? '✅ Xong sửa vị trí' : '✏️ Sửa vị trí đội đỡ giao'}</button>` : ''}
-      </div>
-      ${editTeam && hasSv ? '<div class="text-[11px] text-amber-600 font-semibold">Chạm vào VĐV của đội đỡ giao (viền nét đứt) để đổi chỗ phải/trái. Đội giao tự đổi vị trí theo luật nên không sửa tay.</div>' : ''}
-    </div>`;
-  const preStart = !fin && (!live || !hasSv);
-
-  const teamBtnLbl = k => `${BALL} ${e(T(k === 'a' ? m.a : m.b))}`;
-  let chooser;
-  if (!dbl) {
-    chooser = `
-    <div class="bg-card p-4 rounded-2xl border-2 border-amber-300 space-y-3">
-      <div class="font-extrabold text-sm text-slate-800 dark:text-slate-100">${live ? 'Chưa chọn người giao bóng.' : ''} Ai GIAO BÓNG ĐẦU TIÊN?</div>
-      <div class="grid grid-cols-2 gap-2">
-        <button data-startp="0" data-team="a" ${at} class="py-4 bg-brand-600 hover:bg-brand-500 text-white font-black rounded-2xl break-words px-2">${teamBtnLbl('a')}</button>
-        <button data-startp="0" data-team="b" ${at} class="py-4 bg-brand-600 hover:bg-brand-500 text-white font-black rounded-2xl break-words px-2">${teamBtnLbl('b')}</button>
-      </div>
-    </div>`;
-  } else if (!preTeam) {
-    chooser = `
-    <div class="bg-card p-4 rounded-2xl border-2 border-amber-300 space-y-3">
-      <div class="font-extrabold text-sm text-slate-800 dark:text-slate-100">${live ? 'Chưa chọn đội giao bóng.' : 'Bước 1:'} Chọn ĐỘI giao bóng đầu tiên</div>
-      <div class="grid grid-cols-2 gap-2">
-        <button data-pre-team="a" ${at} class="py-4 bg-brand-600 hover:bg-brand-500 text-white font-black rounded-2xl break-words px-2">${teamBtnLbl('a')}</button>
-        <button data-pre-team="b" ${at} class="py-4 bg-brand-600 hover:bg-brand-500 text-white font-black rounded-2xl break-words px-2">${teamBtnLbl('b')}</button>
-      </div>
-      <div class="text-[11px] text-slate-500">Đánh đôi: đội giao đầu tiên chỉ có <b>1 lượt giao</b> (hô <b>0 – 0 – 2</b>).</div>
-    </div>`;
-  } else {
-    const pls = teamPlayers(preTeam === 'a' ? m.a : m.b);
-    chooser = `
-    <div class="bg-card p-4 rounded-2xl border-2 border-amber-300 space-y-3">
-      <div class="flex items-center justify-between gap-2">
-        <div class="font-extrabold text-sm text-slate-800 dark:text-slate-100">Bước 2: Chọn VĐV giao bóng đầu tiên (Đội ${preTeam === 'a' ? 1 : 2})</div>
-        <button data-pre-back="1" ${at} class="px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200">← Đổi đội</button>
-      </div>
-      <div class="grid grid-cols-2 gap-2">
-        ${pls.map((nm, k) => `<button data-startp="${k}" data-team="${preTeam}" ${at} class="py-4 bg-amber-500 hover:bg-amber-400 text-slate-900 font-black rounded-2xl break-words px-2">${BALL} ${e(nm)}</button>`).join('')}
-      </div>
-      <div class="text-[11px] text-slate-500">VĐV được chọn sẽ đứng <b>ô PHẢI</b> của đội (theo hướng nhìn về lưới) và giao bóng trước.</div>
-    </div>`;
-  }
-
-  const sync = syncOn()
-    ? `<div class="text-xs ${SYNC_OK === false ? 'text-red-500' : 'text-emerald-600'} font-semibold">${SYNC_OK === false ? '🔴 Mất kết nối: điểm đang lưu tạm trên máy và sẽ tự gửi lại khi có mạng.' : '🟢 Điểm tự động cập nhật cho Ban tổ chức và khán giả.'}</div>`
-    : `<div class="text-xs text-slate-500">Điểm bạn chấm chỉ lưu trên máy này. Khi xong trận, bấm nút dưới để gửi kết quả về cho Ban tổ chức.</div>
-       <button data-send-res="1" ${Object.keys(CH).length ? '' : 'disabled'} class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white font-extrabold rounded-2xl shadow transition-all">📤 Gửi kết quả cho BTC</button>`;
-
-  return `
-    <div class="space-y-3">
-      <div class="bg-card p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
-        <div class="flex items-start justify-between gap-2">
-          <div>
-            <span class="text-xs font-bold text-amber-600 uppercase tracking-wider block mb-0.5">BÀN TRỌNG TÀI CHÍNH THỨC</span>
-            <h2 class="text-base font-extrabold text-slate-800 dark:text-slate-100">${e(S.name)}</h2>
-          </div>
-          <span class="shrink-0 px-3 py-1 rounded-xl text-xs font-bold ${live ? 'bg-red-100 text-red-700 animate-pulse' : fin ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}">
-            ${live ? '🔴 ĐANG ĐẤU' : fin ? '✅ ĐÃ KẾT THÚC' : '⏳ CHỜ BẮT ĐẦU'}
-          </span>
-        </div>
-        <div class="grid grid-cols-3 gap-2 text-center">
-          <div class="bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-900 rounded-xl p-2">
-            <div class="text-[10px] font-bold uppercase text-indigo-500">Vòng đấu</div>
-            <div class="font-black text-sm sm:text-base text-indigo-700 dark:text-indigo-300">${roundTitle}</div>
-          </div>
-          <div class="bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-900 rounded-xl p-2">
-            <div class="text-[10px] font-bold uppercase text-sky-500">Lượt đấu</div>
-            <div class="font-black text-sm sm:text-base text-sky-700 dark:text-sky-300">${turnTitle}</div>
-          </div>
-          <div class="bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 rounded-xl p-2">
-            <div class="text-[10px] font-bold uppercase text-amber-600">Sân thi đấu</div>
-            <div class="font-black text-lg text-amber-700 dark:text-amber-300">🏟️ ${m.court || '—'}</div>
-          </div>
-        </div>
-        <div class="text-xs text-slate-500">${rt(g.rk)}</div>
-      </div>
-
-      ${preStart ? courtBlock : ''}
-      ${preStart ? chooser : ''}
-
-      <div class="grid grid-cols-2 gap-3">
-        ${teamCard(leftKey, T(leftKey === 'a' ? m.a : m.b), leftKey === 'a' ? sa : sb)}
-        ${teamCard(rightKey, T(rightKey === 'a' ? m.a : m.b), rightKey === 'a' ? sa : sb)}
-      </div>
-
-      ${live && hasSv ? `
-        <div class="bg-slate-900 text-white rounded-2xl p-4 text-center shadow-lg">
-          <div class="text-[11px] uppercase tracking-widest text-slate-400">${dbl ? 'Hô tỉ số: điểm đội giao – điểm đội nhận – người giao' : 'Hô tỉ số: điểm người giao – điểm người nhận'}</div>
-          <div class="text-5xl sm:text-6xl font-black tracking-wider my-1">${call}</div>
-          <div class="text-sm text-amber-300 font-bold">${BALL} <span class="text-yellow-300 text-base font-black">${e(svName)}</span> <span class="text-slate-300 font-medium">(Đội ${svTeamNo}${dbl ? ' · người giao số ' + sn : ''})</span> giao bóng từ ô <span class="underline">${courtSide}</span></div>
-        </div>
-
-        ${courtBlock}
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          ${rallyBtn(leftKey, T(leftKey === 'a' ? m.a : m.b))}
-          ${rallyBtn(rightKey, T(rightKey === 'a' ? m.a : m.b))}
-        </div>
-
-        <div class="grid grid-cols-2 gap-2">
-          <button data-undo="1" ${at} class="py-3 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-100 font-bold rounded-2xl">↩️ Hoàn tác pha bóng</button>
-          <button data-sc="fin" ${at} class="py-3 ${canFinish ? 'bg-amber-500 hover:bg-amber-600 animate-pulse' : 'bg-slate-300 dark:bg-slate-700 text-slate-600 dark:text-slate-300'} text-white font-black rounded-2xl">🏁 KẾT THÚC TRẬN</button>
-        </div>
-        <button data-restart="1" ${at} class="w-full py-2.5 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 text-sm font-bold rounded-2xl">🔁 Chọn lại đội &amp; người giao bóng đầu tiên</button>
-        ${canFinish ? `<div class="text-center text-sm font-bold text-amber-600">✅ Đã đủ điều kiện thắng (${rule.pts} điểm${rule.w2 ? ', hơn 2 điểm' : ''}). Bấm KẾT THÚC TRẬN để xác nhận.</div>` : ''}
-      ` : ''}
-
-      ${fin ? `<div class="text-center py-3 text-emerald-600 font-bold text-sm bg-card rounded-2xl border border-slate-200 dark:border-slate-800">✅ Trận đấu đã kết thúc với tỷ số <b>${sa} - ${sb}</b>. Chỉ Ban tổ chức mới có quyền mở lại.</div>` : ''}
-
-      ${live ? `
-        <details class="bg-card p-3 rounded-2xl border border-slate-200 dark:border-slate-800">
-          <summary class="text-xs font-bold text-slate-500 cursor-pointer">✏️ Sửa điểm thủ công (khi nhập nhầm)</summary>
-          <div class="grid grid-cols-4 gap-2 mt-2">
-            <button data-sc="a-" ${at} class="py-2 bg-slate-200 dark:bg-slate-700 rounded-xl font-bold text-xs">Đội 1 −1</button>
-            <button data-sc="a+" ${at} class="py-2 bg-slate-200 dark:bg-slate-700 rounded-xl font-bold text-xs">Đội 1 +1</button>
-            <button data-sc="b-" ${at} class="py-2 bg-slate-200 dark:bg-slate-700 rounded-xl font-bold text-xs">Đội 2 −1</button>
-            <button data-sc="b+" ${at} class="py-2 bg-slate-200 dark:bg-slate-700 rounded-xl font-bold text-xs">Đội 2 +1</button>
-          </div>
-          <div class="grid grid-cols-2 gap-2 mt-2">
-            <button data-first="a" ${at} class="py-2 bg-slate-200 dark:bg-slate-700 rounded-xl font-bold text-xs">Đặt Đội 1 đang giao</button>
-            <button data-first="b" ${at} class="py-2 bg-slate-200 dark:bg-slate-700 rounded-xl font-bold text-xs">Đặt Đội 2 đang giao</button>
-          </div>
-          ${dbl ? `<div class="grid grid-cols-2 gap-2 mt-2">
-            <button data-sn="1" ${at} class="py-2 bg-slate-200 dark:bg-slate-700 rounded-xl font-bold text-xs">Đặt: giao số 1</button>
-            <button data-sn="2" ${at} class="py-2 bg-slate-200 dark:bg-slate-700 rounded-xl font-bold text-xs">Đặt: giao số 2</button>
-            <button data-si="1" ${at} class="col-span-2 py-2 bg-slate-200 dark:bg-slate-700 rounded-xl font-bold text-xs">🔁 Đổi sang đồng đội đang giao</button>
-          </div>` : ''}
-        </details>` : ''}
-
-      <details class="bg-card p-3 rounded-2xl border border-slate-200 dark:border-slate-800">
-        <summary class="text-xs font-bold text-slate-500 cursor-pointer">📖 Nhắc nhanh luật giao bóng Pickleball</summary>
-        <ul class="text-xs text-slate-600 dark:text-slate-300 mt-2 space-y-1 list-disc pl-4">
-          <li><b>Chỉ đội giao bóng mới ghi điểm.</b> Đội nhận thắng pha bóng thì không có điểm, chỉ chuyển quyền giao.</li>
-          <li>Giao bóng chéo sân sang ô đối diện.</li>
-          ${dbl ? `<li><b>Đánh đôi:</b> hô 3 số (điểm đội giao – điểm đội nhận – người giao số 1/2). Đầu trận người đứng <b>ô phải</b> giao trước.</li>
-          <li>Ghi điểm → người giao <b>đổi ô</b> (phải ↔ trái) và giao tiếp. Đội giao <b>chỉ đổi ô khi ghi điểm</b>; đội nhận <b>không bao giờ đổi ô</b>.</li>
-          <li>Người giao số 1 lỗi → đồng đội (giao số 2) giao tiếp từ ô đang đứng. Giao số 2 lỗi → đổi giao: người đứng <b>ô phải</b> của đội kia giao đầu.</li>
-          <li>Đầu ván, đội giao đầu tiên chỉ có <b>1 lượt giao</b> (bắt đầu 0 – 0 – 2).</li>` : `<li><b>Đánh đơn:</b> hô 2 số. Điểm người giao <b>chẵn → ô phải</b>, <b>lẻ → ô trái</b>. Người giao lỗi → đổi giao bóng ngay.</li>`}
-          <li>Thắng khi đạt ${rule.pts} điểm${rule.w2 ? ' và hơn đối thủ ít nhất 2 điểm' : ''}.</li>
-        </ul>
-      </details>
-
-      <div class="bg-card p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
-        ${sync}
-      </div>
-    </div>`;
-}
-
-function vSetup() {
-  const d = S.started ? 'disabled' : '';
-  const dbl = S.mode === 'double';
-  const tot = S.sizes.reduce((a, b) => a + b, 0);
-
-  let h = `
-    <div class="bg-card p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-      <h3 class="font-extrabold text-base text-slate-800 dark:text-slate-100 flex items-center gap-2">${BALL} THIẾT LẬP BAN TỔ CHỨC</h3>
-      
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-        <div>
-          <label class="block text-xs font-bold text-slate-500 mb-1">Mật khẩu Admin (BTC)</label>
-          <input type="text" data-f="adminPass" value="${e(S.adminPass)}" placeholder="Mật khẩu Admin..." class="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold">
-        </div>
-        <div class="sm:col-span-2">
-          <label class="block text-xs font-bold text-slate-500 mb-1">🔄 Địa chỉ Firebase Realtime Database (để điểm tự động cập nhật cho mọi người)</label>
-          <input type="text" data-f="db" value="${e(S.db)}" placeholder="https://ten-du-an-default-rtdb.firebaseio.com" class="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs">
-          <p class="text-[11px] text-slate-400 mt-1">${syncOn() ? 'Đã bật đồng bộ. Sau khi bật hoặc đổi, hãy bấm copy lại các link trọng tài / link xem.' : 'Để trống = không đồng bộ (trọng tài phải gửi kết quả thủ công).'}</p>
-        </div>
-        <div>
-          <label class="block text-xs font-bold text-slate-500 mb-1">Ngày thi đấu</label>
-          <input type="text" data-f="date" value="${e(S.date)}" placeholder="VD: 15/11/2026" class="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl">
-        </div>
-        <div class="sm:col-span-2">
-          <label class="block text-xs font-bold text-slate-500 mb-1">Địa điểm</label>
-          <input type="text" data-f="loc" value="${e(S.loc)}" placeholder="VD: Sân Pickleball Thể Thao..." class="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl">
-        </div>
-      </div>
-    </div>
-
-    <div class="bg-card p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-      <h3 class="font-extrabold text-base text-slate-800 dark:text-slate-100">📊 THỂ THỨC THI ĐẤU</h3>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-        <div>
-          <label class="block text-xs font-bold text-slate-500 mb-1">Hình thức</label>
-          <select data-f="mode" ${d} class="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl">
-            <option value="double" ${dbl ? 'selected' : ''}>Đánh đôi</option>
-            <option value="single" ${!dbl ? 'selected' : ''}>Đánh đơn</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-xs font-bold text-slate-500 mb-1">Số bảng đấu</label>
-          <select data-f="g" ${d} class="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl">
-            ${[1, 2, 3, 4, 5, 6, 7, 8].map(x => `<option value="${x}" ${S.g === x ? 'selected' : ''}>${x} bảng</option>`).join('')}
-          </select>
-        </div>
-        <div class="sm:col-span-2">
-          <label class="block text-xs font-bold text-slate-500 mb-1">🏟️ Số sân thi đấu (app tự xếp trận vào sân, các bảng đấu song song)</label>
-          <select data-f="courts" ${d} class="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl">
-            ${[...Array(24).keys()].map(x => `<option value="${x + 1}" ${S.courts === x + 1 ? 'selected' : ''}>${x + 1} sân</option>`).join('')}
-          </select>
-          <p class="text-[11px] text-slate-400 mt-1">${courtEstimate()}</p>
-        </div>
-      </div>
-
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        ${[...Array(S.g).keys()].map(k => `
-          <div>
-            <label class="block text-xs font-semibold text-slate-500 mb-1">Bảng ${GN(k)} (đội)</label>
-            <input type="number" min="2" max="8" data-f="sz:${k}" value="${S.sizes[k]}" ${d} class="w-full p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-center">
-          </div>
-        `).join('')}
-      </div>
-    </div>
-
-    <div class="bg-card p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
-      <h3 class="font-extrabold text-base text-slate-800 dark:text-slate-100">🏆 VÒNG LOẠI TRỰC TIẾP (SERI A / SERI B)</h3>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-        <div>
-          <label class="block text-xs font-bold text-slate-500 mb-1">🥇 Seri A: số đội mỗi bảng được vào (hạng 1 → N)</label>
-          <select data-f="advA" ${d} class="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl">
-            ${[1, 2, 3, 4].map(x => `<option value="${x}" ${S.advA === x ? 'selected' : ''}>Hạng 1${x > 1 ? ' – ' + x : ''} (${x * S.g} đội)</option>`).join('')}
-          </select>
-        </div>
-        <div>
-          <label class="block text-xs font-bold text-slate-500 mb-1">🥈 Seri B: số đội mỗi bảng được vào (tiếp theo Seri A)</label>
-          <select data-f="advB" ${d} class="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl">
-            ${[0, 1, 2, 3, 4].map(x => `<option value="${x}" ${S.advB === x ? 'selected' : ''}>${x === 0 ? 'Không tổ chức Seri B' : 'Hạng ' + (S.advA + 1) + (x > 1 ? ' – ' + (S.advA + x) : '') + ' (' + x * S.g + ' đội)'}</option>`).join('')}
-          </select>
-        </div>
-      </div>
-      <p class="text-[11px] text-slate-400">Mỗi seri tự chia nhánh: Vòng loại 1/16, 1/8 → Tứ kết → Bán kết → Tranh hạng 3–4 → Chung kết, tùy số đội. Nhánh chỉ xếp sau khi kết thúc toàn bộ vòng bảng.</p>
-    </div>
-
-    <div class="bg-card p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-      <h3 class="font-extrabold text-base text-slate-800 dark:text-slate-100">👥 DANH SÁCH VẬN ĐỘNG VIÊN (${tot} ${dbl ? 'cặp' : 'người'})</h3>
-      <div class="space-y-2 max-h-80 overflow-y-auto pr-1">
-        ${S.pool.map((p, i) => `
-          <div class="flex items-center gap-2 text-xs">
-            <span class="w-6 font-bold text-slate-400 text-right">${i + 1}.</span>
-            <input type="text" data-f="p:${i}:0" value="${e(p[0] || '')}" placeholder="VĐV 1..." ${d} class="flex-1 p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg">
-            ${dbl ? `<input type="text" data-f="p:${i}:1" value="${e(p[1] || '')}" placeholder="VĐV 2..." ${d} class="flex-1 p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg">` : ''}
-          </div>
-        `).join('')}
-      </div>
-    </div>`;
-
-  if (err) h += `<div class="p-3 bg-red-100 text-red-700 font-bold rounded-xl text-xs">${e(err)}</div>`;
-
-  return h + (S.started ? `
-    <button id="reset" class="w-full py-3.5 bg-red-500 hover:bg-red-600 text-white font-extrabold rounded-2xl shadow transition-all">
-      ${armed ? '⚠️ Bấm lần nữa để XÓA TOÀN BỘ LỊCH ĐẤU & TỈ SỐ' : '🔄 Hủy lịch đấu để sửa lại thiết lập'}
-    </button>
-  ` : `
-    <button id="start" class="w-full py-4 bg-brand-600 hover:bg-brand-500 text-white font-extrabold text-base rounded-2xl shadow-lg transition-all">
-      🚀 TẠO LỊCH THI ĐẤU
-    </button>
-  `);
-}
-
-function vSched() {
-  if (!S.started) return '<div class="p-8 text-center bg-card rounded-2xl border border-slate-200 dark:border-slate-800 text-slate-500">Chưa tạo lịch thi đấu. Ban tổ chức vui lòng hoàn tất phần thiết lập!</div>';
-
-  const pl = S.matches.filter(done).length;
-  let h = '';
-  if (ADMIN) {
-    h += `
-      <div class="bg-card p-3 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
-        <div class="text-xs font-bold text-slate-500">📥 Nhận kết quả từ trọng tài (dán link/mã trọng tài gửi qua Zalo)</div>
-        <div class="flex gap-2">
-          <input id="res-paste" type="text" placeholder="Dán link hoặc mã kết quả..." class="flex-1 min-w-0 text-xs p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg">
-          <button id="res-apply" class="px-3 py-2 bg-brand-600 text-white text-xs font-bold rounded-lg">Áp dụng</button>
-        </div>
-      </div>`;
-  }
-
-  for (let k = 0; k < S.nslots; k++) {
-    const ms = S.matches.map((m, i) => [m, i]).filter(x => x[0].slot === k).sort((x, y) => x[0].court - y[0].court);
-    h += `
-      <div class="bg-card p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3">
-        <h3 class="font-extrabold text-sm text-slate-700 dark:text-slate-300 flex items-center justify-between">
-          <span>LƯỢT ĐẤU THỨ ${k + 1}</span>
-          <span class="text-xs font-normal text-slate-400">${ms.length} trận</span>
-        </h3>
-        <div class="space-y-2.5">
-          ${ms.map(([m, i]) => matchRow(m, 'm', i, 'rr', `Sân ${m.court} · Bảng ${GN(m.g)}`)).join('')}
-        </div>
-      </div>`;
-  }
-  return h;
-}
-
-function vRank() {
-  if (!S.started) return '<div class="p-8 text-center bg-card rounded-2xl border border-slate-200 dark:border-slate-800 text-slate-500">Chưa có lịch thi đấu.</div>';
-  let h = '';
-
-  for (let k = 0; k < S.g; k++) {
-    const st = stand(k), A = S.advA, B = S.advA + S.advB;
-    h += `
-      <div class="bg-card p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3 overflow-x-auto">
-        <h3 class="font-extrabold text-base text-slate-800 dark:text-slate-100">BẢNG ${GN(k)}</h3>
-        <table class="w-full text-left border-collapse text-xs sm:text-sm">
-          <thead>
-            <tr class="border-b border-slate-200 dark:border-slate-700 text-slate-400 uppercase">
-              <th class="p-2 text-center">#</th>
-              <th class="p-2">Đội</th>
-              <th class="p-2 text-center">Trận</th>
-              <th class="p-2 text-center">T</th>
-              <th class="p-2 text-center">B</th>
-              <th class="p-2 text-center">ĐIỂM</th>
-              <th class="p-2 text-center">HS</th>
-              <th class="p-2 text-center">ĐT</th>
-              <th class="p-2">Phân hạng</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${st.map((r, n) => `
-              <tr class="border-b border-slate-100 dark:border-slate-800 ${n < A ? 'bg-emerald-50/50 dark:bg-emerald-950/20 font-bold' : ''}">
-                <td class="p-2 text-center font-bold">${n + 1}${n < A ? ' 🅐' : n < B ? ' 🅑' : ''}</td>
-                <td class="p-2 font-semibold text-slate-800 dark:text-slate-200">${T(r.i)}</td>
-                <td class="p-2 text-center">${r.p}</td>
-                <td class="p-2 text-center text-emerald-600">${r.w}</td>
-                <td class="p-2 text-center text-red-500">${r.l}</td>
-                <td class="p-2 text-center font-extrabold text-brand-600 dark:text-brand-400 text-base">${r.w}</td>
-                <td class="p-2 text-center font-bold ${r.d > 0 ? 'text-emerald-600' : r.d < 0 ? 'text-red-500' : ''}">${r.d > 0 ? '+' : ''}${r.d}</td>
-                <td class="p-2 text-center text-slate-500">${r.pf}</td>
-                <td class="p-2 text-xs text-slate-400">
-                  ${r.why}
-                  ${ADMIN && r.why.includes('Bốc thăm') ? `
-                    <div class="inline-flex gap-1 ml-1">
-                      <button data-rank-up="${k}_${r.i}" class="px-1.5 py-0.5 bg-slate-200 dark:bg-slate-700 rounded hover:bg-brand-500 hover:text-white">▲</button>
-                      <button data-rank-down="${k}_${r.i}" class="px-1.5 py-0.5 bg-slate-200 dark:bg-slate-700 rounded hover:bg-brand-500 hover:text-white">▼</button>
-                    </div>
-                  ` : ''}
-                </td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      </div>`;
-  }
-  return h;
-}
-
-function third(sr, br) {
-  if (!br || br.length < 2) return null;
-  const sf = br[br.length - 2];
-  if (sf.length !== 2 || sf.some(m => m.bye)) return null;
-  const lose = m => (done(m) && m.a != null && m.b != null ? (m.sa > m.sb ? m.b : m.a) : null);
-  const t = { a: lose(sf[0]), b: lose(sf[1]), key: 't', ...((S.ko[sr] || {})['t'] || {}) };
-  const pl = koPlan()[sr + '|t'];
-  if (pl) { t.court = t.court ?? pl.court; t.turn = pl.turn; t.autoCourt = pl.court; }
-  return t;
-}
-
-function vRound(sr) {
-  if (!S.started) return '<div class="p-8 text-center text-slate-500 bg-card rounded-2xl border border-slate-200 dark:border-slate-800">Chưa có lịch đấu.</div>';
-  if (sr !== 'A' && sr !== 'B') return '';
-  const lo = sr === 'A' ? 1 : S.advA + 1;
-  const hi = sr === 'A' ? S.advA : S.advA + S.advB;
-  const seeds = qual(sr);
-  const head = `
-    <div class="bg-gradient-to-r ${sr === 'A' ? 'from-amber-500 to-orange-500' : 'from-slate-500 to-slate-700'} text-white p-4 rounded-2xl shadow">
-      <div class="text-xs font-bold uppercase tracking-widest opacity-90">Vòng loại trực tiếp</div>
-      <div class="text-xl font-black">${sr === 'A' ? '🥇' : '🥈'} SERI ${sr}</div>
-      <div class="text-xs opacity-90">Các đội xếp hạng ${lo}${hi > lo ? ' – ' + hi : ''} của mỗi bảng · ${seeds.length} đội</div>
-    </div>`;
-
-  if (!allDone()) {
-    const left = S.matches.filter(m => !done(m)).length;
-    return head + `<div class="p-6 text-center text-slate-500 bg-card rounded-2xl border border-slate-200 dark:border-slate-800">⏳ Vòng bảng còn <b>${left}</b> trận chưa kết thúc.<br><span class="text-xs">Nhánh đấu sẽ tự động xếp khi hoàn tất toàn bộ vòng bảng.</span></div>`;
-  }
-  const br = bracket(sr);
-  if (!br) return head + '<div class="p-6 text-center text-slate-500 bg-card rounded-2xl border border-slate-200 dark:border-slate-800">Không đủ đội để tổ chức vòng loại trực tiếp cho Seri này.</div>';
-
-  let h = head;
-  const fin = br[br.length - 1][0];
-  const th = third(sr, br);
-  const champ = winner(fin);
-  if (champ != null) {
-    const runner = fin.a === champ ? fin.b : fin.a;
-    const t3 = th && winner(th) != null ? winner(th) : null;
-    const t4 = t3 != null ? (th.a === t3 ? th.b : th.a) : null;
-    h += `
-      <div class="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-300 dark:border-emerald-800 p-4 rounded-2xl space-y-1">
-        <div class="font-black text-emerald-700 dark:text-emerald-300">🏆 KẾT QUẢ SERI ${sr}</div>
-        <div class="text-sm">🥇 Nhất: <b>${T(champ)}</b></div>
-        <div class="text-sm">🥈 Nhì: <b>${T(runner)}</b></div>
-        ${t3 != null ? `<div class="text-sm">🥉 Ba: <b>${T(t3)}</b></div><div class="text-sm">4️⃣ Tư: <b>${T(t4)}</b></div>` : ''}
-      </div>`;
-  }
-  br.forEach(R => {
-    h += `
-      <div class="bg-card p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3">
-        <h3 class="font-extrabold text-sm text-slate-700 dark:text-slate-300 flex items-center justify-between">
-          <span>${R.nm.toUpperCase()}</span>
-          <span class="text-xs font-normal text-slate-400">${R.filter(m => !m.bye).length} trận</span>
-        </h3>
-        <div class="space-y-2.5">
-          ${R.map((m, idx) => matchRow(m, sr, m.key, R.rk, `${R.nm} · Trận ${idx + 1}${m.turn ? ' · Lượt ' + m.turn : ''}${m.court ? ' · Sân ' + m.court : ''}`)).join('')}
-        </div>
-      </div>`;
-  });
-  if (th) {
-    h += `
-      <div class="bg-card p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3">
-        <h3 class="font-extrabold text-sm text-slate-700 dark:text-slate-300">TRANH HẠNG 3 – 4</h3>
-        ${matchRow(th, sr, 't', 'ko', `Tranh hạng 3${th.turn ? ' · Lượt ' + th.turn : ''}${th.court ? ' · Sân ' + th.court : ''}`)}
-      </div>`;
-  }
-  return h;
-}
-
-// -------------------------------------------------------------
-// HÀM RENDER CHÍNH HIỂN THỊ TOÀN BỘ GIAO DIỆN
-// -------------------------------------------------------------
-function render() {
-  parseRoute();
-
-  const adminBtn = document.getElementById('btn-admin-toggle');
-  if (adminBtn) adminBtn.classList.toggle('hidden', SHARED);
-  const shareBtn = document.getElementById('btn-share-view');
-  if (shareBtn) shareBtn.classList.toggle('hidden', SHARED);
-
-  const nm = document.getElementById('name');
-  if (nm) {
-    nm.value = S.name;
-    nm.disabled = !ADMIN;
-  }
-
-  updateBadge();
-
-  const subInfo = document.getElementById('sub-info');
-  if (subInfo) {
-    subInfo.innerText = [S.date, S.loc].filter(Boolean).join(' · ');
-  }
-
-  const N0 = ADMIN ? [
-    ['setup', BALL + ' Thiết lập'],
-    ['sched', '📅 Lịch đấu'],
-    ['rank', '🏆 Bảng xếp hạng']
-  ] : MODE === 'referee' ? [
-    ['referee', BALL + ' Bàn Trọng Tài'],
-    ['sched', '📅 Lịch đấu'],
-    ['rank', '🏆 Bảng xếp hạng']
-  ] : [
-    ['sched', '📅 Lịch đấu'],
-    ['rank', '🏆 Bảng xếp hạng']
-  ];
-  const KT = S.started ? [['A', '🥇 Seri A']].concat(S.advB > 0 ? [['B', '🥈 Seri B']] : []) : [];
-  const N = N0.concat(KT);
-  if ((tab === 'A' || tab === 'B') && !KT.some(x => x[0] === tab)) tab = 'sched';
-
-  const nav = document.getElementById('nav');
-  if (nav) {
-    nav.innerHTML = N.map(([k, l]) => `
-      <button data-tab="${k}" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all ${tab === k ? 'bg-brand-600 text-white shadow-md' : 'bg-card text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800'}">
-        ${l}
-      </button>
-    `).join('');
-  }
-
-  const view = document.getElementById('view');
-  if (view && SNAP_ERR) {
-    view.innerHTML = `
-      <div class="bg-card p-6 rounded-2xl border border-slate-200 dark:border-slate-800 text-center space-y-3">
-        <div class="text-4xl">⚠️</div>
-        <h3 class="font-extrabold text-base text-red-500">Link không hợp lệ hoặc bị cắt mất một phần.</h3>
-        <p class="text-xs text-slate-500">Vui lòng nhờ Ban tổ chức gửi lại link (nên gửi nguyên link, không chỉnh sửa).</p>
-      </div>`;
-  } else if (view) {
-    if (MODE === 'referee' && tab === 'referee') {
-      view.innerHTML = vReferee();
-    } else {
-      view.innerHTML = ({ setup: vSetup, sched: vSched, rank: vRank }[tab] || (() => vRound(tab)))();
-    }
-  }
-}
-
-// -------------------------------------------------------------
-// XỬ LÝ SỰ KIỆN CLICK & INTERACTION
-// -------------------------------------------------------------
-document.addEventListener('click', ev => {
-  const btn = ev.target.closest('button');
-
-  // Người xem không được chấm điểm / chỉnh sửa gì cả
-  if (btn && (btn.dataset.first || btn.dataset.sn || btn.dataset.rally || btn.dataset.undo || btn.dataset.sc || btn.dataset.swapends || btn.dataset.posedit || btn.dataset.startp != null || btn.dataset.preTeam || btn.dataset.preBack || btn.dataset.restart || btn.dataset.si || btn.dataset.refW != null || btn.dataset.tgl) && !(ADMIN || (MODE === 'referee' && btn.dataset.refW == null && !btn.dataset.tgl))) return;
-
-  // Nút sao chép link Trọng Tài
-  if (btn && btn.dataset.refW != null) {
-    if (!linkOk()) return;
-    copyText(`${getBaseUrl()}?role=referee&ref_w=${btn.dataset.refW}&ref_i=${btn.dataset.refI}${syncQS()}&d=${snapParam()}`);
-    return;
-  }
-
-  if (btn && btn.id === 'btn-share-view') {
-    if (!linkOk()) return;
-    copyText(`${getBaseUrl()}?${syncQS().slice(1)}${syncOn() ? '&' : ''}d=${snapParam()}`);
-    return;
-  }
-
-  // Trọng tài gửi kết quả về cho BTC
-  if (btn && btn.dataset.sendRes) {
-    if (window.location.protocol === 'file:') { linkOk(); return; }
-    const url = `${getBaseUrl()}?res=${resCode()}`;
-    if (navigator.share) {
-      navigator.share({ title: 'Kết quả trận đấu', url }).catch(() => copyText(url));
-    } else {
-      copyText(url);
-    }
-    return;
-  }
-
-  if (btn && btn.id === 'res-apply') {
-    const v = (document.getElementById('res-paste').value || '').trim();
-    const mm = /[?&]res=([A-Za-z0-9_-]+)/.exec(v);
-    if (v) applyResults(mm ? mm[1] : v);
-    return;
-  }
-
-  if (btn && btn.id === 'btn-admin-toggle') {
-    if (ADMIN) {
-      sessionStorage.removeItem('pb-admin-auth');
-      window.location.hash = '#view';
-      showToast('Đã thoát quyền Admin', '🔒');
-      render();
-    } else {
-      document.getElementById('pass-modal').classList.remove('hidden');
-      document.getElementById('pass-input').focus();
-    }
-    return;
-  }
-
-  if (btn && btn.id === 'btn-theme') {
-    document.documentElement.classList.toggle('dark');
-    return;
-  }
-
-  if (btn && btn.dataset.tab) {
-    tab = btn.dataset.tab;
-    render();
-    return;
-  }
-
-  if (btn && btn.dataset.tgl) {
-    OPEN[btn.dataset.tgl] = !OPEN[btn.dataset.tgl];
-    render();
-    return;
-  }
-
-  // Trọng tài: đổi chỗ phải/trái của VĐV trong đội (chạm vào sơ đồ sân)
-  const swEl = ev.target.closest && ev.target.closest('[data-swap]');
-  if (swEl) {
-    if (!(ADMIN || MODE === 'referee')) return;
-    const g = getM(swEl.dataset.w, swEl.dataset.i);
-    if (!g || !g.m) return;
-    const m = g.m;
-    const cur = m.sv || PRE[swEl.dataset.w + '|' + swEl.dataset.i];
-    if (!cur) { showToast('Hãy chọn đội giao bóng đầu tiên trước.', 'ℹ️'); return; }
-    if (swEl.dataset.swap === cur) { showToast('Vị trí đội giao bóng tự đổi theo luật. Chỉ sửa được vị trí đội đỡ giao.', 'ℹ️'); return; }
-    if (m.sv && !POSEDIT) { showToast('Bấm "Sửa vị trí đội đỡ giao" nếu cần đổi chỗ.', 'ℹ️'); return; }
-    if (m.sv && m.st !== 'live' && done(m)) return;
-    putScore(swEl.dataset.w, swEl.dataset.i, swEl.dataset.swap === 'a' ? { ar: 1 - (m.ar ?? 0) } : { br: 1 - (m.br ?? 0) });
-    return;
-  }
-  if (btn && btn.dataset.posedit) { POSEDIT = !POSEDIT; render(); return; }
-  if (btn && btn.dataset.swapends) {
-    const g = getM(btn.dataset.w, btn.dataset.i);
-    if (!g || !g.m) return;
-    putScore(btn.dataset.w, btn.dataset.i, { sw: g.m.sw ? 0 : 1 });
-    showToast('Đã đổi sân: hai đội đổi bên.', '🔄');
-    return;
-  }
-
-  // Trọng tài: chọn đội giao đầu tiên (bước 1) -> VĐV giao đầu tiên (bước 2)
-  if (btn && btn.dataset.preTeam) { PRE[btn.dataset.w + '|' + btn.dataset.i] = btn.dataset.preTeam; render(); return; }
-  if (btn && btn.dataset.restart) {
-    const w = btn.dataset.w, i = btn.dataset.i, g = getM(w, i);
-    if (!g || !g.m) return;
-    const m = g.m, key = w + '|' + i, played = (m.sa ?? 0) + (m.sb ?? 0) > 0;
-    if (played && !(RESTART_ARM[key] && Date.now() - RESTART_ARM[key] < 4000)) {
-      RESTART_ARM[key] = Date.now();
-      showToast('Trận đã có điểm. Bấm lần nữa trong 4 giây để chọn lại người giao (điểm giữ nguyên).', '⚠️');
-      return;
-    }
-    delete RESTART_ARM[key]; delete PRE[key]; delete HIST[key];
-    putScore(w, i, played ? { sv: null, sn: null, si: null, st: 'live' } : { sv: null, sn: null, si: null, st: null, sa: null, sb: null });
-    showToast('Đã hoàn tác. Hãy chọn lại đội và người giao đầu tiên.', '🔁');
-    return;
-  }
-  if (btn && btn.dataset.preBack) { delete PRE[btn.dataset.w + '|' + btn.dataset.i]; render(); return; }
-  if (btn && btn.dataset.startp != null) {
-    const w = btn.dataset.w, i = btn.dataset.i, g = getM(w, i);
-    if (!g || !g.m) return;
-    const m = g.m, dbl = S.mode === 'double', t = btn.dataset.team, idx = +btn.dataset.startp;
-    const patch = { sa: m.sa ?? 0, sb: m.sb ?? 0, st: 'live', sv: t, sn: dbl ? ((m.sa ?? 0) + (m.sb ?? 0) === 0 ? 2 : 1) : 1, si: idx };
-    if (dbl) patch[t === 'a' ? 'ar' : 'br'] = idx;       // VĐV giao đầu đứng ô phải của đội
-    delete PRE[w + '|' + i];
-    putScore(w, i, patch);
-    return;
-  }
-  if (btn && btn.dataset.si) {
-    const g = getM(btn.dataset.w, btn.dataset.i);
-    if (!g || !g.m || !g.m.sv) return;
-    const m = g.m, cur = m.si ?? (m.sv === 'a' ? (m.ar ?? 0) : (m.br ?? 0));
-    putScore(btn.dataset.w, btn.dataset.i, { si: 1 - cur, st: 'live' });
-    return;
-  }
-
-  // Trọng tài: chọn đội giao đầu tiên / người giao
-  if (btn && btn.dataset.first) {
-    const w = btn.dataset.w, i = btn.dataset.i, g = getM(w, i);
-    if (!g || !g.m) return;
-    const m = g.m, dbl = S.mode === 'double';
-    const nt = btn.dataset.first;
-    putScore(w, i, { sa: m.sa ?? 0, sb: m.sb ?? 0, st: 'live', sv: nt, sn: m.sn || (dbl ? 2 : 1), si: dbl ? (nt === 'a' ? (m.ar ?? 0) : (m.br ?? 0)) : 0 });
-    return;
-  }
-  if (btn && btn.dataset.sn) {
-    const w = btn.dataset.w, i = btn.dataset.i, g = getM(w, i);
-    if (!g || !g.m) return;
-    putScore(w, i, { sn: +btn.dataset.sn, st: 'live' });
-    return;
-  }
-
-  // Trọng tài: ghi 1 pha bóng theo luật giao bóng
-  if (btn && btn.dataset.rally) {
-    const w = btn.dataset.w, i = btn.dataset.i, g = getM(w, i);
-    if (!g || !g.m || g.m.st !== 'live') return;
-    const m = g.m, dbl = S.mode === 'double', side = btn.dataset.rally;
-    let sa = m.sa ?? 0, sb = m.sb ?? 0, sv = m.sv || 'a', sn = m.sn || (dbl ? 2 : 1);
-    let ar = m.ar ?? 0, br = m.br ?? 0;
-    let si = m.si ?? (sv === 'a' ? ar : br);
-    const hid = w + '|' + i;
-    HIST[hid] = (HIST[hid] || []).concat([{ sa, sb, sv, sn, ar, br, si }]).slice(-50);
-    if (side === sv) {
-      if (side === 'a') sa++; else sb++;
-      if (dbl) { if (sv === 'a') ar = 1 - ar; else br = 1 - br; }   // ghi điểm: người giao đổi ô với đồng đội, vẫn giao tiếp
-    } else if (dbl && sn === 1) {
-      sn = 2; si = 1 - si;                                          // giao số 1 lỗi: đồng đội giao tiếp, không đổi ô
-    } else {
-      sv = sv === 'a' ? 'b' : 'a'; sn = 1;                          // đổi giao: người đứng ô PHẢI của đội kia giao đầu
-      si = dbl ? (sv === 'a' ? ar : br) : 0;
-    }
-    putScore(w, i, { sa, sb, sv, sn, ar, br, si, st: 'live' });
-    if (sa !== sb && valid({ sa, sb }, S.rules[g.rk])) showToast('Đã đủ điều kiện thắng! Bấm KẾT THÚC TRẬN để xác nhận.', '🏁');
-    return;
-  }
-
-  if (btn && btn.dataset.undo) {
-    const w = btn.dataset.w, i = btn.dataset.i, hid = w + '|' + i;
-    const h = HIST[hid] || [];
-    if (!h.length) { showToast('Không còn pha bóng nào để hoàn tác.', 'ℹ️'); return; }
-    const prev = h.pop();
-    putScore(w, i, { sa: prev.sa, sb: prev.sb, sv: prev.sv, sn: prev.sn, ar: prev.ar, br: prev.br, si: prev.si, st: 'live' });
-    return;
-  }
-
-  // Điều khiển Tỉ số / Kết thúc trận đấu
-  if (btn && btn.dataset.sc) {
-    const w = btn.dataset.w, i = btn.dataset.i, action = btn.dataset.sc;
-    const g = getM(w, i);
-    if (!g || !g.m) return;
-    const m = g.m;
-
-    if (action === 'fin') {
-      const sa = m.sa ?? 0, sb = m.sb ?? 0;
-      if (sa === sb) { showToast('Tỉ số đang hòa, chưa thể kết thúc trận đấu!', '⚠️'); return; }
-      if (!valid({ sa, sb }, S.rules[g.rk])) { showToast(`Tỉ số chưa đúng luật (${rt(g.rk)})`, '⚠️'); return; }
-
-      pendingConfirm = { w, i, patch: { sa, sb, st: 'final' } };
-      document.getElementById('modal-desc').innerHTML = `Tỉ số chung cuộc: <b class="text-brand-600 font-extrabold text-base">${T(m.a)} (${sa}) - (${sb}) ${T(m.b)}</b>`;
-      document.getElementById('confirm-modal').classList.remove('hidden');
-      return;
-    }
-
-    if (action === 'start' || action === 'open') {
-      putScore(w, i, { sa: m.sa ?? 0, sb: m.sb ?? 0, st: 'live' });
-      return;
-    }
-
-    const sa = m.sa ?? 0, sb = m.sb ?? 0;
-    const d = action[1] === '+' ? 1 : -1;
-    const patch = action[0] === 'a' ? { sa: Math.max(0, sa + d), sb, st: 'live' } : { sa, sb: Math.max(0, sb + d), st: 'live' };
-    putScore(w, i, patch);
-    return;
-  }
-
-  if (btn && btn.id === 'modal-confirm') {
-    if (pendingConfirm) {
-      putScore(pendingConfirm.w, pendingConfirm.i, pendingConfirm.patch);
-      pendingConfirm = null;
-      showToast('Đã ghi nhận kết quả trận đấu!', '✅');
-    }
-    document.getElementById('confirm-modal').classList.add('hidden');
-    return;
-  }
-
-  if (btn && btn.id === 'modal-cancel') {
-    pendingConfirm = null;
-    document.getElementById('confirm-modal').classList.add('hidden');
-    return;
-  }
-
-  if (btn && btn.id === 'pass-submit') {
-    const inputPass = document.getElementById('pass-input').value;
-    if (inputPass === S.adminPass) {
-      sessionStorage.setItem('pb-admin-auth', 'true');
-      document.getElementById('pass-modal').classList.add('hidden');
-      document.getElementById('pass-input').value = '';
-      document.getElementById('pass-error').classList.add('hidden');
-      window.location.hash = '#admin';
-      showToast('Đã đăng nhập quyền Admin!', '🔑');
-      render();
-    } else {
-      document.getElementById('pass-error').classList.remove('hidden');
-    }
-    return;
-  }
-
-  if (btn && btn.id === 'pass-cancel') {
-    document.getElementById('pass-modal').classList.add('hidden');
-    document.getElementById('pass-input').value = '';
-    document.getElementById('pass-error').classList.add('hidden');
-    return;
-  }
-
-  if (!ADMIN) return;
-
-  if (btn && btn.id === 'start') {
-    S.teams = []; S.tg = [];
-    groupsOf().forEach((grp, k) => grp.forEach((p, i) => { S.teams.push(tn(p, k, i)); S.tg.push(k); }));
-    clearScores();
-    schedule();
-    courtSched();
-    S.started = true;
-    applyScores();
-    persistLocal();
-    pushSnapSoon();
-    tab = 'sched';
-    render();
-    return;
-  }
-
-  if (btn && btn.id === 'reset') {
-    if (!armed) { armed = true; render(); return; }
-    clearScores();
-    S.started = false;
-    S.teams = []; S.tg = []; S.matches = [];
-    armed = false;
-    persistLocal();
-    if (syncOn()) dbReq('/snap', 'DELETE').catch(() => {});
-    render();
-    return;
-  }
-});
-
-document.addEventListener('change', ev => {
-  const t = ev.target;
-  if (!ADMIN) return;
-
-  if (t.id === 'name') {
-    S.name = t.value.trim() || 'Giải Pickleball';
-    persistLocal();
-    return;
-  }
-
-  if (t.dataset.ref) {
-    const [k, i] = t.dataset.ref.split('|');
-    if (k === 'm') {
-      if (S.matches[+i]) S.matches[+i].ref = t.value.trim();
-      persistLocal();
-      pushSnapSoon();
-    } else {
-      putScore(k, i, { ref: t.value.trim() });
-    }
-    return;
-  }
-
-  if (t.dataset.kocourt) {
-    const [k, i] = t.dataset.kocourt.split('|');
-    putScore(k, i, { court: parseInt(t.value, 10) || null });
-    return;
-  }
-
-  const f = t.dataset.f;
-  if (f === 'db') {
-    S.db = t.value.trim().replace(/\/+$/, '');
-    S.dbOff = !S.db;
-    if (S.db && !S.tid) S.tid = Math.random().toString(36).slice(2, 10);
-    SYNC = { db: S.db, tid: S.tid };
-    persistLocal();
-    startStream();
-    if (syncOn()) {
-      dbReq('/sc', 'PUT', SC).then(() => { setSync(true); showToast('Đã kết nối đồng bộ!', '🟢'); }).catch(() => { setSync(false); showToast('Không kết nối được. Kiểm tra lại địa chỉ Database & Rules.', '⚠️'); });
-      if (S.started) pushSnapSoon();
-    }
-    render();
-    return;
-  }
-  if (f) {
-    const p = f.split(':');
-    if (p[0] === 'p') {
-      S.pool[+p[1]][+p[2]] = t.value.trim();
-      persistLocal();
-      return;
-    }
-    if (p[0] === 'sz') {
-      S.sizes[+p[1]] = Math.max(2, Math.min(8, parseInt(t.value, 10) || 2));
-      fit();
-    } else if (['g', 'advA', 'advB', 'courts'].includes(f)) {
-      S[f] = +t.value;
-      if (f === 'g') fit();
-    } else {
-      S[f] = t.value;
-    }
-    persistLocal();
-    render();
-    return;
-  }
-
-  if (t.dataset.k) {
-    const v = t.value === '' ? null : Math.max(0, parseInt(t.value, 10) || 0);
-    putScore(t.dataset.k, t.dataset.i, { [t.dataset.s]: v, st: 'final' });
-  }
-});
-
-window.addEventListener('hashchange', render);
-setInterval(() => { startStream(); pull(); }, 3000);
-startStream();
-
-// Khởi chạy ứng dụng
-(function() {
-  const res = new URLSearchParams(window.location.search).get('res');
-  if (res && !SHARED) {
-    applyResults(res);
-    try { history.replaceState(null, '', getBaseUrl() + (window.location.hash || '')); } catch (x) {}
-  }
-})();
-render();
-pull();
-if (!SHARED && syncOn() && S.started) pushSnapSoon();
-if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
-  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
-}
-</script>
-</body>
-</html>
+const T = i => {
+  const d = S.teamDetails[i] || {};
+  return d.displayName || S.teams[i] || 'Đội ' + (i + 1);
+};
+const RN = { rr: 'Vòng bảng', ko: 'Playoff', f
