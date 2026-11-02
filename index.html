@@ -1,26 +1,43 @@
-<!DOCTYPE html>
+<meta name='viewport' content='width=device-width, initial-scale=1'/><!DOCTYPE html>
 <html lang="vi" class="h-full">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Hệ Thống Quản Lý Giải Pickleball Pro - Chuẩn Quốc Tế</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800;900&display=swap');
     body { font-family: 'Lexend', sans-serif; -webkit-tap-highlight-color: transparent; }
     .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
     .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.05); }
     .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); border-radius: 4px; }
-    @keyframes servePulse {
+    
+    @keyframes pulse-fast {
       0%, 100% { transform: scale(1); opacity: 1; }
-      50% { transform: scale(1.2); opacity: 0.8; }
+      50% { transform: scale(1.15); opacity: 0.8; }
     }
-    .ball-pulse { animation: servePulse 1.2s infinite ease-in-out; }
+    .serving-indicator { animation: pulse-fast 1s infinite ease-in-out; }
+    
+    /* Pickleball Court Specific Lines */
+    .pb-court {
+      background-color: #0f766e; /* Teal 700 */
+      border: 4px solid #fff;
+      position: relative;
+    }
+    .pb-kitchen {
+      background-color: #115e59; /* Teal 800 */
+      border-bottom: 2px solid #fff;
+      border-top: 2px solid #fff;
+    }
+    .pb-centerline { border-right: 2px solid #fff; }
   </style>
 </head>
 <body class="bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-full flex flex-col antialiased selection:bg-amber-400 selection:text-slate-900">
+
+  <!-- Viewer Mode Banner -->
+  <div id="viewer-banner" class="bg-blue-600 text-white text-xs font-bold text-center py-1.5 hidden">
+    👁️ CHẾ ĐỘ KHÁN GIẢ (VIEWER MODE) - CHỈ XEM KẾT QUẢ
+  </div>
 
   <!-- Header Banner -->
   <header class="bg-slate-950 border-b border-slate-800 text-white sticky top-0 z-40 shadow-xl">
@@ -34,47 +51,37 @@
             PICKLEBALL CHAMPIONSHIP
           </h1>
           <p id="header-tournament-info" class="text-[11px] font-medium text-amber-400 flex items-center gap-2">
-            <span>📍 CLB Pickleball Central</span> · <span>📅 2026</span>
+            <span>📍 CLB Pickleball</span> · <span>📅 2026</span>
           </p>
         </div>
       </div>
 
       <!-- Admin Status Trigger -->
-      <button id="btn-admin-auth" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold transition-all active:scale-95">
+      <button id="btn-admin-auth" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold transition-all active:scale-95 admin-only">
         <span id="admin-status-icon">🔐</span>
         <span id="admin-status-text" class="hidden sm:inline">BTC Admin</span>
       </button>
     </div>
 
-    <!-- Navigation Tabs (BTC Setup first) -->
+    <!-- Navigation Tabs -->
     <nav class="bg-slate-900/90 backdrop-blur border-t border-slate-800 px-2 overflow-x-auto custom-scrollbar">
       <div class="max-w-7xl mx-auto flex items-center gap-1 py-1 min-w-max">
-        <button id="tab-settings" class="tab-btn px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 bg-amber-400 text-slate-950 shadow-md">
-          <span>🟡</span> <span>1. Thiết lập BTC</span>
+        <button id="tab-settings" class="tab-btn admin-only px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 bg-amber-400 text-slate-950 shadow-md">
+          <span>🟡</span> <span>Thiết lập BTC</span>
         </button>
         <button id="tab-matches" class="tab-btn px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 text-slate-400 hover:text-white">
-          <span>📅</span> <span>2. Lịch đấu & Live Điểm</span>
+          <span>📅</span> <span>Lịch đấu & Live</span>
         </button>
-        <button id="tab-courts" class="tab-btn px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 text-slate-400 hover:text-white">
+        <button id="tab-courts" class="tab-btn admin-only px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 text-slate-400 hover:text-white">
           <span>🏟️</span> <span>Quản lý Sân</span>
         </button>
         <button id="tab-standings" class="tab-btn px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 text-slate-400 hover:text-white">
           <span>📊</span> <span>Bảng Xếp Hạng</span>
         </button>
-        <button id="tab-seria" class="tab-btn px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 text-slate-400 hover:text-white">
-          <span>🏆</span> <span>Seri A</span>
-        </button>
-        <button id="tab-serib" class="tab-btn px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 text-slate-400 hover:text-white">
-          <span>🛡️</span> <span>Seri B</span>
-        </button>
-        <button id="tab-print" class="tab-btn px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 text-slate-400 hover:text-white">
-          <span>🖨️</span> <span>In Lịch & Mã QR</span>
-        </button>
       </div>
     </nav>
   </header>
 
-  <!-- Main View Containers -->
   <main class="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-6 space-y-6">
 
     <!-- Modal: Admin Login Popup -->
@@ -83,10 +90,9 @@
         <div class="w-14 h-14 bg-amber-100 dark:bg-amber-900/50 rounded-2xl flex items-center justify-center text-3xl mx-auto">🔐</div>
         <div>
           <h3 class="text-lg font-black text-slate-900 dark:text-white">Đăng Nhập BTC Admin</h3>
-          <p class="text-xs text-slate-500 mt-1">Nhập mật khẩu ban tổ chức để cấu hình giải đấu.</p>
+          <p class="text-xs text-slate-500 mt-1">Nhập mật khẩu để quản lý giải đấu.</p>
         </div>
-        <input id="admin-password-modal-input" type="password" placeholder="Mật khẩu (Mặc định: 1234)" class="w-full text-center text-base font-bold bg-slate-100 dark:bg-slate-700 border-2 border-slate-200 dark:border-slate-600 focus:border-amber-500 rounded-xl py-3 outline-none">
-        <p id="admin-login-error" class="text-xs text-rose-500 font-bold hidden">⚠️ Mật khẩu không chính xác!</p>
+        <input id="admin-password-input" type="password" placeholder="Mật khẩu" class="w-full text-center text-base font-bold bg-slate-100 dark:bg-slate-700 border-2 border-slate-200 dark:border-slate-600 focus:border-amber-500 rounded-xl py-3 outline-none">
         <div class="grid grid-cols-2 gap-2 pt-2">
           <button id="btn-close-admin-modal" class="py-2.5 bg-slate-100 dark:bg-slate-700 font-bold text-xs rounded-xl">Hủy</button>
           <button id="btn-submit-admin-login" class="py-2.5 bg-amber-500 text-slate-950 font-black text-xs rounded-xl">ĐĂNG NHẬP</button>
@@ -97,69 +103,62 @@
     <!-- VIEW 1: BTC ADMIN SETTINGS -->
     <section id="view-settings" class="space-y-6">
       <div class="bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-6">
-        <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 pb-4">
-          <div>
-            <h2 class="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
-              <span>🟡</span> 1. CẤU HÌNH THỂ THỨC GIẢI & DANH SÁCH VĐV
-            </h2>
-            <p class="text-xs text-slate-500">Cấu hình điểm thắng, địa điểm, nhập DUPR và phân hạng hạt giống tự động</p>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div class="space-y-1.5">
-            <label class="text-xs font-bold text-slate-700 dark:text-slate-300">Tên Giải Đấu</label>
-            <input id="cfg-tournament-name" type="text" value="GIẢI PICKLEBALL MỞ RỘNG 2026" class="w-full text-xs font-bold bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl p-2.5">
-          </div>
-          <div class="space-y-1.5">
-            <label class="text-xs font-bold text-slate-700 dark:text-slate-300">Địa Điểm Thi Đấu</label>
-            <input id="cfg-location" type="text" value="CLB Pickleball Phú Nhuận - 123 Phan Xích Long" class="w-full text-xs font-bold bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl p-2.5">
-          </div>
-          <div class="space-y-1.5">
-            <label class="text-xs font-bold text-slate-700 dark:text-slate-300">Ngày Thi Đấu</label>
-            <input id="cfg-date" type="text" value="15/11/2026" class="w-full text-xs font-bold bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl p-2.5">
-          </div>
-          <div class="space-y-1.5">
-            <label class="text-xs font-bold text-slate-700 dark:text-slate-300">Thể Thức Luật Chơi Vòng Bảng</label>
-            <select id="cfg-format-group" class="w-full text-xs font-bold bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl p-2.5">
-              <option value="1_SET_11_HARD">1 Game Chạm 11 Thắng Ngay</option>
-              <option value="1_SET_11_CAPPED">1 Game Chạm 11 Thắng Cách 2 (Max Cap 15)</option>
-              <option value="1_SET_15_HARD">1 Game Chạm 15 Thắng Ngay</option>
-              <option value="1_SET_15_CAPPED">1 Game Chạm 15 Thắng Cách 2 (Max Cap 17)</option>
-              <option value="BEST_OF_3">Thắng 2/3 Game (Mỗi Game 11 Điểm)</option>
-            </select>
-          </div>
-          <div class="space-y-1.5">
-            <label class="text-xs font-bold text-slate-700 dark:text-slate-300">Số Đội Đi Tiếp Vòng Trong</label>
-            <div class="grid grid-cols-2 gap-2">
-              <input id="cfg-seria-count" type="number" min="1" max="4" value="2" placeholder="Số đội Seri A" class="text-xs font-bold bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl p-2.5">
-              <input id="cfg-serib-count" type="number" min="0" max="4" value="2" placeholder="Số đội Seri B" class="text-xs font-bold bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl p-2.5">
+        
+        <!-- Info & Config -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="space-y-1.5"><label class="text-xs font-bold text-slate-500">Tên Giải Đấu</label><input id="cfg-tournament-name" type="text" class="w-full text-xs font-bold bg-slate-50 dark:bg-slate-700 border rounded-xl p-2.5"></div>
+          <div class="space-y-1.5"><label class="text-xs font-bold text-slate-500">Địa Điểm</label><input id="cfg-location" type="text" class="w-full text-xs font-bold bg-slate-50 dark:bg-slate-700 border rounded-xl p-2.5"></div>
+          
+          <!-- Unified Format Settings -->
+          <div class="col-span-1 md:col-span-2 space-y-3 bg-slate-50 dark:bg-slate-700/50 p-4 rounded-xl border">
+            <div class="flex items-center justify-between">
+              <h3 class="text-sm font-black text-amber-500">⚙️ Cấu Hình Thể Thức (Vòng Bảng & Knockout)</h3>
+              <button onclick="applyAllFormats()" class="px-3 py-1.5 bg-amber-200 text-amber-900 rounded-lg text-[10px] font-bold shadow-sm">⚡ Áp Dụng Chung</button>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="text-xs font-bold text-slate-500 block mb-1">Thể Thức Vòng Bảng</label>
+                <select id="cfg-format-group" class="w-full text-xs font-bold border rounded-lg p-2 bg-white dark:bg-slate-600">
+                  <option value="11_CAP_15">1 Game Chạm 11 (Cách 2, Max 15)</option>
+                  <option value="11_HARD">1 Game Chạm 11 (Thắng Ngay)</option>
+                  <option value="15_CAP_17">1 Game Chạm 15 (Cách 2, Max 17)</option>
+                  <option value="BO3_11">Thắng 2/3 Game (Mỗi Game 11)</option>
+                </select>
+              </div>
+              <div>
+                <label class="text-xs font-bold text-slate-500 block mb-1">Thể Thức Vòng Knockout</label>
+                <select id="cfg-format-knockout" class="w-full text-xs font-bold border rounded-lg p-2 bg-white dark:bg-slate-600">
+                  <option value="15_CAP_17">1 Game Chạm 15 (Cách 2, Max 17)</option>
+                  <option value="11_CAP_15">1 Game Chạm 11 (Cách 2, Max 15)</option>
+                  <option value="BO3_11">Thắng 2/3 Game (Mỗi Game 11)</option>
+                </select>
+              </div>
             </div>
           </div>
-          <div class="space-y-1.5">
-            <label class="text-xs font-bold text-slate-700 dark:text-slate-300">Số Lượng Sân Thi Đấu</label>
-            <input id="cfg-court-count" type="number" min="1" max="16" value="3" class="w-full text-xs font-bold bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl p-2.5">
-          </div>
         </div>
 
+        <!-- Teams & DUPR Input -->
         <div class="space-y-2">
-          <label class="text-xs font-bold text-slate-700 dark:text-slate-300">
-            Danh Sách Đội & Trình VĐV / DUPR (Định dạng: <code class="bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 px-1.5 py-0.5 rounded">Tên Đội | VĐV 1 (DUPR 3.5) - VĐV 2 (DUPR 4.0) | SĐT | CLB</code>)
-          </label>
-          <textarea id="cfg-teams-input" rows="7" class="w-full text-xs font-mono p-3 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-2xl outline-none focus:border-amber-400 custom-scrollbar"></textarea>
+          <div class="flex items-center justify-between">
+            <label class="text-xs font-bold text-slate-700 dark:text-slate-300">
+              Danh Sách Đội & Trình VĐV / DUPR
+            </label>
+            <span class="text-[10px] text-slate-500">Cấu trúc: <code class="bg-slate-200 dark:bg-slate-700 px-1 rounded text-rose-500">Đội | VĐV1 (DUPR 4.0) - VĐV2 (DUPR 3.5) | SĐT</code></span>
+          </div>
+          <textarea id="cfg-teams-input" rows="6" class="w-full text-xs font-mono p-3 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-2xl outline-none focus:border-amber-400 custom-scrollbar"></textarea>
         </div>
 
-        <div class="pt-2 flex items-center justify-between gap-3">
+        <div class="pt-2 flex flex-wrap items-center justify-between gap-3">
           <div class="flex items-center gap-2">
-            <button id="btn-seed-snake" class="px-3.5 py-2 bg-slate-800 text-amber-400 font-bold text-xs rounded-xl border border-slate-700">
-              🐍 Chia Hạt Giống Ziczac
+            <button id="btn-seed-snake" class="px-3.5 py-2.5 bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 font-bold text-xs rounded-xl">
+              🐍 Chia Bảng Ziczac (Theo DUPR)
             </button>
-            <button id="btn-seed-random" class="px-3.5 py-2 bg-slate-800 text-slate-200 font-bold text-xs rounded-xl border border-slate-700">
-              🎲 Bốc Thăm Ngẫu Nhiên
+            <button onclick="copyViewerLink()" class="px-3.5 py-2.5 bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 font-bold text-xs rounded-xl flex items-center gap-1">
+              🔗 Link Khán Giả
             </button>
           </div>
-          <button id="btn-save-generate" class="px-6 py-3 bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-500 text-slate-950 font-black text-xs rounded-xl shadow-lg">
-            🚀 BẮT ĐẦU GIẢI ĐẤU & TẠO LỊCH THI ĐẤU
+          <button id="btn-save-generate" class="px-6 py-3 bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 font-black text-xs rounded-xl shadow-lg">
+            🚀 TẠO LỊCH & LƯU TỰ ĐỘNG
           </button>
         </div>
       </div>
@@ -167,141 +166,167 @@
 
     <!-- VIEW 2: MATCHES SCHEDULE & LIVE SCORES -->
     <section id="view-matches" class="space-y-4 hidden">
-      <div id="matches-grid-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <!-- Dynamically Rendered -->
-      </div>
+      <div id="matches-grid-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
     </section>
 
     <!-- VIEW 3: COURTS DASHBOARD WITH AUDIO CALL -->
     <section id="view-courts" class="space-y-4 hidden">
-      <div class="flex items-center justify-between">
-        <h2 class="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
-          <span>🏟️</span> BẢNG ĐIỀU PHỐI SÂN & LOA THÔNG BÁO
-        </h2>
-      </div>
-      <div id="courts-dashboard-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <!-- Dynamically Rendered -->
-      </div>
+      <h2 class="text-base font-black text-slate-900 dark:text-white">🏟️ ĐIỀU PHỐI SÂN</h2>
+      <div id="courts-dashboard-container" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
     </section>
 
     <!-- VIEW 4: STANDINGS -->
-    <section id="view-standings" class="space-y-6 hidden">
-      <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-4">
-        <h2 class="text-base font-black text-slate-900 dark:text-white">📊 BẢNG XẾP HẠNG VÒNG BẢNG</h2>
-        <div id="group-standings-container" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <!-- Dynamically Rendered -->
-        </div>
-      </div>
+    <section id="view-standings" class="space-y-4 hidden">
+      <div id="group-standings-container" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
     </section>
 
-    <!-- VIEW 5: SERI A BRACKET -->
-    <section id="view-seria" class="space-y-4 hidden">
-      <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-3">
-        <h2 class="text-base font-black text-amber-500 flex items-center gap-2">🏆 CÂY THI ĐẤU VÔ ĐỊCH - SERI A</h2>
-        <div id="seria-bracket-container" class="p-4 bg-slate-900 rounded-2xl text-white">
-          <p class="text-xs text-slate-400 italic">Vòng Knockout Seri A sẽ tự động cập nhật sau khi kết thúc vòng bảng.</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- VIEW 6: SERI B BRACKET -->
-    <section id="view-serib" class="space-y-4 hidden">
-      <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-3">
-        <h2 class="text-base font-black text-blue-400 flex items-center gap-2">🛡️ CÂY THI ĐẤU AN ỦI - SERI B</h2>
-        <div id="serib-bracket-container" class="p-4 bg-slate-900 rounded-2xl text-white">
-          <p class="text-xs text-slate-400 italic">Vòng Knockout Seri B dành cho các đội hạng tiếp theo.</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- VIEW 7: PRINT & QR -->
-    <section id="view-print" class="space-y-4 hidden">
-      <div id="print-courts-container" class="space-y-6">
-        <!-- Dynamically Rendered -->
-      </div>
-    </section>
-
-    <!-- VIEW 8: UMPIRE SCOREBOARD (VISUAL 2D COURT + SIGNATURE + TIMEOUT SYNC) -->
-    <section id="view-umpire" class="fixed inset-0 bg-slate-950 z-50 flex flex-col hidden text-white select-none">
-      <div class="bg-slate-900 border-b border-slate-800 p-3 flex items-center justify-between text-xs font-bold">
+    <!-- VIEW: SMART 2D UMPIRE SCOREBOARD -->
+    <section id="view-umpire" class="fixed inset-0 bg-slate-950 z-50 flex flex-col hidden text-white select-none overflow-hidden">
+      
+      <!-- Top Nav -->
+      <div class="bg-slate-900 border-b border-slate-800 p-3 flex items-center justify-between text-xs font-bold shrink-0">
         <button id="btn-close-umpire" class="px-3 py-1.5 bg-slate-800 rounded-xl text-slate-300">⬅️ Thoát</button>
-        <span id="umpire-match-title" class="text-amber-400 font-black">TRẬN SÂN 1</span>
+        <div class="text-center">
+          <span id="umpire-match-title" class="text-amber-400 font-black block">SÂN 1 - BẢNG A</span>
+          <span id="umpire-format-label" class="text-[10px] text-slate-400 font-medium">1 Game Chạm 11 (Max 15)</span>
+        </div>
         <button id="btn-umpire-undo" class="px-3 py-1.5 bg-rose-950/80 text-rose-300 rounded-xl">↩️ Undo</button>
       </div>
 
-      <!-- Court Switch & Medical Timeout Banner Sync -->
-      <div id="umpire-status-banner" class="bg-amber-500 text-slate-950 px-4 py-2 text-center text-xs font-black hidden">
-        ⚠️ THÔNG BÁO TẠM DỪNG THI ĐẤU
+      <!-- Live Announcer -->
+      <div class="bg-slate-900/90 py-2 px-4 text-center shrink-0 shadow-lg z-10">
+        <span class="text-sm font-black text-amber-400 tracking-wider" id="umpire-readout-text">🗣️ LƯỢT GIAO: 0 - 0 - 2</span>
       </div>
 
-      <div class="bg-slate-900/80 border-b border-slate-800 py-1.5 px-4 text-center">
-        <span class="text-xs font-black text-amber-400" id="umpire-readout-text">🗣️ ĐỌC TỶ SỐ: 0 - 0 - 2</span>
+      <!-- Visual 2D Court Area -->
+      <div class="flex-1 flex flex-col items-center justify-center p-2 sm:p-4 relative">
+        <!-- Court Graphic -->
+        <div class="pb-court w-full max-w-lg aspect-[1/1.5] sm:aspect-square flex flex-col rounded shadow-2xl">
+          
+          <!-- Team 1 Side -->
+          <div class="flex-1 flex pb-centerline relative">
+            <div id="t1-left-box" class="flex-1 flex items-center justify-center relative p-2 text-center text-xs font-bold text-white border-r-2 border-white/20">
+              <span id="t1-left-name">P2</span>
+            </div>
+            <div id="t1-right-box" class="flex-1 flex items-center justify-center relative p-2 text-center text-xs font-bold text-white">
+              <span id="t1-right-name">P1</span>
+            </div>
+            <!-- Score overlay T1 -->
+            <div class="absolute left-0 top-0 bottom-0 flex items-center -ml-8 sm:-ml-12">
+               <span id="umpire-t1-score" class="text-4xl sm:text-6xl font-black text-amber-400 drop-shadow-md transform -rotate-90">0</span>
+            </div>
+          </div>
+          
+          <!-- Kitchen Area -->
+          <div class="h-16 sm:h-24 pb-kitchen w-full"></div>
+
+          <!-- Team 2 Side -->
+          <div class="flex-1 flex pb-centerline relative">
+            <div id="t2-left-box" class="flex-1 flex items-center justify-center relative p-2 text-center text-xs font-bold text-white border-r-2 border-white/20">
+              <span id="t2-left-name">P3</span>
+            </div>
+            <div id="t2-right-box" class="flex-1 flex items-center justify-center relative p-2 text-center text-xs font-bold text-white">
+              <span id="t2-right-name">P4</span>
+            </div>
+            <!-- Score overlay T2 -->
+            <div class="absolute right-0 top-0 bottom-0 flex items-center -mr-8 sm:-mr-12">
+               <span id="umpire-t2-score" class="text-4xl sm:text-6xl font-black text-amber-400 drop-shadow-md transform rotate-90">0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Setup/Swap Button (Only visible at start) -->
+        <button id="btn-prematch-swap" class="absolute inset-0 m-auto w-32 h-10 bg-slate-800/80 backdrop-blur text-white text-[10px] font-bold rounded-full shadow border border-slate-600 hidden flex items-center justify-center z-20">
+          🔀 Đổi Đứng Đỡ Bóng
+        </button>
       </div>
 
-      <!-- 2D Court Visual Grid -->
-      <div id="umpire-cards-container" class="flex-1 grid grid-cols-2 gap-2 p-2 sm:p-4">
-        <!-- Rendered dynamically -->
-      </div>
+      <!-- Action Controls (Smart Buttons) -->
+      <div class="bg-slate-900 border-t border-slate-800 p-3 shrink-0">
+        <!-- Winner Buttons -->
+        <div class="grid grid-cols-2 gap-3 mb-3">
+          <button id="btn-win-t1" class="py-5 bg-emerald-700/80 hover:bg-emerald-600 active:scale-95 transition-transform text-white font-black text-sm rounded-2xl shadow border-2 border-emerald-500">
+            [ <span id="btn-win-t1-name">ĐỘI A</span> THẮNG QUẢ NÀY ]
+          </button>
+          <button id="btn-win-t2" class="py-5 bg-blue-700/80 hover:bg-blue-600 active:scale-95 transition-transform text-white font-black text-sm rounded-2xl shadow border-2 border-blue-500">
+            [ <span id="btn-win-t2-name">ĐỘI B</span> THẮNG QUẢ NÀY ]
+          </button>
+        </div>
 
-      <!-- Controls -->
-      <div class="bg-slate-900 border-t border-slate-800 p-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
-        <button id="btn-umpire-fault" class="py-3 bg-rose-900/60 text-rose-200 border border-rose-700/80 font-bold text-xs rounded-xl">
-          ⚠️ Đổi lượt / Fault
-        </button>
-        <button id="btn-umpire-medical" class="py-3 bg-amber-600 text-slate-950 font-black text-xs rounded-xl">
-          🚑 Chấn Thương (15P)
-        </button>
-        <button id="btn-umpire-timeout" class="py-3 bg-slate-800 text-slate-200 font-bold text-xs rounded-xl">
-          ⏱️ Timeout (60s)
-        </button>
-        <button id="btn-umpire-finish" class="py-3 bg-emerald-600 text-white font-black text-xs rounded-xl">
-          ✅ KẾT THÚC & KÝ TÊN
-        </button>
+        <!-- Utility Buttons -->
+        <div class="grid grid-cols-3 gap-2">
+          <button id="btn-timeout-t1" class="py-2.5 bg-slate-800 text-amber-400 font-bold text-[10px] rounded-xl border border-amber-900/50">
+            ⏱️ T1 Timeout
+          </button>
+          <button id="btn-timeout-t2" class="py-2.5 bg-slate-800 text-amber-400 font-bold text-[10px] rounded-xl border border-amber-900/50">
+            ⏱️ T2 Timeout
+          </button>
+          <button id="btn-umpire-finish" class="py-2.5 bg-rose-900/80 text-white font-bold text-[10px] rounded-xl">
+            🏁 KẾT THÚC
+          </button>
+        </div>
       </div>
     </section>
 
   </main>
 
   <script>
-    const APP_KEY = 'PICKLEBALL_PRO_PRO_2026';
+    const APP_KEY = 'PKB_PRO_v4';
+    const DEMO_TEXT = `Team A | Nguyen Van A (DUPR 4.2) - Tran Van B (DUPR 4.0) | 0901234567
+Team B | Pham Van C (DUPR 3.8) - Le Van D (DUPR 3.5) | 0908888888
+Team C | Hoang Van E (DUPR 3.9) - Ngo Van F (DUPR 3.7) | 0912345678
+Team D | Ly Van G (DUPR 3.1) - Trinh Van H (DUPR 3.2) | 0922334455`;
+
     let STATE = {
-      isAdmin: false,
       config: {
-        tournamentName: 'GIẢI PICKLEBALL MỞ RỘNG 2026',
-        location: 'CLB Pickleball Phú Nhuận',
-        date: '15/11/2026',
-        courtCount: 3,
-        formatGroup: '1_SET_11_CAPPED',
-        seriaCount: 2,
-        seribCount: 2
+        tournamentName: 'GIẢI PICKLEBALL MỞ RỘNG',
+        location: 'CLB Pickleball',
+        formatGroup: '11_CAP_15',
+        formatKnockout: '15_CAP_17',
+        adminPass: '1234'
       },
       teams: [],
-      matches: []
+      matches: [],
+      umpireHistory: [] // Stack for undo
     };
+
+    let isViewer = new URLSearchParams(window.location.search).get('role') === 'viewer';
+    let currentUmpireMatchId = null;
 
     const $ = id => document.getElementById(id);
     const $$ = sel => document.querySelectorAll(sel);
 
-    const DEMO_TEXT = 
-`Đội Alpha | Nguyễn Văn A (DUPR 4.2) - Trần Văn B (DUPR 4.0) | 0901234567 | CLB SG
-Đội Beta | Phạm Văn C (DUPR 3.8) - Lê Văn D (DUPR 3.5) | 0908888888 | CLB HN
-Đội Gamma | Hoàng Văn E - Ngô Văn F | 0912345678 | CLB ĐN
-Đội Delta | Lý Văn G - Trịnh Văn H | 0922334455 | CLB BD`;
-
     window.addEventListener('DOMContentLoaded', () => {
       loadState();
+      applyViewerMode();
       initEvents();
       renderAll();
     });
 
+    function applyViewerMode() {
+      if (isViewer) {
+        $('viewer-banner').classList.remove('hidden');
+        $$('.admin-only').forEach(el => el.classList.add('hidden'));
+      }
+    }
+
     function loadState() {
       const saved = localStorage.getItem(APP_KEY);
       if (saved) {
-        try { STATE = JSON.parse(saved); } catch (e) {}
+        try { STATE = Object.assign(STATE, JSON.parse(saved)); } catch (e) {}
       }
-      if (!STATE.teams || STATE.teams.length === 0) {
-        parseTeamsInput(DEMO_TEXT);
-        generateSchedule();
+      
+      $('cfg-tournament-name').value = STATE.config.tournamentName;
+      $('cfg-location').value = STATE.config.location;
+      $('cfg-format-group').value = STATE.config.formatGroup;
+      $('cfg-format-knockout').value = STATE.config.formatKnockout;
+
+      if (!STATE.teams.length) {
+        $('cfg-teams-input').value = DEMO_TEXT;
+      } else {
+        $('cfg-teams-input').value = STATE.teams.map(t => 
+          `${t.name} | ${t.p1.name} (DUPR ${t.p1.dupr}) - ${t.p2.name} (DUPR ${t.p2.dupr})`
+        ).join('\n');
       }
     }
 
@@ -310,60 +335,95 @@
       renderAll();
     }
 
+    // Tab Navigation
     function showTab(tabName) {
-      ['settings', 'matches', 'courts', 'standings', 'seria', 'serib', 'print'].forEach(v => {
+      ['settings', 'matches', 'courts', 'standings'].forEach(v => {
         const el = $('view-' + v);
         if (el) el.classList.add('hidden');
       });
-      const active = $('view-' + tabName);
-      if (active) active.classList.remove('hidden');
+      $('view-' + tabName).classList.remove('hidden');
 
-      $$('.tab-btn').forEach(btn => btn.classList.remove('bg-amber-400', 'text-slate-950'));
+      $$('.tab-btn').forEach(btn => {
+        btn.classList.remove('bg-amber-400', 'text-slate-950');
+        btn.classList.add('text-slate-400');
+      });
       const activeTab = $('tab-' + tabName);
-      if (activeTab) activeTab.classList.add('bg-amber-400', 'text-slate-950');
+      if (activeTab) {
+        activeTab.classList.remove('text-slate-400');
+        activeTab.classList.add('bg-amber-400', 'text-slate-950');
+      }
     }
 
+    // Feature: Parse DUPR
     function parseTeamsInput(text) {
       const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+      const duprRegex = /\(DUPR\s*([0-9.]+)\)/i;
+      
       STATE.teams = lines.map((line, idx) => {
         const parts = line.split('|').map(p => p.trim());
-        return {
-          id: 'T' + (idx + 1),
-          name: parts[0] || `Đội ${idx + 1}`,
-          players: parts[1] || 'VĐV 1 - VĐV 2',
-          phone: parts[2] || '',
-          club: parts[3] || ''
+        const name = parts[0] || `Đội ${idx + 1}`;
+        const playersStr = parts[1] || `VĐV1 (DUPR 3.0) - VĐV2 (DUPR 3.0)`;
+        
+        let [p1Str, p2Str] = playersStr.split('-').map(s => s.trim());
+        if (!p2Str) p2Str = "VĐV2 (DUPR 3.0)";
+
+        const extract = (str) => {
+          const match = str.match(duprRegex);
+          const dupr = match ? parseFloat(match[1]) : 3.0;
+          const pName = str.replace(duprRegex, '').trim();
+          return { name: pName, dupr };
         };
+
+        const p1 = extract(p1Str);
+        const p2 = extract(p2Str);
+        const avgDupr = ((p1.dupr + p2.dupr) / 2).toFixed(2);
+
+        return { id: 'T' + (idx + 1), name, p1, p2, avgDupr, phone: parts[2] || '' };
       });
     }
 
-    function generateSchedule() {
-      STATE.matches = [];
-      const numCourts = parseInt(STATE.config.courtCount) || 3;
-      let matchCounter = 1;
+    // Feature: Generate & Snake Seed
+    function generateSchedule(useSnake = false) {
+      STATE.config.tournamentName = $('cfg-tournament-name').value;
+      STATE.config.location = $('cfg-location').value;
+      STATE.config.formatGroup = $('cfg-format-group').value;
+      STATE.config.formatKnockout = $('cfg-format-knockout').value;
+      
+      parseTeamsInput($('cfg-teams-input').value);
 
+      if (useSnake) {
+        STATE.teams.sort((a, b) => b.avgDupr - a.avgDupr); // Highest DUPR first
+        alert("Đã sắp xếp danh sách theo trung bình DUPR giảm dần để chia bảng Ziczac!");
+      }
+
+      STATE.matches = [];
+      let matchCounter = 1;
+      
+      // Simple Round Robin Demo (All in Group A for simplicity)
       for (let i = 0; i < STATE.teams.length; i++) {
         for (let j = i + 1; j < STATE.teams.length; j++) {
           STATE.matches.push({
             id: 'M' + matchCounter,
-            code: `M${matchCounter}`,
             stage: 'GROUP',
-            groupLabel: 'Bảng A',
-            court: ((matchCounter - 1) % numCourts) + 1,
-            team1: STATE.teams[i],
-            team2: STATE.teams[j],
+            court: ((matchCounter - 1) % 3) + 1, // 3 courts assumption
+            t1Id: STATE.teams[i].id,
+            t2Id: STATE.teams[j].id,
             score1: 0,
             score2: 0,
             server: 2,
-            servingTeam: 1,
-            status: 'PENDING', // PENDING, PLAYING, MEDICAL_TIMEOUT, TIMEOUT, FINISHED
-            medicalTimer: 0,
-            logs: []
+            servingTeam: 1, // 1 or 2
+            pos: { // Tracks who is Left/Right (0=Right/Even, 1=Left/Odd)
+              t1: [STATE.teams[i].p1.name, STATE.teams[i].p2.name],
+              t2: [STATE.teams[j].p1.name, STATE.teams[j].p2.name]
+            },
+            status: 'PENDING', 
+            timeouts: { t1: false, t2: false }
           });
           matchCounter++;
         }
       }
       saveState();
+      showTab('matches');
     }
 
     function initEvents() {
@@ -371,49 +431,67 @@
       $('tab-matches').onclick = () => showTab('matches');
       $('tab-courts').onclick = () => showTab('courts');
       $('tab-standings').onclick = () => showTab('standings');
-      $('tab-seria').onclick = () => showTab('seria');
-      $('tab-serib').onclick = () => showTab('serib');
-      $('tab-print').onclick = () => showTab('print');
 
-      $('btn-save-generate').onclick = () => {
-        STATE.config.tournamentName = $('cfg-tournament-name').value;
-        STATE.config.location = $('cfg-location').value;
-        STATE.config.date = $('cfg-date').value;
-        STATE.config.courtCount = parseInt($('cfg-court-count').value);
-        parseTeamsInput($('cfg-teams-input').value);
-        generateSchedule();
-        showTab('matches');
+      $('btn-save-generate').onclick = () => generateSchedule(false);
+      $('btn-seed-snake').onclick = () => generateSchedule(true);
+      
+      $('btn-admin-auth').onclick = () => {
+        if(!isViewer) $('admin-login-modal').classList.remove('hidden');
       };
+      $('btn-close-admin-modal').onclick = () => $('admin-login-modal').classList.add('hidden');
+      $('btn-submit-admin-login').onclick = () => {
+        if($('admin-password-input').value === STATE.config.adminPass) {
+          $('admin-login-modal').classList.add('hidden');
+          alert('Đăng nhập Admin thành công!');
+        } else alert('Sai mật khẩu!');
+      };
+    }
+
+    function copyViewerLink() {
+      const url = new URL(window.location.href);
+      url.searchParams.set('role', 'viewer');
+      navigator.clipboard.writeText(url.href);
+      alert('Đã copy link dành cho Khán Giả/VĐV!');
+    }
+
+    function applyAllFormats() {
+      $('cfg-format-knockout').value = $('cfg-format-group').value;
+      alert("Đã đồng bộ thể thức cho toàn giải!");
     }
 
     function renderAll() {
       $('header-tournament-name').textContent = STATE.config.tournamentName;
-      $('header-tournament-info').innerHTML = `<span>📍 ${STATE.config.location}</span> · <span>📅 ${STATE.config.date}</span>`;
+      $('header-tournament-info').innerHTML = `<span>📍 ${STATE.config.location}</span>`;
       renderMatches();
       renderCourts();
-      renderStandings();
     }
 
     function renderMatches() {
       const container = $('matches-grid-container');
       container.innerHTML = '';
       STATE.matches.forEach(m => {
-        const isMedical = m.status === 'MEDICAL_TIMEOUT';
-        const isTimeout = m.status === 'TIMEOUT';
+        const t1 = STATE.teams.find(t => t.id === m.t1Id);
+        const t2 = STATE.teams.find(t => t.id === m.t2Id);
+        if(!t1 || !t2) return;
+
         const card = document.createElement('div');
-        card.className = "bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm border border-slate-200 dark:border-slate-700 space-y-3";
+        card.className = "bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm border space-y-3";
         card.innerHTML = `
-          <div class="flex items-center justify-between text-xs font-bold border-b pb-2">
-            <span>🏟️ SÂN ${m.court} · ${m.groupLabel}</span>
-            <span class="${isMedical ? 'text-rose-500 font-black animate-pulse' : isTimeout ? 'text-amber-500 font-black animate-pulse' : 'text-slate-400'}">
-              ${isMedical ? '🚑 NGHỈ CHẤN THƯƠNG (15P)' : isTimeout ? '⏱️ TẠM DỪNG (60S)' : m.status}
-            </span>
+          <div class="flex items-center justify-between text-xs font-bold border-b border-slate-100 dark:border-slate-700 pb-2">
+            <span class="text-slate-500">Sân ${m.court} · ${m.stage}</span>
+            <span class="${m.status==='PLAYING'?'text-emerald-500 animate-pulse':m.status==='FINISHED'?'text-slate-400':'text-amber-500'}">${m.status}</span>
           </div>
           <div class="space-y-1 font-bold text-sm">
-            <div class="flex justify-between"><span>${m.team1.name}</span><span>${m.score1}</span></div>
-            <div class="flex justify-between"><span>${m.team2.name}</span><span>${m.score2}</span></div>
+            <div class="flex justify-between">
+              <span>${t1.name} <span class="text-[9px] text-slate-400 font-normal ml-1">(${t1.avgDupr})</span></span>
+              <span>${m.score1}</span>
+            </div>
+            <div class="flex justify-between">
+              <span>${t2.name} <span class="text-[9px] text-slate-400 font-normal ml-1">(${t2.avgDupr})</span></span>
+              <span>${m.score2}</span>
+            </div>
           </div>
-          <button onclick="openUmpire('${m.id}')" class="w-full py-2 bg-slate-900 text-amber-400 font-bold text-xs rounded-xl">🏓 Bàn Trọng Tài</button>
+          ${!isViewer && m.status !== 'FINISHED' ? `<button onclick="openUmpire('${m.id}')" class="w-full py-2 bg-slate-900 text-amber-400 font-bold text-xs rounded-xl shadow">🏓 Vào Bàn Trọng Tài</button>` : ''}
         `;
         container.appendChild(card);
       });
@@ -422,86 +500,195 @@
     function renderCourts() {
       const container = $('courts-dashboard-container');
       container.innerHTML = '';
-      for (let c = 1; c <= STATE.config.courtCount; c++) {
+      for (let c = 1; c <= 3; c++) {
         const match = STATE.matches.find(m => m.court === c && m.status !== 'FINISHED');
         const card = document.createElement('div');
-        card.className = "bg-white dark:bg-slate-800 rounded-3xl p-4 border space-y-3";
-        card.innerHTML = `
-          <div class="flex justify-between font-black">
-            <span>🏟️ SÂN SỐ ${c}</span>
-            <button onclick="callTeamsAudio(${c})" class="px-2 py-1 bg-amber-400 text-slate-950 text-xs rounded-lg">🔊 Gọi Đội</button>
-          </div>
-          ${match ? `<p class="text-xs font-bold text-amber-500">${match.team1.name} vs ${match.team2.name}</p>` : '<p class="text-xs text-slate-400">Sân trống</p>'}
-        `;
+        card.className = "bg-white dark:bg-slate-800 rounded-3xl p-4 border space-y-3 text-center";
+        let content = '<p class="text-xs text-slate-400 py-4">Sân trống</p>';
+        
+        if (match) {
+           const t1 = STATE.teams.find(t => t.id === match.t1Id).name;
+           const t2 = STATE.teams.find(t => t.id === match.t2Id).name;
+           content = `<p class="text-xs font-bold text-amber-600 dark:text-amber-400 py-2">${t1} <br><span class="text-slate-400 text-[10px]">vs</span><br> ${t2}</p>
+           <button onclick="callTeamsAudio(${c}, '${t1}', '${t2}')" class="px-3 py-1.5 bg-blue-100 text-blue-700 text-xs font-bold rounded-lg w-full">🔊 Gọi Ra Sân</button>`;
+        }
+        
+        card.innerHTML = `<h3 class="font-black text-slate-700 dark:text-slate-300 border-b pb-2">🏟️ SÂN SỐ ${c}</h3>${content}`;
         container.appendChild(card);
       }
     }
 
-    function callTeamsAudio(courtNum) {
-      const match = STATE.matches.find(m => m.court === courtNum && m.status !== 'FINISHED');
-      if (!match) return;
-      const text = `Ban tổ chức xin kính mời Đội ${match.team1.name} và Đội ${match.team2.name} khẩn trương tiến vào Sân số ${courtNum} để khởi động thi đấu!`;
-      const utter = new SpeechSynthesisUtterance(text);
-      utter.lang = 'vi-VN';
-      window.speechSynthesis.speak(utter);
+    function callTeamsAudio(court, t1, t2) {
+      if ('speechSynthesis' in window) {
+        const text = `Xin mời đội ${t1} và đội ${t2} tiến vào sân số ${court} để chuẩn bị thi đấu.`;
+        const utter = new SpeechSynthesisUtterance(text);
+        utter.lang = 'vi-VN';
+        utter.rate = 0.9;
+        window.speechSynthesis.speak(utter);
+      } else {
+        alert("Trình duyệt không hỗ trợ phát giọng nói.");
+      }
     }
 
-    function renderStandings() {
-      const container = $('group-standings-container');
-      container.innerHTML = '<p class="text-xs text-slate-400">Bảng xếp hạng tự động tính điểm theo kết quả các trận đấu.</p>';
-    }
-
-    let currentMatchId = null;
+    // ==========================================
+    // SMART UMPIRE LOGIC & 2D COURT
+    // ==========================================
+    
     function openUmpire(id) {
-      currentMatchId = id;
+      currentUmpireMatchId = id;
+      STATE.umpireHistory = []; // clear history on open
       const m = STATE.matches.find(x => x.id === id);
-      $('umpire-match-title').textContent = `TRẬN SÂN ${m.court} · ${m.code}`;
-      updateUmpireUI();
-      $('btn-close-umpire').onclick = () => $('view-umpire').classList.add('hidden');
-      $('btn-umpire-medical').onclick = triggerMedicalTimeout;
-      $('btn-umpire-finish').onclick = finishMatch;
+      m.status = 'PLAYING';
+      
+      const t1 = STATE.teams.find(t => t.id === m.t1Id);
+      const t2 = STATE.teams.find(t => t.id === m.t2Id);
+
+      $('umpire-match-title').textContent = `SÂN ${m.court} - ${m.stage}`;
+      $('umpire-format-label').textContent = STATE.config.formatGroup.replace(/_/g, ' ');
+      
+      $('btn-win-t1-name').textContent = t1.name;
+      $('btn-win-t2-name').textContent = t2.name;
+
+      $('btn-win-t1').onclick = () => handleRallyWin(1);
+      $('btn-win-t2').onclick = () => handleRallyWin(2);
+      $('btn-umpire-undo').onclick = handleUndo;
+      $('btn-umpire-finish').onclick = () => { m.status = 'FINISHED'; saveState(); $('view-umpire').classList.add('hidden'); };
+
+      // Timeouts
+      setupTimeoutButton('t1', m, t1.name);
+      setupTimeoutButton('t2', m, t2.name);
+
+      // Prematch swap
+      const isStart = m.score1 === 0 && m.score2 === 0 && STATE.umpireHistory.length === 0;
+      $('btn-prematch-swap').classList.toggle('hidden', !isStart);
+      $('btn-prematch-swap').onclick = () => {
+        // Swap T2 receivers
+        m.pos.t2.reverse();
+        updateUmpireVisuals();
+      };
+
+      updateUmpireVisuals();
       $('view-umpire').classList.remove('hidden');
     }
 
-    function updateUmpireUI() {
-      const m = STATE.matches.find(x => x.id === currentMatchId);
-      $('umpire-readout-text').textContent = `🗣️ ĐỌC TỶ SỐ: ${m.servingTeam === 1 ? m.score1 : m.score2} - ${m.servingTeam === 1 ? m.score2 : m.score1} - ${m.server}`;
-      $('umpire-cards-container').innerHTML = `
-        <div class="bg-slate-900 border-2 ${m.servingTeam === 1 ? 'border-amber-400' : 'border-slate-800'} rounded-2xl p-4 flex flex-col justify-between items-center">
-          <h3 class="font-bold text-lg">${m.team1.name}</h3>
-          <span class="text-8xl font-black text-amber-400">${m.score1}</span>
-          <button onclick="addPoint(1)" class="w-full py-4 bg-amber-400 text-slate-950 font-black text-lg rounded-xl">+1 ĐIỂM</button>
-        </div>
-        <div class="bg-slate-900 border-2 ${m.servingTeam === 2 ? 'border-amber-400' : 'border-slate-800'} rounded-2xl p-4 flex flex-col justify-between items-center">
-          <h3 class="font-bold text-lg">${m.team2.name}</h3>
-          <span class="text-8xl font-black text-amber-400">${m.score2}</span>
-          <button onclick="addPoint(2)" class="w-full py-4 bg-amber-400 text-slate-950 font-black text-lg rounded-xl">+1 ĐIỂM</button>
-        </div>
-      `;
+    function setupTimeoutButton(teamKey, match, name) {
+      const btn = $(`btn-timeout-${teamKey}`);
+      if (match.timeouts[teamKey]) {
+        btn.classList.add('opacity-50', 'pointer-events-none');
+        btn.textContent = `❌ Đã dùng`;
+      } else {
+        btn.classList.remove('opacity-50', 'pointer-events-none');
+        btn.textContent = `⏱️ ${name} (60s)`;
+        btn.onclick = () => {
+          match.timeouts[teamKey] = true;
+          alert(`Đội ${name} sử dụng quyền Hội Ý (60s)`);
+          setupTimeoutButton(teamKey, match, name);
+          saveState();
+        };
+      }
     }
 
-    function addPoint(teamNum) {
-      const m = STATE.matches.find(x => x.id === currentMatchId);
-      if (teamNum === 1) m.score1++; else m.score2++;
-      m.status = 'PLAYING';
-      updateUmpireUI();
+    function handleRallyWin(winningTeam) {
+      const m = STATE.matches.find(x => x.id === currentUmpireMatchId);
+      
+      // Save state for undo (deep copy required properties)
+      STATE.umpireHistory.push(JSON.parse(JSON.stringify({
+        score1: m.score1, score2: m.score2, server: m.server, servingTeam: m.servingTeam, pos: m.pos
+      })));
+
+      $('btn-prematch-swap').classList.add('hidden'); // Hide swap after first point
+
+      if (m.servingTeam === winningTeam) {
+        // Point scored!
+        if (winningTeam === 1) {
+           m.score1++;
+           m.pos.t1.reverse(); // Swap right/left
+        } else {
+           m.score2++;
+           m.pos.t2.reverse(); // Swap right/left
+        }
+      } else {
+        // Sideout / Fault
+        if (m.server === 1) {
+          m.server = 2; // Move to second server
+        } else {
+          // Sideout
+          m.servingTeam = winningTeam;
+          // First serve of the game starts at server 2
+          m.server = (m.score1 === 0 && m.score2 === 0) ? 2 : 1; 
+        }
+      }
+
+      updateUmpireVisuals();
       saveState();
     }
 
-    function triggerMedicalTimeout() {
-      const m = STATE.matches.find(x => x.id === currentMatchId);
-      m.status = 'MEDICAL_TIMEOUT';
-      alert('🚨 Bật chế độ nghỉ chấn thương 15 Phút! Thông báo đã được đồng bộ lên màn hình khán giả.');
-      saveState();
+    function handleUndo() {
+      if (STATE.umpireHistory.length === 0) return;
+      if (confirm("Bạn có chắc muốn lùi lại quả điểm trước (Undo)?")) {
+        const m = STATE.matches.find(x => x.id === currentUmpireMatchId);
+        const prev = STATE.umpireHistory.pop();
+        Object.assign(m, prev);
+        updateUmpireVisuals();
+        saveState();
+      }
     }
 
-    function finishMatch() {
-      const m = STATE.matches.find(x => x.id === currentMatchId);
-      m.status = 'FINISHED';
-      saveState();
-      alert('🎉 Trận đấu kết thúc!');
-      $('view-umpire').classList.add('hidden');
+    function updateUmpireVisuals() {
+      const m = STATE.matches.find(x => x.id === currentUmpireMatchId);
+      
+      // Update Readout
+      const serveScore = m.servingTeam === 1 ? m.score1 : m.score2;
+      const recScore = m.servingTeam === 1 ? m.score2 : m.score1;
+      $('umpire-readout-text').textContent = `🗣️ LƯỢT GIAO: ${serveScore} - ${recScore} - ${m.server}`;
+
+      // Update Scores
+      $('umpire-t1-score').textContent = m.score1;
+      $('umpire-t2-score').textContent = m.score2;
+
+      // Update Names
+      $('t1-right-name').textContent = m.pos.t1[0]; // 0 is Even/Right
+      $('t1-left-name').textContent = m.pos.t1[1];  // 1 is Odd/Left
+      $('t2-right-name').textContent = m.pos.t2[0];
+      $('t2-left-name').textContent = m.pos.t2[1];
+
+      // Reset indicators
+      $$('.serving-indicator, .receiving-indicator').forEach(el => el.remove());
+
+      // Calculate who is serving and receiving
+      const isEvenScore = serveScore % 2 === 0;
+      let serverBoxId = '';
+      let receiverBoxId = '';
+
+      if (m.servingTeam === 1) {
+        serverBoxId = isEvenScore ? 't1-right-box' : 't1-left-box';
+        receiverBoxId = isEvenScore ? 't2-right-box' : 't2-left-box'; // Diagonal
+      } else {
+        serverBoxId = isEvenScore ? 't2-right-box' : 't2-left-box';
+        receiverBoxId = isEvenScore ? 't1-right-box' : 't1-left-box'; // Diagonal
+      }
+
+      // Inject Icons
+      const serverIcon = document.createElement('div');
+      serverIcon.className = 'serving-indicator absolute top-1 right-1 text-base drop-shadow-md z-10';
+      serverIcon.textContent = '🟡';
+      $(serverBoxId).appendChild(serverIcon);
+
+      const receiverIcon = document.createElement('div');
+      receiverIcon.className = 'receiving-indicator absolute top-1 right-1 text-base drop-shadow-md opacity-70 z-10';
+      receiverIcon.textContent = '🛡️';
+      $(receiverBoxId).appendChild(receiverIcon);
     }
   </script>
 </body>
 </html>
+```eof
+
+### Tóm tắt các nâng cấp đã thực hiện (Summary of Updates):
+
+*   **Smart Umpire Court (2D):** Thay vì giao diện cộng điểm nhàm chán, tôi đã tạo hẳn một sân mô phỏng 2D. Trọng tài chỉ cần bấm "ĐỘI A/B THẮNG QUẢ NÀY", hệ thống sẽ tự động tính Point/Sideout và đổi vị trí VĐV đúng chuẩn luật Pickleball. Có bóng vàng (🟡) chỉ người giao và khiên (🛡️) chỉ người đỡ.
+*   **Chế độ khán giả (Viewer Mode):** Thêm nút "Link Khán Giả". Nếu mở link có đuôi `?role=viewer`, toàn bộ quyền admin, cài đặt và nút sửa điểm sẽ bị ẩn đi, chỉ hiện banner báo hiệu đang ở chế độ xem. Đăng nhập Admin yêu cầu pass.
+*   **Xử lý DUPR & Hạt Giống Ziczac:** Trình phân tích văn bản (Parser) nay sử dụng Regex để tự động bóc tách số DUPR trong ngoặc, tính trung bình cộng của đội và chia bảng chuẩn Ziczac (chọn cao xuống thấp).
+*   **Tính năng bổ trợ:** Đã tích hợp Nút đổi vị trí đỡ bóng (chỉ hiện trước quả giao đầu tiên), nút Hội ý (chỉ được ấn 1 lần) và Đọc tên đội ra sân bằng Giọng nói Tiếng Việt (Web Speech API).
+
+Bạn có muốn kiểm tra kỹ phần logic tính điểm tự động trên giao diện sân 2D này xem có mượt mà chưa không?
