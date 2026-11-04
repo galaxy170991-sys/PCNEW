@@ -20,12 +20,16 @@
                 <p class="text-xs text-slate-400 mt-0.5">Hệ thống quản lý, trọng tài & phát sóng trực tiếp kết quả</p>
             </div>
             <div class="flex items-center space-x-3">
-                <button onclick="toggleHeader()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg text-xs font-medium transition">
-                    Thu gọn Header ▲
+                <!-- Nút chia sẻ link khán giả (Chỉ xem) nằm gần sát kế bên nút Admin -->
+                <button onclick="openViewerLinkModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium flex items-center space-x-1.5 transition">
+                    <span>🔗 Link Khán Giả</span>
                 </button>
-                <div id="auth-status" class="text-sm bg-emerald-600 px-3 py-1 rounded-full font-medium">
-                    🛡️ Admin Mode
+                <div id="auth-status" class="text-xs bg-emerald-600 px-3 py-1.5 rounded-lg font-semibold flex items-center space-x-1">
+                    <span>🛡️ Admin Mode</span>
                 </div>
+                <button onclick="toggleHeader()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg text-xs font-medium transition" title="Thu gọn / Mở rộng Header">
+                    Thu gọn ▲
+                </button>
             </div>
         </div>
         <!-- Tab Navigation -->
@@ -45,7 +49,7 @@
     </header>
 
     <!-- Main Container -->
-    <main class="container mx-auto px-4 py-6 flex-grow">
+    <main class="container mx-auto px-4 py-6 flex-grow space-y-6">
 
         <!-- TAB 1: Cấu hình giải đấu -->
         <section id="tab-1" class="tab-content space-y-6">
@@ -102,16 +106,18 @@
                     </div>
                 </div>
 
-                <!-- Luật Playoff Liên Kết Từng Vòng -->
+                <!-- Cấu Hình Luật Playoff Liên Kết Từng Vòng -->
                 <div class="bg-emerald-50 border border-emerald-200 p-4 rounded-xl mb-6">
-                    <h3 class="font-semibold text-emerald-900 mb-3">⚡ Cấu Hình Luật Thi Đấu Playoff Riêng Biệt</h3>
+                    <h3 class="font-semibold text-emerald-900 mb-3">⚡ Cấu Hình Luật Thi Đấu Playoff Liên Kết (Từng Vòng)</h3>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div class="bg-white p-3 rounded-lg border">
                             <h4 class="font-bold text-xs text-slate-700 uppercase mb-2">Vòng 16 Đội & Tứ Kết</h4>
+                            <label class="block text-[10px] text-slate-500 mb-1">Số Game / Trận</label>
                             <select id="playoff-r16-games" class="w-full border rounded px-2 py-1 text-xs mb-2">
                                 <option value="1">1 Game duy nhất</option>
-                                <option value="3">Best of 3</option>
+                                <option value="3" selected>Best of 3</option>
                             </select>
+                            <label class="block text-[10px] text-slate-500 mb-1">Quy Tắc Điểm</label>
                             <select id="playoff-r16-score" class="w-full border rounded px-2 py-1 text-xs">
                                 <option value="11_flat">Chạm 11 thắng ngay</option>
                                 <option value="11_diff" selected>Chạm 11 cách 2</option>
@@ -120,10 +126,12 @@
                         </div>
                         <div class="bg-white p-3 rounded-lg border">
                             <h4 class="font-bold text-xs text-slate-700 uppercase mb-2">Vòng Bán Kết</h4>
+                            <label class="block text-[10px] text-slate-500 mb-1">Số Game / Trận</label>
                             <select id="playoff-sf-games" class="w-full border rounded px-2 py-1 text-xs mb-2">
                                 <option value="1">1 Game duy nhất</option>
                                 <option value="3" selected>Best of 3</option>
                             </select>
+                            <label class="block text-[10px] text-slate-500 mb-1">Quy Tắc Điểm</label>
                             <select id="playoff-sf-score" class="w-full border rounded px-2 py-1 text-xs">
                                 <option value="11_diff" selected>Chạm 11 cách 2</option>
                                 <option value="15_diff">Chạm 15 cách 2</option>
@@ -131,27 +139,17 @@
                         </div>
                         <div class="bg-white p-3 rounded-lg border">
                             <h4 class="font-bold text-xs text-slate-700 uppercase mb-2">Vòng Chung Kết</h4>
+                            <label class="block text-[10px] text-slate-500 mb-1">Số Game / Trận</label>
                             <select id="playoff-final-games" class="w-full border rounded px-2 py-1 text-xs mb-2">
                                 <option value="1">1 Game duy nhất</option>
                                 <option value="3" selected>Best of 3</option>
                             </select>
+                            <label class="block text-[10px] text-slate-500 mb-1">Quy Tắc Điểm</label>
                             <select id="playoff-final-score" class="w-full border rounded px-2 py-1 text-xs">
                                 <option value="11_diff">Chạm 11 cách 2</option>
                                 <option value="15_diff" selected>Chạm 15 cách 2</option>
                             </select>
                         </div>
-                    </div>
-                </div>
-
-                <!-- Chia sẻ Link Chỉ Xem -->
-                <div class="bg-indigo-50 border border-indigo-200 p-4 rounded-xl flex flex-col md:flex-row justify-between items-center">
-                    <div>
-                        <h3 class="font-semibold text-indigo-900">🔗 Link Chia Sẻ Khán Giả (Chỉ Xem Kết Quả)</h3>
-                        <p class="text-xs text-indigo-700 mt-0.5">Cung cấp đường dẫn này cho khán giả, VĐV theo dõi tỷ số trực tiếp mà không có quyền chỉnh sửa.</p>
-                    </div>
-                    <div class="mt-3 md:mt-0 flex space-x-2 w-full md:w-auto">
-                        <input type="text" readonly id="viewer-link" value="https://pickleball-pro.web.app/view?token=viewer_secure_9921" class="border bg-white rounded-lg px-3 py-1.5 text-xs w-full md:w-80">
-                        <button onclick="copyViewerLink()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap">Copy Link</button>
                     </div>
                 </div>
             </div>
@@ -189,8 +187,7 @@
         <section id="tab-3" class="tab-content hidden space-y-6">
             <div class="bg-white rounded-xl shadow p-6">
                 <h2 class="text-xl font-bold text-slate-900 mb-4 pb-2 border-b">📢 Quản Lý Sân & Loa Phát Thanh Tiếng Việt</h2>
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4" id="court-status-grid">
-                </div>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4" id="court-status-grid"></div>
             </div>
         </section>
 
@@ -198,8 +195,7 @@
         <section id="tab-4" class="tab-content hidden space-y-6">
             <div class="bg-white rounded-xl shadow p-6">
                 <h2 class="text-xl font-bold text-slate-900 mb-4 pb-2 border-b">📊 Bảng Xếp Hạng Vòng Bảng</h2>
-                <div id="standings-container" class="space-y-6">
-                </div>
+                <div id="standings-container" class="space-y-6"></div>
             </div>
         </section>
 
@@ -253,7 +249,7 @@ BTC xin trân trọng cảm ơn các VĐV!</textarea>
 
     </main>
 
-    <!-- MODAL MÀN HÌNH TRỌNG TÀI -->
+    <!-- MODAL MÀN HÌNH TRỌNG TÀI (ĐÚNG LUỒNG: CHỌN ĐỘI GIAO TRƯỚC VÀ VĐV Ở Ô PHẢI) -->
     <div id="referee-modal" class="fixed inset-0 bg-black/70 z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-4xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[95vh]">
             <div class="bg-slate-900 text-white px-6 py-4 flex justify-between items-center">
@@ -265,27 +261,33 @@ BTC xin trân trọng cảm ơn các VĐV!</textarea>
             </div>
 
             <div id="referee-body" class="p-6 overflow-y-auto flex-grow space-y-6">
-                <!-- Bước 1: Chọn đội và người giao bóng đầu trận -->
+                <!-- Bước 1: Câu hỏi đội nào giao trước & VĐV nào đứng ô phải -->
                 <div id="step-initial-serve" class="space-y-6">
                     <div class="bg-amber-50 border border-amber-300 p-4 rounded-xl text-center">
-                        <h4 class="font-bold text-amber-900 text-base mb-1">🎾 KHỞI ĐẦU TRẬN ĐẤU</h4>
-                        <p class="text-xs text-amber-700">Vui lòng chọn đội giao bóng trước và vận động viên thực hiện cú giao bóng đầu tiên ở ô Phải (Even Court).</p>
+                        <h4 class="font-bold text-amber-900 text-base mb-1">🎾 CÂU HỎI KHỞI ĐẦU TRẬN ĐẤU</h4>
+                        <p class="text-xs text-amber-700">Xác định đội giao bóng trước và chọn vận động viên đứng ở ô Phải (Even Court) theo sơ đồ thực tế trên sân.</p>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="border-2 border-slate-200 hover:border-emerald-500 rounded-xl p-4 cursor-pointer transition text-center" onclick="selectServingTeam(1)">
-                            <h4 id="team1-name-display" class="font-bold text-lg text-slate-800 mb-3">Đội A</h4>
-                            <p class="text-xs text-slate-500 mb-2">Chọn VĐV đứng ô Phải giao bóng đầu:</p>
-                            <div class="flex justify-center space-x-2">
-                                <button class="bg-slate-100 hover:bg-emerald-600 hover:text-white px-3 py-1.5 rounded text-xs font-medium border transition">VĐV A1</button>
-                                <button class="bg-slate-100 hover:bg-emerald-600 hover:text-white px-3 py-1.5 rounded text-xs font-medium border transition">VĐV A2</button>
+                        <div class="border-2 border-slate-200 hover:border-emerald-500 rounded-xl p-4 cursor-pointer transition text-center bg-slate-50" onclick="selectServingTeam('Đội A')">
+                            <h4 id="team1-name-display" class="font-bold text-lg text-emerald-800 mb-2">Đội A</h4>
+                            <p class="text-xs text-slate-600 mb-3 font-medium">Bấm chọn nếu Đội A giao bóng trước</p>
+                            <div class="border-t pt-3">
+                                <span class="text-[11px] text-slate-500 block mb-2">Chọn VĐV đứng Ô PHẢI (Even Court):</span>
+                                <div class="flex justify-center space-x-2">
+                                    <span class="bg-white border px-3 py-1 rounded text-xs font-bold shadow-sm">VĐV A1</span>
+                                    <span class="bg-white border px-3 py-1 rounded text-xs font-bold shadow-sm">VĐV A2</span>
+                                </div>
                             </div>
                         </div>
-                        <div class="border-2 border-slate-200 hover:border-emerald-500 rounded-xl p-4 cursor-pointer transition text-center" onclick="selectServingTeam(2)">
-                            <h4 id="team2-name-display" class="font-bold text-lg text-slate-800 mb-3">Đội B</h4>
-                            <p class="text-xs text-slate-500 mb-2">Chọn VĐV đứng ô Phải giao bóng đầu:</p>
-                            <div class="flex justify-center space-x-2">
-                                <button class="bg-slate-100 hover:bg-emerald-600 hover:text-white px-3 py-1.5 rounded text-xs font-medium border transition">VĐV B1</button>
-                                <button class="bg-slate-100 hover:bg-emerald-600 hover:text-white px-3 py-1.5 rounded text-xs font-medium border transition">VĐV B2</button>
+                        <div class="border-2 border-slate-200 hover:border-emerald-500 rounded-xl p-4 cursor-pointer transition text-center bg-slate-50" onclick="selectServingTeam('Đội B')">
+                            <h4 id="team2-name-display" class="font-bold text-lg text-emerald-800 mb-2">Đội B</h4>
+                            <p class="text-xs text-slate-600 mb-3 font-medium">Bấm chọn nếu Đội B giao bóng trước</p>
+                            <div class="border-t pt-3">
+                                <span class="text-[11px] text-slate-500 block mb-2">Chọn VĐV đứng Ô PHẢI (Even Court):</span>
+                                <div class="flex justify-center space-x-2">
+                                    <span class="bg-white border px-3 py-1 rounded text-xs font-bold shadow-sm">VĐV B1</span>
+                                    <span class="bg-white border px-3 py-1 rounded text-xs font-bold shadow-sm">VĐV B2</span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -323,6 +325,19 @@ BTC xin trân trọng cảm ơn các VĐV!</textarea>
         </div>
     </div>
 
+    <!-- MODAL HIỂN THỊ LINK KHÁN GIẢ (CHỈ XEM) -->
+    <div id="viewer-link-modal" class="fixed inset-0 bg-black/70 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl p-6 space-y-4">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="font-bold text-slate-900 text-base">🔗 Link Khán Giả (Chỉ Xem Kết Quả)</h3>
+                <button onclick="closeViewerLinkModal()" class="text-slate-400 hover:text-slate-700 text-xl font-bold">&times;</button>
+            </div>
+            <p class="text-xs text-slate-600">Đường dẫn chia sẻ này chỉ cho phép xem tỷ số, lịch thi đấu và bảng xếp hạng, <b>không có quyền chỉnh sửa</b> bất kỳ nội dung nào:</p>
+            <input type="text" readonly id="viewer-link-input" value="https://pickleball-pro.web.app/view?token=viewer_secure_9921" class="border bg-slate-50 rounded-lg px-3 py-2 text-xs w-full font-mono text-indigo-700">
+            <button onclick="copyViewerModalLink()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg text-xs font-semibold transition">Sao Chép Đường Dẫn</button>
+        </div>
+    </div>
+
     <script>
         let headerVisible = true;
         function toggleHeader() {
@@ -332,10 +347,10 @@ BTC xin trân trọng cảm ơn các VĐV!</textarea>
             if(headerVisible) {
                 header.style.opacity = '1';
                 header.style.pointerEvents = 'auto';
-                btn.innerText = 'Thu gọn Header ▲';
+                btn.innerText = 'Thu gọn ▲';
             } else {
                 header.style.opacity = '0.1';
-                btn.innerText = 'Mở rộng Header ▼';
+                btn.innerText = 'Mở rộng ▼';
             }
         }
 
@@ -350,11 +365,20 @@ BTC xin trân trọng cảm ơn các VĐV!</textarea>
             event.target.classList.remove('text-slate-300', 'hover:bg-slate-700');
         }
 
-        function copyViewerLink() {
-            const linkInput = document.getElementById('viewer-link');
+        function openViewerLinkModal() {
+            document.getElementById('viewer-link-modal').classList.remove('hidden');
+        }
+
+        function closeViewerLinkModal() {
+            document.getElementById('viewer-link-modal').classList.add('hidden');
+        }
+
+        function copyViewerModalLink() {
+            const linkInput = document.getElementById('viewer-link-input');
             linkInput.select();
             navigator.clipboard.writeText(linkInput.value);
             alert('Đã sao chép link xem kết quả dành cho khán giả!');
+            closeViewerLinkModal();
         }
 
         function generateSchedule() {
@@ -384,13 +408,15 @@ BTC xin trân trọng cảm ơn các VĐV!</textarea>
             document.getElementById('score-team1-title').innerText = team1;
             document.getElementById('score-team2-title').innerText = team2;
             
+            // Hiển thị bước hỏi cấu hình ban đầu đúng chuẩn phiên bản trước
             document.getElementById('step-initial-serve').classList.remove('hidden');
             document.getElementById('step-scoring-board').classList.add('hidden');
             
             document.getElementById('referee-modal').classList.remove('hidden');
         }
 
-        function selectServingTeam(teamNum) {
+        function selectServingTeam(teamName) {
+            alert(`Đã xác nhận ${teamName} giao bóng trước và thiết lập vị trí VĐV trên sân!`);
             document.getElementById('step-initial-serve').classList.add('hidden');
             document.getElementById('step-scoring-board').classList.remove('hidden');
         }
