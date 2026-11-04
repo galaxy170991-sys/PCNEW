@@ -3,935 +3,412 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pickleball Tournament Pro - Quản Lý Giải Đấu Chuyên Nghiệp</title>
+    <title>Hệ Thống Quản Lý Giải Đấu Pickleball Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.1/firebase-app-compat.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.22.1/firebase-database-compat.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-        body { font-family: 'Plus Jakarta Sans', sans-serif; }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-        .neon-glow { text-shadow: 0 0 10px rgba(250, 204, 21, 0.6); }
-        .court-bg { background: linear-gradient(135deg, #065f46 0%, #047857 100%); }
-        .collapsed { display: none !important; }
+        body { font-family: 'Inter', sans-serif; }
     </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen">
-    <!-- Main App Container -->
-    <div id="app" class="max-w-7xl mx-auto p-4 md:p-6">
-        <!-- Collapsible Header Banner -->
-        <header id="appHeader" class="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-xl mb-4 transition-all">
-            <div class="flex flex-col md:flex-row justify-between items-center">
-                <div class="flex items-center space-x-3 mb-3 md:mb-0">
-                    <div class="w-12 h-12 bg-gradient-to-tr from-yellow-400 to-emerald-500 rounded-xl flex items-center justify-center text-slate-950 text-2xl font-black shadow-lg">
-                        <i class="fa-solid fa-table-tennis-paddle-ball"></i>
-                    </div>
-                    <div>
-                        <h1 id="headerTournamentName" class="text-xl md:text-2xl font-extrabold text-white">GIẢI PICKLEBALL CHUYÊN NGHIỆP</h1>
-                        <p id="headerTournamentInfo" class="text-xs text-slate-400">Địa điểm: Sân trung tâm | Ngày: Hôm nay</p>
-                    </div>
-                </div>
-                <div class="flex items-center space-x-2">
-                    <button onclick="openAdminModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-yellow-400 border border-yellow-500/30 rounded-xl font-bold text-sm flex items-center space-x-2 transition">
-                        <i class="fa-solid fa-lock"></i> <span>Cài đặt BTC</span>
-                    </button>
-                    <button onclick="toggleFullscreenTV()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-sm flex items-center space-x-2 transition">
-                        <i class="fa-solid fa-tv"></i> <span>Mở Banner TV 75"</span>
-                    </button>
-                    <button onclick="toggleHeaderBanner()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold text-xs" title="Ẩn/Hiện Header">
-                        <i id="toggleHeaderIcon" class="fa-solid fa-chevron-up"></i>
-                    </button>
+<body class="bg-gray-100 text-gray-800 min-h-screen flex flex-col">
+
+    <!-- Header & Navigation -->
+    <header id="main-header" class="bg-slate-900 text-white shadow-md transition-all duration-300">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-bold tracking-wide">🏆 Pickleball Tournament Pro</h1>
+                <p class="text-xs text-slate-400 mt-0.5">Hệ thống quản lý, trọng tài & phát sóng trực tiếp kết quả</p>
+            </div>
+            <div class="flex items-center space-x-3">
+                <button onclick="toggleHeader()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg text-xs font-medium transition">
+                    Thu gọn Header ▲
+                </button>
+                <div id="auth-status" class="text-sm bg-emerald-600 px-3 py-1 rounded-full font-medium">
+                    🛡️ Admin Mode
                 </div>
             </div>
-        </header>
-
-        <!-- Navigation Tabs (9 Tabs) -->
-        <nav class="flex overflow-x-auto space-x-2 pb-3 mb-6 scrollbar-thin scrollbar-thumb-slate-800">
-            <button onclick="switchTab(1)" class="tab-btn px-4 py-2.5 rounded-xl font-bold text-sm whitespace-nowrap bg-emerald-600 text-white transition shadow-md" data-tab="1"><i class="fa-solid fa-gear mr-2"></i>1. Thiết lập BTC</button>
-            <button onclick="switchTab(2)" class="tab-btn px-4 py-2.5 rounded-xl font-bold text-sm whitespace-nowrap bg-slate-900 text-slate-300 hover:bg-slate-800 transition" data-tab="2"><i class="fa-solid fa-calendar-days mr-2"></i>2. Lịch đấu & Live</button>
-            <button onclick="switchTab(3)" class="tab-btn px-4 py-2.5 rounded-xl font-bold text-sm whitespace-nowrap bg-slate-900 text-slate-300 hover:bg-slate-800 transition" data-tab="3"><i class="fa-solid fa-volleyball mr-2"></i>3. Quản lý Sân & Loa</button>
-            <button onclick="switchTab(4)" class="tab-btn px-4 py-2.5 rounded-xl font-bold text-sm whitespace-nowrap bg-slate-900 text-slate-300 hover:bg-slate-800 transition" data-tab="4"><i class="fa-solid fa-ranking-star mr-2"></i>4. Bảng Xếp Hạng</button>
-            <button onclick="switchTab(5)" class="tab-btn px-4 py-2.5 rounded-xl font-bold text-sm whitespace-nowrap bg-slate-900 text-slate-300 hover:bg-slate-800 transition" data-tab="5"><i class="fa-solid fa-trophy mr-2"></i>5. Nhánh Seri A</button>
-            <button onclick="switchTab(6)" class="tab-btn px-4 py-2.5 rounded-xl font-bold text-sm whitespace-nowrap bg-slate-900 text-slate-300 hover:bg-slate-800 transition" data-tab="6"><i class="fa-solid fa-shield-halved mr-2"></i>6. Nhánh Seri B</button>
-            <button onclick="switchTab(7)" class="tab-btn px-4 py-2.5 rounded-xl font-bold text-sm whitespace-nowrap bg-slate-900 text-slate-300 hover:bg-slate-800 transition" data-tab="7"><i class="fa-solid fa-award mr-2"></i>7. Tổng kết giải</button>
-            <button onclick="switchTab(8)" class="tab-btn px-4 py-2.5 rounded-xl font-bold text-sm whitespace-nowrap bg-slate-900 text-slate-300 hover:bg-slate-800 transition" data-tab="8"><i class="fa-solid fa-share-nodes mr-2"></i>8. Xuất Zalo</button>
-            <button onclick="switchTab(9)" class="tab-btn px-4 py-2.5 rounded-xl font-bold text-sm whitespace-nowrap bg-slate-900 text-yellow-400 hover:bg-slate-800 transition border border-yellow-500/30" data-tab="9"><i class="fa-solid fa-tv mr-2"></i>9. TV Banner 75"</button>
+        </div>
+        <!-- Tab Navigation -->
+        <nav class="bg-slate-800 border-t border-slate-700 overflow-x-auto">
+            <div class="container mx-auto px-4 flex space-x-1 py-2 text-sm whitespace-nowrap">
+                <button onclick="switchTab(1)" class="tab-btn px-4 py-2 rounded-lg font-medium bg-emerald-600 text-white transition">1. Cấu hình giải</button>
+                <button onclick="switchTab(2)" class="tab-btn px-4 py-2 rounded-lg font-medium text-slate-300 hover:bg-slate-700 transition">2. Lịch đấu & Trọng tài</button>
+                <button onclick="switchTab(3)" class="tab-btn px-4 py-2 rounded-lg font-medium text-slate-300 hover:bg-slate-700 transition">3. Quản lý Sân & Loa</button>
+                <button onclick="switchTab(4)" class="tab-btn px-4 py-2 rounded-lg font-medium text-slate-300 hover:bg-slate-700 transition">4. BXH Vòng Bảng</button>
+                <button onclick="switchTab(5)" class="tab-btn px-4 py-2 rounded-lg font-medium text-slate-300 hover:bg-slate-700 transition">5. Nhánh Seri A</button>
+                <button onclick="switchTab(6)" class="tab-btn px-4 py-2 rounded-lg font-medium text-slate-300 hover:bg-slate-700 transition">6. Nhánh Seri B</button>
+                <button onclick="switchTab(7)" class="tab-btn px-4 py-2 rounded-lg font-medium text-slate-300 hover:bg-slate-700 transition">7. Vinh Danh Infographic</button>
+                <button onclick="switchTab(8)" class="tab-btn px-4 py-2 rounded-lg font-medium text-slate-300 hover:bg-slate-700 transition">8. Xuất Zalo</button>
+                <button onclick="switchTab(9)" class="tab-btn px-4 py-2 rounded-lg font-medium text-slate-300 hover:bg-slate-700 transition">9. Màn hình TV 75"</button>
+            </div>
         </nav>
+    </header>
 
-        <!-- TAB 1: THIẾT LẬP BTC (Chia 3 phần rõ ràng + Ô nhập rộng hơn) -->
-        <div id="tab-1" class="tab-content active space-y-6">
-            <!-- Thông tin chung -->
-            <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl">
-                <h2 class="text-lg font-bold text-emerald-400 mb-4"><i class="fa-solid fa-sliders mr-2"></i>Thông Tin Chung & Sân Đấu</h2>
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+    <!-- Main Container -->
+    <main class="container mx-auto px-4 py-6 flex-grow">
+
+        <!-- TAB 1: Cấu hình giải đấu -->
+        <section id="tab-1" class="tab-content space-y-6">
+            <div class="bg-white rounded-xl shadow p-6">
+                <h2 class="text-xl font-bold text-slate-900 mb-4 pb-2 border-b">⚙️ Cấu Hình Chung & Danh Sách Đội</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-400 mb-1">Tên Giải Đấu</label>
-                        <input type="text" id="cfgName" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white" value="GIẢI PICKLEBALL MỞ RỘNG 2026">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Tên Giải Đấu</label>
+                        <input type="text" id="tour-name" value="Giải Pickleball Mở Rộng 2026" class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-400 mb-1">Địa Điểm</label>
-                        <input type="text" id="cfgLocation" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white" value="Sân Pickleball Central">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Số Lượng Sân Thi Đấu</label>
+                        <input type="number" id="court-count" value="4" min="1" max="20" class="w-full border rounded-lg px-3 py-2 text-sm">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-400 mb-1">Ngày Thi Đấu</label>
-                        <input type="date" id="cfgDate" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white" value="2026-11-04">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-400 mb-1">Mật Khẩu Admin</label>
-                        <input type="text" id="cfgAdminPass" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white" value="1234">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-400 mb-1">Số Sân Thực Tế (1-20)</label>
-                        <input type="number" id="cfgCourts" min="1" max="20" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white" value="4">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-400 mb-1">Số Bảng Đấu (1-20)</label>
-                        <input type="number" id="cfgGroups" min="1" max="20" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white" value="2" onchange="renderTeamInputs()">
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Mật Khẩu Admin</label>
+                        <input type="password" id="admin-pass" value="1234" class="w-full border rounded-lg px-3 py-2 text-sm">
                     </div>
                 </div>
-            </div>
 
-            <!-- PHẦN 1: THỂ THỨC VÒNG LOẠI -->
-            <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl">
-                <h2 class="text-lg font-bold text-yellow-400 mb-4"><i class="fa-solid fa-medal mr-2"></i>Phần 1: Thể Thức Vòng Bảng (Vòng Loại)</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Thể thức vòng bảng -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 p-4 rounded-xl mb-6 border">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-400 mb-1">Số Game Mỗi Trận Vòng Bảng</label>
-                        <select id="cfgGroupGameFormat" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white">
+                        <h3 class="font-semibold text-slate-800 mb-2">🏸 Thể Thức Vòng Bảng</h3>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Số Game / Trận</label>
+                        <select id="group-games" class="w-full border rounded-lg px-3 py-2 text-sm mb-3">
                             <option value="1">1 Game duy nhất</option>
-                            <option value="3" selected>Đánh 3 Game thắng 2 (Best of 3)</option>
+                            <option value="3">Đánh 3 game thắng 2 (Best of 3)</option>
+                        </select>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Quy Tắc Điểm Số</label>
+                        <select id="group-scoring" class="w-full border rounded-lg px-3 py-2 text-sm">
+                            <option value="11_flat">Chạm 11 thắng ngay</option>
+                            <option value="11_diff">Chạm 11 thắng cách 2 (Max 15)</option>
+                            <option value="15_flat">Chạm 15 thắng ngay</option>
+                            <option value="15_diff">Chạm 15 thắng cách 2 (Max 21)</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-400 mb-1">Quy Tắc Tính Điểm Vòng Bảng</label>
-                        <select id="cfgGroupScoringRule" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white" onchange="toggleGroupMaxScore()">
-                            <option value="1">1. Chạm 11 thắng ngay</option>
-                            <option value="2" selected>2. Chạm 11 thắng cách 2 (+ Max Score)</option>
-                            <option value="3">3. Chạm 15 thắng ngay</option>
-                            <option value="4">4. Chạm 15 thắng cách 2 (+ Max Score)</option>
-                        </select>
-                    </div>
-                    <div id="groupMaxScoreWrapper" class="md:col-span-2">
-                        <label class="block text-xs font-semibold text-slate-400 mb-1">Điểm Trần Max Score (Vòng bảng)</label>
-                        <input type="number" id="cfgGroupMaxScore" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white" placeholder="Ví dụ: 13 hoặc 15">
+                        <h3 class="font-semibold text-slate-800 mb-2">🏅 Phân Bổ Vòng Loại Trực Tiếp</h3>
+                        <div class="grid grid-cols-2 gap-2 mb-3">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-1">Số đội vào Seri A</label>
+                                <input type="number" id="seria-teams" value="8" class="w-full border rounded-lg px-3 py-2 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-1">Số đội vào Seri B</label>
+                                <input type="number" id="serib-teams" value="8" class="w-full border rounded-lg px-3 py-2 text-sm">
+                            </div>
+                        </div>
+                        <label class="flex items-center space-x-2 mt-4">
+                            <input type="checkbox" id="third-place-match" checked class="rounded text-emerald-600">
+                            <span class="text-sm font-medium text-slate-700">Có trận tranh hạng Ba (Đồng giải Ba)</span>
+                        </label>
                     </div>
                 </div>
-            </div>
 
-            <!-- PHẦN 2: CHỌN SỐ ĐỘI VÀO SERI A & B -->
-            <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl">
-                <h2 class="text-lg font-bold text-emerald-400 mb-4"><i class="fa-solid fa-sitemap mr-2"></i>Phần 2: Phân Bổ Số Đội Vào Vòng Trong (Seri A & B)</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Luật Playoff Liên Kết Từng Vòng -->
+                <div class="bg-emerald-50 border border-emerald-200 p-4 rounded-xl mb-6">
+                    <h3 class="font-semibold text-emerald-900 mb-3">⚡ Cấu Hình Luật Thi Đấu Playoff Riêng Biệt</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="bg-white p-3 rounded-lg border">
+                            <h4 class="font-bold text-xs text-slate-700 uppercase mb-2">Vòng 16 Đội & Tứ Kết</h4>
+                            <select id="playoff-r16-games" class="w-full border rounded px-2 py-1 text-xs mb-2">
+                                <option value="1">1 Game duy nhất</option>
+                                <option value="3">Best of 3</option>
+                            </select>
+                            <select id="playoff-r16-score" class="w-full border rounded px-2 py-1 text-xs">
+                                <option value="11_flat">Chạm 11 thắng ngay</option>
+                                <option value="11_diff" selected>Chạm 11 cách 2</option>
+                                <option value="15_flat">Chạm 15 thắng ngay</option>
+                            </select>
+                        </div>
+                        <div class="bg-white p-3 rounded-lg border">
+                            <h4 class="font-bold text-xs text-slate-700 uppercase mb-2">Vòng Bán Kết</h4>
+                            <select id="playoff-sf-games" class="w-full border rounded px-2 py-1 text-xs mb-2">
+                                <option value="1">1 Game duy nhất</option>
+                                <option value="3" selected>Best of 3</option>
+                            </select>
+                            <select id="playoff-sf-score" class="w-full border rounded px-2 py-1 text-xs">
+                                <option value="11_diff" selected>Chạm 11 cách 2</option>
+                                <option value="15_diff">Chạm 15 cách 2</option>
+                            </select>
+                        </div>
+                        <div class="bg-white p-3 rounded-lg border">
+                            <h4 class="font-bold text-xs text-slate-700 uppercase mb-2">Vòng Chung Kết</h4>
+                            <select id="playoff-final-games" class="w-full border rounded px-2 py-1 text-xs mb-2">
+                                <option value="1">1 Game duy nhất</option>
+                                <option value="3" selected>Best of 3</option>
+                            </select>
+                            <select id="playoff-final-score" class="w-full border rounded px-2 py-1 text-xs">
+                                <option value="11_diff">Chạm 11 cách 2</option>
+                                <option value="15_diff" selected>Chạm 15 cách 2</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chia sẻ Link Chỉ Xem -->
+                <div class="bg-indigo-50 border border-indigo-200 p-4 rounded-xl flex flex-col md:flex-row justify-between items-center">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-400 mb-1">Số Đội Vào Nhánh Seri A (Vô Địch)</label>
-                        <input type="number" id="cfgSeriASize" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white" value="8">
+                        <h3 class="font-semibold text-indigo-900">🔗 Link Chia Sẻ Khán Giả (Chỉ Xem Kết Quả)</h3>
+                        <p class="text-xs text-indigo-700 mt-0.5">Cung cấp đường dẫn này cho khán giả, VĐV theo dõi tỷ số trực tiếp mà không có quyền chỉnh sửa.</p>
                     </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-400 mb-1">Số Đội Vào Nhánh Seri B</label>
-                        <input type="number" id="cfgSeriBSize" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white" value="8">
-                    </div>
-                </div>
-            </div>
-
-            <!-- PHẦN 3: LUẬT THI ĐẤU CÁC VÒNG PLAYOFF RIÊNG BIỆT -->
-            <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl">
-                <h2 class="text-lg font-bold text-blue-400 mb-4"><i class="fa-solid fa-trophy mr-2"></i>Phần 3: Luật Thi Đấu Các Vòng Playoff (Seri A & B)</h2>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-400 mb-1">Vòng 16 Đội / Tứ Kết</label>
-                        <select id="cfgPlayoffFormat1" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
-                            <option value="1">1 Game</option>
-                            <option value="3" selected>3 Game thắng 2</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-400 mb-1">Bán Kết</label>
-                        <select id="cfgPlayoffFormat2" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
-                            <option value="1">1 Game</option>
-                            <option value="3" selected>3 Game thắng 2</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-400 mb-1">Chung Kết & Tranh 3</label>
-                        <select id="cfgPlayoffFormat3" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
-                            <option value="1">1 Game</option>
-                            <option value="3" selected>3 Game thắng 2</option>
-                        </select>
+                    <div class="mt-3 md:mt-0 flex space-x-2 w-full md:w-auto">
+                        <input type="text" readonly id="viewer-link" value="https://pickleball-pro.web.app/view?token=viewer_secure_9921" class="border bg-white rounded-lg px-3 py-1.5 text-xs w-full md:w-80">
+                        <button onclick="copyViewerLink()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap">Copy Link</button>
                     </div>
                 </div>
-                <div class="flex items-center space-x-2 pt-2 border-t border-slate-800">
-                    <input type="checkbox" id="cfgCoThird" class="w-4 h-4 accent-emerald-500 rounded bg-slate-950 border-slate-800" checked>
-                    <label for="cfgCoThird" class="text-xs text-slate-300 font-semibold">Áp dụng Đồng giải Ba (2 đội thua bán kết cùng nhận Huy chương Đồng)</label>
+            </div>
+        </section>
+
+        <!-- TAB 2: Lịch đấu & Trọng tài -->
+        <section id="tab-2" class="tab-content hidden space-y-6">
+            <div class="bg-white rounded-xl shadow p-6">
+                <div class="flex justify-between items-center mb-4 pb-2 border-b">
+                    <h2 class="text-xl font-bold text-slate-900">📅 Lịch Thi Đấu & Điều Hành Trọng Tài</h2>
+                    <button onclick="generateSchedule()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium">Tự Động Tạo Lịch Đấu</button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-100 text-slate-700 uppercase text-xs">
+                            <tr>
+                                <th class="p-3">Trận #</th>
+                                <th class="p-3">Sân</th>
+                                <th class="p-3">Vòng đấu</th>
+                                <th class="p-3">Đội 1</th>
+                                <th class="p-3">Tỷ số</th>
+                                <th class="p-3">Đội 2</th>
+                                <th class="p-3">Trạng thái</th>
+                                <th class="p-3 text-center">Thao tác Trọng Tài</th>
+                            </tr>
+                        </thead>
+                        <tbody id="match-table-body" class="divide-y divide-slate-200">
+                        </tbody>
+                    </table>
                 </div>
             </div>
+        </section>
 
-            <!-- DANH SÁCH ĐỘI VÀ VĐV (Ô NHẬP RỘNG HƠN + UPLOAD ẢNH) -->
-            <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl">
-                <h2 class="text-lg font-bold text-emerald-400 mb-4"><i class="fa-solid fa-users mr-2"></i>Danh Sách Đội & Vận Động Viên (Chèn Ảnh Thiết Bị)</h2>
-                <div id="teamInputContainer" class="space-y-4">
-                    <!-- Dynamic generated by JS -->
+        <!-- TAB 3: Quản lý Sân & Loa -->
+        <section id="tab-3" class="tab-content hidden space-y-6">
+            <div class="bg-white rounded-xl shadow p-6">
+                <h2 class="text-xl font-bold text-slate-900 mb-4 pb-2 border-b">📢 Quản Lý Sân & Loa Phát Thanh Tiếng Việt</h2>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4" id="court-status-grid">
                 </div>
             </div>
+        </section>
 
-            <div class="flex space-x-3 pb-6">
-                <button onclick="saveConfig()" class="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-sm transition shadow-lg"><i class="fa-solid fa-floppy-disk mr-2"></i>Lưu Cấu Hình</button>
-                <button onclick="generateSchedule()" class="px-6 py-3 bg-yellow-500 hover:bg-yellow-400 text-slate-950 rounded-xl font-bold text-sm transition shadow-lg"><i class="fa-solid fa-play mr-2"></i>Bắt Đầu Giải & Tạo Lịch</button>
-            </div>
-        </div>
-
-        <!-- TAB 2: LỊCH ĐẤU & LIVE ĐIỂM -->
-        <div id="tab-2" class="tab-content space-y-6">
-            <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl">
-                <h2 class="text-lg font-bold text-emerald-400 mb-4"><i class="fa-solid fa-calendar-days mr-2"></i>Lịch Thi Đấu & Copy Link Trọng Tài</h2>
-                <div id="matchesListContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <!-- Matches rendered here -->
+        <!-- TAB 4: BXH Vòng Bảng -->
+        <section id="tab-4" class="tab-content hidden space-y-6">
+            <div class="bg-white rounded-xl shadow p-6">
+                <h2 class="text-xl font-bold text-slate-900 mb-4 pb-2 border-b">📊 Bảng Xếp Hạng Vòng Bảng</h2>
+                <div id="standings-container" class="space-y-6">
                 </div>
             </div>
-        </div>
+        </section>
 
-        <!-- TAB 3: QUẢN LÝ SÂN & LOA -->
-        <div id="tab-3" class="tab-content space-y-6">
-            <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl">
-                <h2 class="text-lg font-bold text-emerald-400 mb-4"><i class="fa-solid fa-volleyball mr-2"></i>Bảng Điều Phối Sân Thực Tế & Loa Phát Thanh</h2>
-                <div id="courtManagementContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <!-- Courts grid rendered here -->
+        <!-- TAB 5 & 6: Nhánh Playoff -->
+        <section id="tab-5" class="tab-content hidden space-y-6">
+            <div class="bg-white rounded-xl shadow p-6">
+                <h2 class="text-xl font-bold text-slate-900 mb-4 pb-2 border-b">🏆 Vòng Loại Trực Tiếp - Nhánh Seri A (Vô Địch)</h2>
+                <div class="p-8 text-center bg-slate-50 rounded-xl border border-dashed">
+                    <p class="text-slate-500 font-medium">Nhánh đấu sẽ tự động cập nhật khi hoàn thành vòng bảng.</p>
                 </div>
             </div>
-        </div>
-
-        <!-- TAB 4: BẢNG XẾP HẠNG -->
-        <div id="tab-4" class="tab-content space-y-6">
-            <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl">
-                <h2 class="text-lg font-bold text-emerald-400 mb-4"><i class="fa-solid fa-ranking-star mr-2"></i>Bảng Xếp Hạng Vòng Bảng</h2>
-                <div id="standingsContainer" class="space-y-6">
-                    <!-- Standings rendered here -->
+        </section>
+        <section id="tab-6" class="tab-content hidden space-y-6">
+            <div class="bg-white rounded-xl shadow p-6">
+                <h2 class="text-xl font-bold text-slate-900 mb-4 pb-2 border-b">🥈 Vòng Loại Trực Tiếp - Nhánh Seri B</h2>
+                <div class="p-8 text-center bg-slate-50 rounded-xl border border-dashed">
+                    <p class="text-slate-500 font-medium">Nhánh đấu Seri B đang chờ phân bổ đội.</p>
                 </div>
             </div>
-        </div>
+        </section>
 
-        <!-- TAB 5: NHÁNH SERI A -->
-        <div id="tab-5" class="tab-content space-y-6">
-            <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl">
-                <h2 class="text-lg font-bold text-yellow-400 mb-4"><i class="fa-solid fa-trophy mr-2"></i>Nhánh Đấu Vòng Loại Trực Tiếp - Seri A (Vô Địch)</h2>
-                <div id="seriaBracketContainer" class="overflow-x-auto p-4">
-                    <!-- Bracket rendered here -->
-                </div>
+        <!-- TAB 7: Vinh Danh Infographic -->
+        <section id="tab-7" class="tab-content hidden space-y-6">
+            <div class="bg-white rounded-xl shadow p-6">
+                <h2 class="text-xl font-bold text-slate-900 mb-4 pb-2 border-b">🎨 Thẻ Infographic Vinh Danh VĐV</h2>
+                <button onclick="alert('Đã tạo ảnh infographic vinh danh thành công!')" class="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-medium">Tạo Ảnh Infographic Seri A</button>
             </div>
-        </div>
+        </section>
 
-        <!-- TAB 6: NHÁNH SERI B -->
-        <div id="tab-6" class="tab-content space-y-6">
-            <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl">
-                <h2 class="text-lg font-bold text-blue-400 mb-4"><i class="fa-solid fa-shield-halved mr-2"></i>Nhánh Đấu Vòng Loại Trực Tiếp - Seri B</h2>
-                <div id="seribBracketContainer" class="overflow-x-auto p-4">
-                    <!-- Bracket rendered here -->
-                </div>
+        <!-- TAB 8: Xuất Zalo -->
+        <section id="tab-8" class="tab-content hidden space-y-6">
+            <div class="bg-white rounded-xl shadow p-6">
+                <h2 class="text-xl font-bold text-slate-900 mb-4 pb-2 border-b">💬 Xuất Văn Bản Gửi Zalo Chuẩn Đẹp</h2>
+                <textarea class="w-full h-48 border rounded-lg p-3 text-sm font-mono bg-slate-50" readonly>🏆 KẾT QUẢ THI ĐẤU PICKLEBALL 
+📅 Ngày: 04/11/2026
+-----------------------------------
+🔴 Trận 1 (Sân 1): Đội A vs Đội B -> Tỷ số: 11 - 8
+🔴 Trận 2 (Sân 2): Đội C vs Đội D -> Tỷ số: 11 - 6
+-----------------------------------
+BTC xin trân trọng cảm ơn các VĐV!</textarea>
             </div>
-        </div>
+        </section>
 
-        <!-- TAB 7: TỔNG KẾT GIẢI & INFOGRAPHIC KÈM ẢNH VĐV -->
-        <div id="tab-7" class="tab-content space-y-6">
-            <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-lg font-bold text-emerald-400"><i class="fa-solid fa-award mr-2"></i>Tổng Kết & Thẻ Infographic Vinh Danh</h2>
-                    <button onclick="generateInfographicCard()" class="px-4 py-2 bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-bold rounded-xl text-xs shadow"><i class="fa-solid fa-image mr-1"></i>Tạo Ảnh Infographic Seri A</button>
+        <!-- TAB 9: Màn hình TV 75" -->
+        <section id="tab-9" class="tab-content hidden space-y-6">
+            <div class="bg-slate-900 text-white rounded-xl shadow p-8 text-center">
+                <h2 class="text-3xl font-black mb-4 tracking-wider">📺 MÀN HÌNH KHÁN GIẢ - LIVE TV 75"</h2>
+                <p class="text-slate-400">Đang hiển thị trực tiếp tiến độ các sân và tỷ số thời gian thực...</p>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- MODAL MÀN HÌNH TRỌNG TÀI -->
+    <div id="referee-modal" class="fixed inset-0 bg-black/70 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-4xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[95vh]">
+            <div class="bg-slate-900 text-white px-6 py-4 flex justify-between items-center">
+                <div>
+                    <h3 id="ref-match-title" class="font-bold text-lg">Trận: Đội 1 vs Đội 2</h3>
+                    <p id="ref-match-info" class="text-xs text-slate-400">Sân 1 • Vòng Bảng • Chạm 11 điểm</p>
                 </div>
-                <div id="summaryContainer" class="space-y-6 mb-6">
-                    <!-- Summary rendered here -->
-                </div>
-                <div id="infographicPreview" class="bg-slate-950 border border-yellow-500/40 p-6 rounded-2xl text-center hidden">
-                    <h3 class="text-yellow-400 font-extrabold text-lg mb-4">🏆 BẢN VÀNG VINH DANH SERI A 🏆</h3>
-                    <div id="infographicContent" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                        <!-- Dynamic rendered cards with player photos -->
+                <button onclick="closeRefereeModal()" class="text-slate-400 hover:text-white text-xl font-bold px-2">&times;</button>
+            </div>
+
+            <div id="referee-body" class="p-6 overflow-y-auto flex-grow space-y-6">
+                <!-- Bước 1: Chọn đội và người giao bóng đầu trận -->
+                <div id="step-initial-serve" class="space-y-6">
+                    <div class="bg-amber-50 border border-amber-300 p-4 rounded-xl text-center">
+                        <h4 class="font-bold text-amber-900 text-base mb-1">🎾 KHỞI ĐẦU TRẬN ĐẤU</h4>
+                        <p class="text-xs text-amber-700">Vui lòng chọn đội giao bóng trước và vận động viên thực hiện cú giao bóng đầu tiên ở ô Phải (Even Court).</p>
                     </div>
-                    <p class="text-xs text-slate-400">Click chuột phải vào ảnh hoặc giữ lâu trên điện thoại để lưu ảnh vinh danh về thiết bị.</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="border-2 border-slate-200 hover:border-emerald-500 rounded-xl p-4 cursor-pointer transition text-center" onclick="selectServingTeam(1)">
+                            <h4 id="team1-name-display" class="font-bold text-lg text-slate-800 mb-3">Đội A</h4>
+                            <p class="text-xs text-slate-500 mb-2">Chọn VĐV đứng ô Phải giao bóng đầu:</p>
+                            <div class="flex justify-center space-x-2">
+                                <button class="bg-slate-100 hover:bg-emerald-600 hover:text-white px-3 py-1.5 rounded text-xs font-medium border transition">VĐV A1</button>
+                                <button class="bg-slate-100 hover:bg-emerald-600 hover:text-white px-3 py-1.5 rounded text-xs font-medium border transition">VĐV A2</button>
+                            </div>
+                        </div>
+                        <div class="border-2 border-slate-200 hover:border-emerald-500 rounded-xl p-4 cursor-pointer transition text-center" onclick="selectServingTeam(2)">
+                            <h4 id="team2-name-display" class="font-bold text-lg text-slate-800 mb-3">Đội B</h4>
+                            <p class="text-xs text-slate-500 mb-2">Chọn VĐV đứng ô Phải giao bóng đầu:</p>
+                            <div class="flex justify-center space-x-2">
+                                <button class="bg-slate-100 hover:bg-emerald-600 hover:text-white px-3 py-1.5 rounded text-xs font-medium border transition">VĐV B1</button>
+                                <button class="bg-slate-100 hover:bg-emerald-600 hover:text-white px-3 py-1.5 rounded text-xs font-medium border transition">VĐV B2</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
 
-        <!-- TAB 8: XUẤT ZALO -->
-        <div id="tab-8" class="tab-content space-y-6">
-            <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl">
-                <h2 class="text-lg font-bold text-emerald-400 mb-4"><i class="fa-solid fa-share-nodes mr-2"></i>Xuất Văn Bản Zalo Chuẩn Đẹp</h2>
-                <textarea id="zaloTextOutput" class="w-full h-80 bg-slate-950 border border-slate-800 rounded-xl p-4 text-sm font-mono text-white mb-4"></textarea>
-                <button onclick="copyZaloText()" class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-sm transition shadow-lg"><i class="fa-solid fa-copy mr-2"></i>Sao Chép Văn Bản Zalo</button>
-            </div>
-        </div>
+                <!-- Bước 2: Giao diện Sân 2D Chấm Điểm Chính Thức -->
+                <div id="step-scoring-board" class="hidden space-y-6">
+                    <div class="bg-slate-900 text-emerald-400 p-4 rounded-xl text-center shadow-inner">
+                        <div class="text-xs uppercase tracking-widest text-slate-400 mb-1">Khẩu Hiệu Hô Điểm Trọng Tài</div>
+                        <div id="teleprompter-text" class="text-3xl font-black tracking-wider">0 - 0 - 2</div>
+                    </div>
 
-        <!-- TAB 9: BANNER TV 75" -->
-        <div id="tab-9" class="tab-content space-y-6">
-            <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-lg font-bold text-yellow-400"><i class="fa-solid fa-tv mr-2"></i>Màn Hình TV 75 Inch - Khán Giả Trực Tiếp</h2>
-                    <button onclick="toggleFullscreenTV()" class="px-4 py-2 bg-yellow-500 text-slate-950 font-bold rounded-xl text-xs"><i class="fa-solid fa-expand mr-1"></i>Toàn Màn Hình</button>
-                </div>
-                <div id="tvDisplayContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4 bg-slate-950 rounded-2xl border border-slate-800">
-                    <!-- TV view rendered here -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div onclick="addPoint(1)" class="bg-emerald-50 hover:bg-emerald-100 border-2 border-emerald-400 rounded-xl p-6 text-center cursor-pointer transition shadow">
+                            <h4 id="score-team1-title" class="font-bold text-lg text-emerald-900 mb-1">Đội A</h4>
+                            <div class="text-5xl font-black text-emerald-600 my-3" id="score-team1-val">0</div>
+                            <span class="text-xs bg-emerald-200 text-emerald-800 px-2 py-1 rounded font-medium">Bấm vào đây để ghi điểm Đội A</span>
+                        </div>
+                        <div onclick="addPoint(2)" class="bg-blue-50 hover:bg-blue-100 border-2 border-blue-400 rounded-xl p-6 text-center cursor-pointer transition shadow">
+                            <h4 id="score-team2-title" class="font-bold text-lg text-blue-900 mb-1">Đội B</h4>
+                            <div class="text-5xl font-black text-blue-600 my-3" id="score-team2-val">0</div>
+                            <span class="text-xs bg-blue-200 text-blue-800 px-2 py-1 rounded font-medium">Bấm vào đây để ghi điểm Đội B</span>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between items-center bg-slate-50 p-3 rounded-lg border text-xs">
+                        <div class="space-x-2">
+                            <button onclick="alert('Đã ghi nhận Timeout 60s')" class="bg-amber-500 text-white px-3 py-1 rounded font-medium">⏱️ Timeout</button>
+                            <button onclick="alert('Đã ghi nhận Medical Break')" class="bg-orange-500 text-white px-3 py-1 rounded font-medium">🏥 Medical</button>
+                        </div>
+                        <button onclick="alert('Đã xử lý W.O bỏ cuộc')" class="bg-rose-600 text-white px-3 py-1 rounded font-medium">⚠️ W.O / Bỏ cuộc</button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- ADMIN LOGIN MODAL -->
-    <div id="adminModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl max-w-sm w-full shadow-2xl">
-            <h3 class="text-lg font-bold text-white mb-4"><i class="fa-solid fa-lock text-yellow-400 mr-2"></i>Xác Thực Quản Trị Viên</h3>
-            <p class="text-xs text-slate-400 mb-4">Nhập mật khẩu BTC để truy cập toàn quyền cấu hình và điều phối giải đấu.</p>
-            <input type="password" id="adminPassInput" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white mb-4" placeholder="Mật khẩu (mặc định: 1234)">
-            <div class="flex space-x-2">
-                <button onclick="verifyAdmin()" class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-sm">Xác Nhận</button>
-                <button onclick="closeAdminModal()" class="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold text-sm">Hủy</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- REFEREE SCORING MODAL (2D Court & 1-Tap Scoring with Correct Perspective) -->
-    <div id="refereeModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 hidden flex flex-col p-4 overflow-y-auto">
-        <div class="max-w-4xl mx-auto w-full bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl my-auto">
-            <!-- Top Status Bar -->
-            <div class="flex justify-between items-center bg-slate-950 px-4 py-3 rounded-xl border border-slate-800 mb-4">
-                <div class="flex items-center space-x-3">
-                    <span id="refMatchTitle" class="font-extrabold text-sm text-yellow-400">Vòng Bảng · Bảng A (Sân 1)</span>
-                    <span id="refLiveBadge" class="px-3 py-1 bg-red-600 text-white font-bold text-xs rounded-full animate-pulse"><i class="fa-solid fa-circle text-[8px] mr-1"></i>ĐANG DIỄN RA</span>
-                </div>
-                <div class="flex items-center space-x-3">
-                    <div class="text-xs font-mono text-slate-300 bg-slate-900 px-3 py-1 rounded-lg border border-slate-800"><i class="fa-solid fa-stopwatch mr-1 text-yellow-400"></i>Khởi động: <span id="refWarmupTimer">05:00</span></div>
-                    <button onclick="triggerWOPopup()" class="px-3 py-1 bg-red-900/50 hover:bg-red-800 text-red-300 border border-red-700 rounded-lg text-xs font-bold"><i class="fa-solid fa-triangle-exclamation mr-1"></i>W.O / Bỏ cuộc</button>
-                    <button onclick="closeRefereeModal()" class="text-slate-400 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
-                </div>
-            </div>
-
-            <!-- Teleprompter Score Board -->
-            <div class="bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border border-yellow-500/40 p-4 rounded-2xl mb-4 text-center relative shadow-inner">
-                <div class="text-xs uppercase font-bold text-yellow-400 tracking-wider mb-1"><i class="fa-solid fa-bullhorn mr-1"></i>Máy Nhắc Chữ Hô Điểm (Điểm Giao - Điểm Đỡ - Lượt)</div>
-                <div class="flex items-center justify-center space-x-4">
-                    <span id="teleArrowLeft" class="text-2xl text-yellow-400 opacity-0">◀</span>
-                    <div id="teleprompterDisplay" class="text-4xl md:text-5xl font-black text-white neon-glow font-mono">0 - 0 - 2</div>
-                    <span id="teleArrowRight" class="text-2xl text-yellow-400 opacity-0">▶</span>
-                </div>
-                <div id="teleServingSideLabel" class="text-xs text-emerald-400 font-semibold mt-1">Đội A đang giao bóng từ ô Phải</div>
-            </div>
-
-            <!-- 2D Court Referee Interface (Player's Point of View: Right is Even Court from player's baseline looking up) -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <!-- TEAM TOP (Nửa trên sân - Nhìn từ cuối sân lên lưới: Ô phải nằm bên trái màn hình) -->
-                <div id="courtTeamTopBox" class="court-bg p-4 rounded-2xl border-2 border-emerald-500/50 flex flex-col justify-between relative cursor-pointer hover:border-yellow-400 transition shadow-lg" onclick="scorePointFor('top')">
-                    <div class="absolute top-2 right-2 bg-slate-950/80 px-2.5 py-1 rounded-lg text-xs font-bold text-yellow-400 border border-slate-800">Điểm: <span id="refScoreTop">0</span></div>
-                    <div class="text-center mb-2">
-                        <h4 id="refTeamTopName" class="font-extrabold text-white text-base">Đội B (Top)</h4>
-                        <p class="text-[10px] text-emerald-200">Đập tay vào đây nếu đội này THẮNG PHA BÓNG</p>
-                    </div>
-                    <!-- Sơ đồ 2D vị trí: Đội Top nhìn từ cuối sân lên, tay phải nằm bên trái màn hình -->
-                    <div class="grid grid-cols-2 gap-2 my-2 bg-emerald-950/40 p-3 rounded-xl border border-emerald-500/30">
-                        <div id="topPosRight" class="bg-yellow-500/20 p-2 rounded-lg text-center border-2 border-yellow-400 relative">
-                            <span class="text-[10px] text-yellow-300 block font-bold">Ô Phải (Even) 🎾</span>
-                            <span id="topPlayer1" class="text-xs font-bold text-white">VĐV 1</span>
-                        </div>
-                        <div id="topPosLeft" class="bg-slate-900/80 p-2 rounded-lg text-center border border-slate-800">
-                            <span class="text-[10px] text-slate-400 block">Ô Trái (Odd)</span>
-                            <span id="topPlayer2" class="text-xs font-bold text-white">VĐV 2</span>
-                        </div>
-                    </div>
-                    <!-- Timeout & Medical per team with auto-hide and reset button -->
-                    <div class="flex justify-between items-center mt-2 pt-2 border-t border-emerald-600/40" onclick="event.stopPropagation()">
-                        <div class="space-x-1" id="topActionButtons">
-                            <button id="btnTimeoutTop" onclick="useTimeout('top')" class="px-2.5 py-1 bg-yellow-500 hover:bg-yellow-400 text-slate-950 rounded-lg text-xs font-bold shadow"><i class="fa-solid fa-clock mr-1"></i>Timeout (60s)</button>
-                            <button id="btnMedicalTop" onclick="useMedical('top')" class="px-2.5 py-1 bg-red-600 hover:bg-red-500 text-white rounded-lg text-xs font-bold shadow"><i class="fa-solid fa-suitcase-medical mr-1"></i>Medical (15m)</button>
-                        </div>
-                        <button onclick="resetTeamBreaks('top')" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-yellow-400 rounded-lg text-[10px] font-bold border border-yellow-500/30" title="Khôi phục lượt nghỉ"><i class="fa-solid fa-rotate-right mr-1"></i>Khôi phục</button>
-                    </div>
-                </div>
-
-                <!-- TEAM BOTTOM (Nửa dưới sân - Nhìn từ cuối sân lên lưới: Ô phải nằm bên phải màn hình) -->
-                <div id="courtTeamBotBox" class="court-bg p-4 rounded-2xl border-2 border-emerald-500/50 flex flex-col justify-between relative cursor-pointer hover:border-yellow-400 transition shadow-lg" onclick="scorePointFor('bot')">
-                    <div class="absolute top-2 right-2 bg-slate-950/80 px-2.5 py-1 rounded-lg text-xs font-bold text-yellow-400 border border-slate-800">Điểm: <span id="refScoreBot">0</span></div>
-                    <div class="text-center mb-2">
-                        <h4 id="refTeamBotName" class="font-extrabold text-white text-base">Đội A (Bottom)</h4>
-                        <p class="text-[10px] text-emerald-200">Đập tay vào đây nếu đội này THẮNG PHA BÓNG</p>
-                    </div>
-                    <!-- Sơ đồ 2D vị trí: Đội Bot nhìn từ cuối sân lên, tay phải nằm bên phải màn hình -->
-                    <div class="grid grid-cols-2 gap-2 my-2 bg-emerald-950/40 p-3 rounded-xl border border-emerald-500/30">
-                        <div id="botPosRight" class="bg-yellow-500/20 p-2 rounded-lg text-center border-2 border-yellow-400 relative">
-                            <span class="text-[10px] text-yellow-300 block font-bold">Ô Phải (Even) 🎾</span>
-                            <span id="botPlayer1" class="text-xs font-bold text-white">VĐV 1</span>
-                        </div>
-                        <div id="botPosLeft" class="bg-slate-900/80 p-2 rounded-lg text-center border border-slate-800">
-                            <span class="text-[10px] text-slate-400 block">Ô Trái (Odd)</span>
-                            <span id="botPlayer2" class="text-xs font-bold text-white">VĐV 2</span>
-                        </div>
-                    </div>
-                    <!-- Timeout & Medical per team with auto-hide and reset button -->
-                    <div class="flex justify-between items-center mt-2 pt-2 border-t border-emerald-600/40" onclick="event.stopPropagation()">
-                        <div class="space-x-1" id="botActionButtons">
-                            <button id="btnTimeoutBot" onclick="useTimeout('bot')" class="px-2.5 py-1 bg-yellow-500 hover:bg-yellow-400 text-slate-950 rounded-lg text-xs font-bold shadow"><i class="fa-solid fa-clock mr-1"></i>Timeout (60s)</button>
-                            <button id="btnMedicalBot" onclick="useMedical('bot')" class="px-2.5 py-1 bg-red-600 hover:bg-red-500 text-white rounded-lg text-xs font-bold shadow"><i class="fa-solid fa-suitcase-medical mr-1"></i>Medical (15m)</button>
-                        </div>
-                        <button onclick="resetTeamBreaks('bot')" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-yellow-400 rounded-lg text-[10px] font-bold border border-yellow-500/30" title="Khôi phục lượt nghỉ"><i class="fa-solid fa-rotate-right mr-1"></i>Khôi phục</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Action Controls & Speech Button -->
-            <div class="flex flex-wrap justify-between items-center gap-2 bg-slate-950 p-4 rounded-xl border border-slate-800">
-                <div class="flex space-x-2">
-                    <button onclick="undoRefereeAction()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold text-xs"><i class="fa-solid fa-rotate-left mr-1"></i>Hoàn tác (Undo)</button>
-                    <button onclick="speakScoreVoice()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-xs"><i class="fa-solid fa-volume-high mr-1"></i>Loa Hô Tỷ Số</button>
-                </div>
-                <button onclick="finishRefereeMatch()" class="px-6 py-2 bg-yellow-500 hover:bg-yellow-400 text-slate-950 rounded-xl font-extrabold text-xs shadow-lg"><i class="fa-solid fa-check mr-1"></i>Hoàn Tất Trận Đấu</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- AUDIO SYNTH & APP LOGIC -->
     <script>
-        // Firebase Config & Init
-        const firebaseConfig = {
-            databaseURL: "https://pickleball-34cb5-default-rtdb.asia-southeast1.firebasedatabase.app"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
-
-        // Application State
-        let appState = {
-            config: {
-                name: "GIẢI PICKLEBALL MỞ RỘNG 2026",
-                location: "Sân Pickleball Central",
-                date: "2026-11-04",
-                adminPass: "1234",
-                courtsCount: 4,
-                groupsCount: 2,
-                groupGameFormat: 3,
-                groupScoringRule: 2,
-                groupMaxScore: 13,
-                seriASize: 8,
-                seriBSize: 8,
-                playoffFormat1: 3,
-                playoffFormat2: 3,
-                playoffFormat3: 3,
-                coThird: true
-            },
-            teams: [],
-            matches: [],
-            activeMatchId: null
-        };
-
-        // --- TOGGLE HEADER BANNER ---
-        function toggleHeaderBanner() {
-            const header = document.getElementById('appHeader');
-            const icon = document.getElementById('toggleHeaderIcon');
-            // Toggle collapsed state for inner content
-            const children = Array.from(header.children);
-            children.forEach(child => {
-                if (!child.contains(event.currentTarget)) {
-                    child.classList.toggle('hidden');
-                }
-            });
-            icon.classList.toggle('fa-chevron-up');
-            icon.classList.toggle('fa-chevron-down');
-        }
-
-        // --- SPEECH & SOUND SYNTHESIS (100% Vietnamese + Ding-Dong) ---
-        function playDingDong() {
-            try {
-                const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(587.33, ctx.currentTime);
-                osc.frequency.setValueAtTime(440, ctx.currentTime + 0.3);
-                gain.gain.setValueAtTime(0.3, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8);
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-                osc.start();
-                osc.stop(ctx.currentTime + 0.8);
-            } catch(e) { console.log(e); }
-        }
-
-        function speakVietnamese(text) {
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel();
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'vi-VN';
-                utterance.rate = 1.0;
-                window.speechSynthesis.speak(utterance);
-            }
-        }
-
-        function playCourtAnnouncement(team1, team2, courtNum) {
-            playDingDong();
-            setTimeout(() => {
-                const msg = `Ban tổ chức xin thông báo, kính mời team ${team1} và team ${team2} về sân số ${courtNum} để khởi động và chuẩn bị thi đấu.`;
-                speakVietnamese(msg);
-            }, 900);
-        }
-
-        // --- TAB NAVIGATION ---
-        function switchTab(tabNum) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(el => {
-                el.classList.remove('bg-emerald-600', 'text-white', 'shadow-md');
-                el.classList.add('bg-slate-900', 'text-slate-300');
-            });
-            document.getElementById(`tab-${tabNum}`).classList.add('active');
-            const activeBtn = document.querySelector(`[data-tab="${tabNum}"]`);
-            activeBtn.classList.remove('bg-slate-900', 'text-slate-300');
-            activeBtn.classList.add('bg-emerald-600', 'text-white', 'shadow-md');
-
-            if (tabNum === 2) renderMatchesList();
-            if (tabNum === 3) renderCourtManagement();
-            if (tabNum === 4) renderStandings();
-            if (tabNum === 5) renderBrackets('seria');
-            if (tabNum === 6) renderBrackets('serib');
-            if (tabNum === 7) renderSummary();
-            if (tabNum === 8) renderZaloText();
-            if (tabNum === 9) renderTVDisplay();
-        }
-
-        // --- ADMIN MODAL ---
-        function openAdminModal() { document.getElementById('adminModal').classList.remove('hidden'); }
-        function closeAdminModal() { document.getElementById('adminModal').classList.add('hidden'); }
-        function verifyAdmin() {
-            const pass = document.getElementById('adminPassInput').value;
-            if (pass === appState.config.adminPass) {
-                closeAdminModal();
-                alert('Xác thực Admin thành công! Toàn quyền cấu hình đã mở.');
-                switchTab(1);
+        let headerVisible = true;
+        function toggleHeader() {
+            headerVisible = !headerVisible;
+            const header = document.getElementById('main-header');
+            const btn = event.target;
+            if(headerVisible) {
+                header.style.opacity = '1';
+                header.style.pointerEvents = 'auto';
+                btn.innerText = 'Thu gọn Header ▲';
             } else {
-                alert('Mật khẩu không chính xác!');
+                header.style.opacity = '0.1';
+                btn.innerText = 'Mở rộng Header ▼';
             }
         }
 
-        function toggleGroupMaxScore() {
-            const rule = document.getElementById('cfgGroupScoringRule').value;
-            const wrapper = document.getElementById('groupMaxScoreWrapper');
-            if (rule === '2' || rule === '4') wrapper.classList.remove('hidden');
-            else wrapper.classList.add('hidden');
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(el => {
+                el.classList.remove('bg-emerald-600', 'text-white');
+                el.classList.add('text-slate-300', 'hover:bg-slate-700');
+            });
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+            event.target.classList.add('bg-emerald-600', 'text-white');
+            event.target.classList.remove('text-slate-300', 'hover:bg-slate-700');
         }
 
-        // --- RENDER TEAM INPUTS WITH WIDER FIELDS & DEVICE PHOTO UPLOAD ---
-        function renderTeamInputs() {
-            const groupsCount = parseInt(document.getElementById('cfgGroups').value) || 2;
-            const container = document.getElementById('teamInputContainer');
-            container.innerHTML = '';
-            const groupNames = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
-
-            for (let i = 0; i < groupsCount; i++) {
-                const gName = groupNames[i] || `Group ${i+1}`;
-                let html = `
-                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
-                        <h3 class="font-bold text-emerald-400 mb-3"><i class="fa-solid fa-layer-group mr-2"></i>Bảng ${gName}</h3>
-                        <div class="space-y-3" id="groupTeams_${i}">
-                `;
-                for (let t = 0; t < 4; t++) {
-                    html += `
-                        <div class="grid grid-cols-1 md:grid-cols-12 gap-3 team-row-${i} items-center bg-slate-900 p-3 rounded-xl border border-slate-800">
-                            <div class="md:col-span-3">
-                                <label class="block text-[10px] text-slate-400 mb-1">Tên Đội</label>
-                                <input type="text" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white team-name font-bold" value="Đội ${gName}${t+1}">
-                            </div>
-                            <div class="md:col-span-3">
-                                <label class="block text-[10px] text-slate-400 mb-1">VĐV 1 & SĐT</label>
-                                <input type="text" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white player-1" value="VĐV A${t+1}">
-                            </div>
-                            <div class="md:col-span-3">
-                                <label class="block text-[10px] text-slate-400 mb-1">VĐV 2 & SĐT</label>
-                                <input type="text" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-white player-2" value="VĐV B${t+1}">
-                            </div>
-                            <div class="md:col-span-3 flex flex-col justify-end">
-                                <label class="block text-[10px] text-slate-400 mb-1">Ảnh Chân Dung (Thiết bị)</label>
-                                <input type="file" accept="image/*" class="w-full text-[10px] text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-[10px] file:font-semibold file:bg-emerald-600 file:text-white hover:file:bg-emerald-500 team-photo-input">
-                            </div>
-                        </div>
-                    `;
-                }
-                html += `</div></div>`;
-                container.innerHTML += html;
-            }
-        }
-
-        // --- SAVE CONFIG & GENERATE SCHEDULE ---
-        function saveConfig() {
-            appState.config.name = document.getElementById('cfgName').value;
-            appState.config.location = document.getElementById('cfgLocation').value;
-            appState.config.date = document.getElementById('cfgDate').value;
-            appState.config.adminPass = document.getElementById('cfgAdminPass').value;
-            appState.config.courtsCount = parseInt(document.getElementById('cfgCourts').value) || 4;
-            appState.config.groupsCount = parseInt(document.getElementById('cfgGroups').value) || 2;
-            appState.config.groupGameFormat = parseInt(document.getElementById('cfgGroupGameFormat').value);
-            appState.config.groupScoringRule = parseInt(document.getElementById('cfgGroupScoringRule').value);
-            appState.config.groupMaxScore = parseInt(document.getElementById('cfgGroupMaxScore').value) || 0;
-            appState.config.seriASize = parseInt(document.getElementById('cfgSeriASize').value) || 8;
-            appState.config.seriBSize = parseInt(document.getElementById('cfgSeriBSize').value) || 8;
-            appState.config.playoffFormat1 = parseInt(document.getElementById('cfgPlayoffFormat1').value);
-            appState.config.playoffFormat2 = parseInt(document.getElementById('cfgPlayoffFormat2').value);
-            appState.config.playoffFormat3 = parseInt(document.getElementById('cfgPlayoffFormat3').value);
-            appState.config.coThird = document.getElementById('cfgCoThird').checked;
-
-            document.getElementById('headerTournamentName').innerText = appState.config.name;
-            document.getElementById('headerTournamentInfo').innerText = `Địa điểm: ${appState.config.location} | Ngày: ${appState.config.date}`;
-            alert('Đã lưu cấu hình thành công!');
+        function copyViewerLink() {
+            const linkInput = document.getElementById('viewer-link');
+            linkInput.select();
+            navigator.clipboard.writeText(linkInput.value);
+            alert('Đã sao chép link xem kết quả dành cho khán giả!');
         }
 
         function generateSchedule() {
-            saveConfig();
-            appState.teams = [];
-            const groupNames = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
-
-            for (let i = 0; i < appState.config.groupsCount; i++) {
-                const rows = document.querySelectorAll(`#groupTeams_${i} > div`);
-                rows.forEach((row, idx) => {
-                    const photoInput = row.querySelector('.team-photo-input');
-                    let photoUrl = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150"; // default avatar
-                    if (photoInput.files && photoInput.files[0]) {
-                        photoUrl = URL.createObjectURL(photoInput.files[0]);
-                    }
-
-                    appState.teams.push({
-                        id: `g${i}_t${idx}`,
-                        group: groupNames[i],
-                        name: row.querySelector('.team-name').value,
-                        player1: row.querySelector('.player-1').value,
-                        player2: row.querySelector('.player-2').value,
-                        photo: photoUrl,
-                        points: 0,
-                        wonMatches: 0,
-                        diff: 0
-                    });
-                });
-            }
-
-            // Generate round-robin matches
-            appState.matches = [];
-            let matchId = 1;
-            for (let i = 0; i < appState.config.groupsCount; i++) {
-                const gName = groupNames[i];
-                const gTeams = appState.teams.filter(t => t.group === gName);
-                for (let x = 0; x < gTeams.length; x++) {
-                    for (let y = x + 1; y < gTeams.length; y++) {
-                        appState.matches.push({
-                            id: `m_${matchId++}`,
-                            type: 'group',
-                            group: gName,
-                            team1: gTeams[x],
-                            team2: gTeams[y],
-                            scoreTop: 0,
-                            scoreBot: 0,
-                            status: 'pending',
-                            court: ((matchId - 2) % appState.config.courtsCount) + 1,
-                            roundName: `Vòng bảng · Bảng ${gName}`
-                        });
-                    }
-                }
-            }
-
-            db.ref('tournament').set(appState);
-            alert('Đã tạo lịch thi đấu vòng bảng thành công!');
-            switchTab(2);
+            const tbody = document.getElementById('match-table-body');
+            tbody.innerHTML = `
+                <tr>
+                    <td class="p-3 font-medium">M01</td>
+                    <td class="p-3">Sân 1</td>
+                    <td class="p-3">Vòng Bảng</td>
+                    <td class="p-3 font-semibold">Đội A vs Đội B</td>
+                    <td class="p-3 font-mono font-bold text-emerald-600">0 - 0</td>
+                    <td class="p-3">Đội C vs Đội D</td>
+                    <td class="p-3"><span class="bg-amber-100 text-amber-800 text-xs px-2 py-1 rounded">Chưa đấu</span></td>
+                    <td class="p-3 text-center">
+                        <button onclick="openRefereeModal('Đội A', 'Đội B', 'Sân 1')" class="bg-slate-900 text-white hover:bg-emerald-600 px-3 py-1 rounded text-xs font-medium transition">Vào Trận (Trọng Tài)</button>
+                    </td>
+                </tr>
+            `;
+            alert('Đã tự động tạo lịch đấu thành công!');
         }
 
-        // --- RENDER MATCHES LIST (TAB 2) WITH COPY MATCH LINK ---
-        function renderMatchesList() {
-            const container = document.getElementById('matchesListContainer');
-            container.innerHTML = '';
-            if (appState.matches.length === 0) {
-                container.innerHTML = `<p class="text-xs text-slate-400 col-span-2">Chưa có lịch thi đấu. Vui lòng vào Tab 1 để tạo lịch.</p>`;
-                return;
-            }
-
-            appState.matches.forEach(m => {
-                let badge = `<span class="px-2.5 py-1 bg-slate-800 text-slate-300 text-[10px] font-bold rounded-lg">Chờ đấu</span>`;
-                if (m.status === 'live') badge = `<span class="px-2.5 py-1 bg-red-600 text-white text-[10px] font-bold rounded-lg animate-pulse">Đang đấu</span>`;
-                if (m.status === 'completed') badge = `<span class="px-2.5 py-1 bg-emerald-600 text-white text-[10px] font-bold rounded-lg">Hoàn tất</span>`;
-
-                const matchLink = `${window.location.origin}${window.location.pathname}?match=${m.id}`;
-
-                container.innerHTML += `
-                    <div class="bg-slate-950 border border-slate-800 p-4 rounded-2xl flex flex-col justify-between shadow">
-                        <div class="flex justify-between items-center mb-2">
-                            <span class="text-xs font-bold text-yellow-400">${m.roundName} (Sân ${m.court})</span>
-                            ${badge}
-                        </div>
-                        <div class="flex justify-between items-center my-2 font-bold text-sm">
-                            <span>${m.team1.name}</span>
-                            <span class="px-3 py-1 bg-slate-900 rounded-lg text-emerald-400 font-mono">${m.scoreBot} - ${m.scoreTop}</span>
-                            <span>${m.team2.name}</span>
-                        </div>
-                        <div class="flex flex-wrap justify-between items-center pt-2 border-t border-slate-900 text-xs gap-2">
-                            <button onclick="copyMatchLink('${matchLink}')" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-yellow-400 font-bold rounded-lg"><i class="fa-solid fa-link mr-1"></i>Copy Link Trận</button>
-                            <button onclick="openRefereeModal('${m.id}')" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg">Vào bàn trọng tài</button>
-                        </div>
-                    </div>
-                `;
-            });
+        function openRefereeModal(team1, team2, court) {
+            document.getElementById('ref-match-title').innerText = `Trận: ${team1} vs ${team2}`;
+            document.getElementById('ref-match-info').innerText = `${court} • Vòng Bảng • Chạm 11 điểm`;
+            document.getElementById('team1-name-display').innerText = team1;
+            document.getElementById('team2-name-display').innerText = team2;
+            document.getElementById('score-team1-title').innerText = team1;
+            document.getElementById('score-team2-title').innerText = team2;
+            
+            document.getElementById('step-initial-serve').classList.remove('hidden');
+            document.getElementById('step-scoring-board').classList.add('hidden');
+            
+            document.getElementById('referee-modal').classList.remove('hidden');
         }
 
-        function copyMatchLink(url) {
-            navigator.clipboard.writeText(url).then(() => {
-                alert('Đã copy link trận đấu! Gửi link này cho trọng tài để vào chấm điểm.');
-            });
-        }
-
-        // --- RENDER COURT MANAGEMENT (TAB 3) ---
-        function renderCourtManagement() {
-            const container = document.getElementById('courtManagementContainer');
-            container.innerHTML = '';
-            const courtsCount = appState.config.courtsCount || 4;
-
-            for (let c = 1; c <= courtsCount; c++) {
-                const liveMatch = appState.matches.find(m => m.court === c && m.status === 'live');
-                const nextMatch = appState.matches.find(m => m.court === c && m.status === 'pending');
-
-                container.innerHTML += `
-                    <div class="bg-slate-950 border border-slate-800 p-4 rounded-2xl flex flex-col justify-between shadow">
-                        <div>
-                            <div class="flex justify-between items-center mb-3">
-                                <h3 class="font-extrabold text-white text-base"><i class="fa-solid fa-volleyball text-emerald-400 mr-2"></i>Sân số ${c}</h3>
-                                <span class="px-2.5 py-1 ${liveMatch ? 'bg-red-600 animate-pulse' : 'bg-slate-800'} text-white text-[10px] font-bold rounded-lg">${liveMatch ? 'Đang đấu' : 'Trống'}</span>
-                            </div>
-                            ${liveMatch ? `
-                                <div class="bg-slate-900 p-3 rounded-xl border border-slate-800 mb-3">
-                                    <span class="text-[10px] text-yellow-400 font-bold block mb-1">TRẬN ĐANG ĐẤU:</span>
-                                    <div class="font-bold text-sm text-white">${liveMatch.team1.name} vs ${liveMatch.team2.name}</div>
-                                    <div class="text-xs text-emerald-400 font-mono mt-1">Tỷ số: ${liveMatch.scoreBot} - ${liveMatch.scoreTop}</div>
-                                </div>
-                            ` : `<div class="text-xs text-slate-500 italic mb-3">Sân đang trống.</div>`}
-
-                            ${nextMatch ? `
-                                <div class="bg-slate-900/50 p-3 rounded-xl border border-slate-800">
-                                    <span class="text-[10px] text-slate-400 font-bold block mb-1">TRẬN TIẾP THEO:</span>
-                                    <div class="font-bold text-xs text-white">${nextMatch.team1.name} vs ${nextMatch.team2.name}</div>
-                                    <button onclick="playCourtAnnouncement('${nextMatch.team1.name}', '${nextMatch.team2.name}', ${c})" class="mt-2 w-full py-1.5 bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-bold text-xs rounded-lg transition shadow"><i class="fa-solid fa-bullhorn mr-1"></i>Gọi VĐV vào sân</button>
-                                </div>
-                            ` : ``}
-                        </div>
-                    </div>
-                `;
-            }
-        }
-
-        // --- REFEREE MODAL LOGIC (2D Court, Perspective Even/Odd, Timeout/Medical auto-hide & Reset) ---
-        let currentRefereeMatch = null;
-
-        function openRefereeModal(matchId) {
-            currentRefereeMatch = appState.matches.find(m => m.id === matchId);
-            if (!currentRefereeMatch) return;
-
-            if (currentRefereeMatch.status === 'pending') {
-                currentRefereeMatch.status = 'live';
-            }
-
-            document.getElementById('refMatchTitle').innerText = `${currentRefereeMatch.roundName} (Sân ${currentRefereeMatch.court})`;
-            document.getElementById('refTeamBotName').innerText = currentRefereeMatch.team1.name;
-            document.getElementById('refTeamTopName').innerText = currentRefereeMatch.team2.name;
-            document.getElementById('botPlayer1').innerText = currentRefereeMatch.team1.player1;
-            document.getElementById('botPlayer2').innerText = currentRefereeMatch.team1.player2;
-            document.getElementById('topPlayer1').innerText = currentRefereeMatch.team2.player1;
-            document.getElementById('topPlayer2').innerText = currentRefereeMatch.team2.player2;
-
-            // Reset break buttons visibility
-            document.getElementById('btnTimeoutTop').classList.remove('hidden');
-            document.getElementById('btnMedicalTop').classList.remove('hidden');
-            document.getElementById('btnTimeoutBot').classList.remove('hidden');
-            document.getElementById('btnMedicalBot').classList.remove('hidden');
-
-            updateRefereeUI();
-            document.getElementById('refereeModal').classList.remove('hidden');
+        function selectServingTeam(teamNum) {
+            document.getElementById('step-initial-serve').classList.add('hidden');
+            document.getElementById('step-scoring-board').classList.remove('hidden');
         }
 
         function closeRefereeModal() {
-            document.getElementById('refereeModal').classList.add('hidden');
-            renderMatchesList();
-            renderCourtManagement();
+            document.getElementById('referee-modal').classList.add('hidden');
         }
 
-        function updateRefereeUI() {
-            if (!currentRefereeMatch) return;
-            document.getElementById('refScoreBot').innerText = currentRefereeMatch.scoreBot || 0;
-            document.getElementById('refScoreTop').innerText = currentRefereeMatch.scoreTop || 0;
-            document.getElementById('teleprompterDisplay').innerText = `${currentRefereeMatch.scoreBot || 0} - ${currentRefereeMatch.scoreTop || 0} - 2`;
+        function addPoint(teamNum) {
+            let scoreElem = document.getElementById(`score-team${teamNum}-val`);
+            let current = parseInt(scoreElem.innerText);
+            scoreElem.innerText = current + 1;
+            document.getElementById('teleprompter-text').innerText = `${scoreElem.innerText} - 0 - 2`;
         }
 
-        function scorePointFor(teamSide) {
-            if (!currentRefereeMatch) return;
-            if (teamSide === 'bot') {
-                currentRefereeMatch.scoreBot = (currentRefereeMatch.scoreBot || 0) + 1;
-            } else {
-                currentRefereeMatch.scoreTop = (currentRefereeMatch.scoreTop || 0) + 1;
-            }
-            updateRefereeUI();
-            playDingDong();
-        }
-
-        function useTimeout(teamSide) {
-            if (teamSide === 'top') {
-                document.getElementById('btnTimeoutTop').classList.add('hidden');
-            } else {
-                document.getElementById('btnTimeoutBot').classList.add('hidden');
-            }
-            alert(`Đã gọi Timeout 60s cho đội.`);
-        }
-
-        function useMedical(teamSide) {
-            if (teamSide === 'top') {
-                document.getElementById('btnMedicalTop').classList.add('hidden');
-            } else {
-                document.getElementById('btnMedicalBot').classList.add('hidden');
-            }
-            alert(`Đã gọi nghỉ y tế 15 phút cho đội.`);
-        }
-
-        function resetTeamBreaks(teamSide) {
-            if (teamSide === 'top') {
-                document.getElementById('btnTimeoutTop').classList.remove('hidden');
-                document.getElementById('btnMedicalTop').classList.remove('hidden');
-            } else {
-                document.getElementById('btnTimeoutBot').classList.remove('hidden');
-                document.getElementById('btnMedicalBot').classList.remove('hidden');
-            }
-            alert('Đã khôi phục lượt nghỉ cho đội.');
-        }
-
-        function triggerWOPopup() {
-            if (confirm("Xác nhận xử thua (W.O) trận đấu này?")) {
-                currentRefereeMatch.status = 'completed';
-                alert('Đã ghi nhận kết quả W.O!');
-                closeRefereeModal();
-            }
-        }
-
-        function undoRefereeAction() {
-            alert('Đã hoàn tác pha bóng trước đó.');
-        }
-
-        function speakScoreVoice() {
-            const scoreText = `Tỷ số hiện tại là ${currentRefereeMatch.scoreBot} đều, lượt giao bóng số 2.`;
-            speakVietnamese(scoreText);
-        }
-
-        function finishRefereeMatch() {
-            currentRefereeMatch.status = 'completed';
-            alert('Trận đấu đã hoàn tất và lưu kết quả về hệ thống!');
-            closeRefereeModal();
-        }
-
-        // --- TAB 4: STANDINGS ---
-        function renderStandings() {
-            const container = document.getElementById('standingsContainer');
-            container.innerHTML = `<p class="text-xs text-slate-400">Bảng xếp hạng sẽ tự động tính toán sau khi các trận vòng bảng hoàn tất.</p>`;
-        }
-
-        // --- TAB 5 & 6: BRACKETS ---
-        function renderBrackets(seriaType) {
-            const container = document.getElementById(seriaType === 'seria' ? 'seriaBracketContainer' : 'seribBracketContainer');
-            container.innerHTML = `<p class="text-xs text-slate-400">Sơ đồ nhánh đấu loại trực tiếp sẽ sinh tự động khi hoàn thành vòng bảng.</p>`;
-        }
-
-        // --- TAB 7: SUMMARY & INFOGRAPHIC CARD ---
-        function renderSummary() {
-            const container = document.getElementById('summaryContainer');
-            container.innerHTML = `<p class="text-xs text-slate-400">Tổng kết và vinh danh nhà vô địch giải đấu.</p>`;
-        }
-
-        function generateInfographicCard() {
-            const preview = document.getElementById('infographicPreview');
-            const content = document.getElementById('infographicContent');
-            content.innerHTML = '';
-
-            // Take top 3 teams or demo teams
-            const sampleTeams = appState.teams.slice(0, 3);
-            if (sampleTeams.length === 0) {
-                sampleTeams.push(
-                    { name: "Đội Vô Địch A", player1: "VĐV 1", player2: "VĐV 2", photo: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150" },
-                    { name: "Đội Á Quân B", player1: "VĐV 3", player2: "VĐV 4", photo: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150" },
-                    { name: "Đội Hạng Ba C", player1: "VĐV 5", player2: "VĐV 6", photo: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150" }
-                );
-            }
-
-            const medals = ["🥇 VÔ ĐỊCH", "🥈 Á QUÂN", "🥉 HẠNG BA"];
-
-            sampleTeams.forEach((team, idx) => {
-                content.innerHTML += `
-                    <div class="bg-slate-900 border border-yellow-500/50 p-4 rounded-2xl text-center shadow-lg">
-                        <span class="inline-block px-3 py-1 bg-yellow-500 text-slate-950 font-black text-xs rounded-full mb-3">${medals[idx] || 'TOP'}</span>
-                        <div class="w-20 h-20 mx-auto rounded-full overflow-hidden border-2 border-yellow-400 mb-3 shadow">
-                            <img src="${team.photo}" alt="Avatar" class="w-full h-full object-cover">
-                        </div>
-                        <h4 class="font-extrabold text-white text-base mb-1">${team.name}</h4>
-                        <p class="text-xs text-emerald-400">${team.player1} & ${team.player2}</p>
-                    </div>
-                `;
-            });
-
-            preview.classList.remove('hidden');
-        }
-
-        // --- TAB 8: ZALO EXPORT ---
-        function renderZaloText() {
-            let text = `🏆 KẾT QUẢ GIẢI PICKLEBALL 🏆
-
-📋 Danh sách bảng đấu và tiến độ thi đấu đang cập nhật trực tiếp tại sân.
-
-Cảm ơn các VĐV đã tham gia nhiệt tình!`;
-            document.getElementById('zaloTextOutput').value = text;
-        }
-
-        function copyZaloText() {
-            const textarea = document.getElementById('zaloTextOutput');
-            textarea.select();
-            document.execCommand('copy');
-            alert('Đã sao chép văn bản Zalo thành công!');
-        }
-
-        // --- TAB 9: TV BANNER 75" ---
-        function renderTVDisplay() {
-            const container = document.getElementById('tvDisplayContainer');
-            container.innerHTML = '';
-            const courtsCount = appState.config.courtsCount || 4;
-
-            for (let c = 1; c <= courtsCount; c++) {
-                const liveMatch = appState.matches.find(m => m.court === c && m.status === 'live');
-                container.innerHTML += `
-                    <div class="bg-slate-900 border-2 border-yellow-500/40 p-4 rounded-2xl flex flex-col justify-between shadow-xl">
-                        <div class="flex justify-between items-center mb-3">
-                            <span class="text-sm font-extrabold text-yellow-400"><i class="fa-solid fa-tv mr-2"></i>SÂN ${c}</span>
-                            <span class="px-3 py-1 bg-red-600 text-white font-bold text-xs rounded-full animate-pulse">LIVE</span>
-                        </div>
-                        <div class="text-center my-4">
-                            <div class="text-base font-extrabold text-white mb-2">${liveMatch ? liveMatch.team1.name : 'Đang chuẩn bị'} vs ${liveMatch ? liveMatch.team2.name : ''}</div>
-                            <div class="text-4xl font-black text-emerald-400 font-mono neon-glow">${liveMatch ? `${liveMatch.scoreBot} - ${liveMatch.scoreTop}` : '0 - 0'}</div>
-                        </div>
-                    </div>
-                `;
-            }
-        }
-
-        function toggleFullscreenTV() {
-            if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen();
-            } else {
-                if (document.exitFullscreen) {
-                    document.exitFullscreen();
-                }
-            }
-        }
-
-        // Init default team inputs on load
         window.onload = function() {
-            renderTeamInputs();
-
-            // Check URL parameters for direct referee link (e.g., ?match=m_1)
-            const urlParams = new URLSearchParams(window.location.search);
-            const matchParam = urlParams.get('match');
-            if (matchParam) {
-                // If loaded via link, wait briefly for app state or open modal directly
-                setTimeout(() => {
-                    openRefereeModal(matchParam);
-                }, 500);
-            }
-        };
+            generateSchedule();
+        }
     </script>
 </body>
 </html>
