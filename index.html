@@ -5,8 +5,8 @@
   <title>PicklePro Tournament - Hệ Thống Quản Lý Giải Đấu Pickleball Chuyên Nghiệp</title><!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" type="text/javascript"></script>
-  <script src="https://cdn.jsdelivr.net/npm/lucide@0.577.0/dist/umd/lucide.min.js" type="text/javascript"></script>
   <script src="https://cdn.tailwindcss.com/3.4.17" type="text/javascript"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.577.0/dist/umd/lucide.min.js" type="text/javascript"></script>
   <script src="/_sdk/8fed440c6f94b5da.data_sdk.js" type="text/javascript" integrity="sha512-hrvcCCJ6nkL5gG3mdqPDbgyAf9a/fg/zBF51sU5N3rM1WmeSu8K36+6wn9TZeAZrLIonoaPBeVyFsXxXxZjq0w=="></script>
   <script src="/_sdk/336a49df5a82c939.editing_sdk.js" type="text/javascript" integrity="sha512-kW4iY7c9SZ3trXkzoTE65xax0DcYSa51ZKy2HG+dKjAzdAHckXWjbAVamldsupSSaGH2q0he8oo/VdmembI7Hw=="></script>
   <script src="/_sdk/dfeb017e55db4863.resizing_sdk.js" type="text/javascript" integrity="sha512-kbPBNN/FAxsctln1jqNvXyIdF7mIhQx0C+eGGC2IF3mNjNZZcftDT1wFztswSSk4KXRWYHIC3uA9NMfJV4IVUw=="></script>
@@ -147,6 +147,39 @@
         .court-kitchen::before { left: 8%; }
         .court-kitchen::after { right: 8%; }
         .neon-glow { text-shadow: 0 0 15px rgba(250, 204, 21, 0.7); }
+        /* Keep Seri B controls aligned with the compact Seri A configuration cards. */
+        #seriB-round16-games, #seriB-quarterfinal-games, #seriB-semifinal-games, #seriB-final-games,
+        #seriB-round16-rule, #seriB-quarterfinal-rule, #seriB-semifinal-rule, #seriB-final-rule,
+        #seriB-max-score, #thirdPlaceB-games, #thirdPlaceB-rule, #thirdPlaceB-max-score { min-width: 0; }
+        .seri-b-round-controls {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: .5rem;
+            align-items: end;
+        }
+        .seri-b-round-controls > label { min-width: 0; }
+        .seri-b-round-card {
+            border: 1px solid #1e293b;
+            background: rgba(15, 23, 42, .7);
+            border-radius: .5rem;
+            padding: .5rem;
+        }
+        .seri-b-round-card + .seri-b-round-card { margin-top: .75rem; }
+        .seri-b-round-controls {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: .5rem;
+            align-items: end;
+        }
+        .seri-b-round-controls > label { min-width: 0; }
+        @media (max-width: 420px) {
+            .seri-b-round-controls {
+                grid-template-columns: minmax(0, 1fr);
+            }
+        }
+        @media (max-width: 640px) {
+            #seriB-max-score { width: 100%; }
+        }
         #rallyHistory { height: 7.5rem; max-height: 7.5rem; overflow: hidden; }
         #rallyHistoryItems {
             height: 5.25rem;
@@ -161,6 +194,28 @@
         #rallyHistoryItems::-webkit-scrollbar { width: 7px; }
         #rallyHistoryItems::-webkit-scrollbar-track { background: #0f172a; border-radius: 999px; }
         #rallyHistoryItems::-webkit-scrollbar-thumb { background: #475569; border-radius: 999px; }
+        /* Touch-first referee layout: keep controls clear in both iPhone orientations. */
+        #refereeOverlay { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+        #refereeOverlay button { min-height: 42px; touch-action: manipulation; }
+        #refereeOverlay .court-container { max-width: min(94vw, 1120px); max-height: calc(58 * min(var(--vh, 1vh), 1vh)); }
+        #preMatchModal, #woModal, #qrModal, #adminAuthModal { padding-top: max(1rem, env(safe-area-inset-top)); padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
+        @media (orientation: portrait) and (max-width: 600px) {
+            #refereeOverlay .bg-slate-900\/90 { padding: .65rem .5rem; }
+            #refereeOverlay .bg-slate-900\/90 .px-6 { padding-left: .35rem; padding-right: .35rem; }
+            #refereeOverlay #refTeleprompter { font-size: clamp(1.55rem, 8vw, 2.5rem); padding: .35rem .6rem; }
+            #refereeOverlay .court-container { width: calc(100vw - 1rem); max-width: none; height: min(calc(52 * min(var(--vh, 1vh), 1vh)), 520px); aspect-ratio: auto; }
+            #refereeOverlay [id^="pAvatar_"] { width: clamp(3.25rem, 18vw, 5rem); height: clamp(3.25rem, 18vw, 5rem); }
+            #refereeOverlay #rallyHistory { max-height: 6.5rem; }
+            #refereeOverlay > .bg-slate-900:last-child { padding-bottom: max(.75rem, env(safe-area-inset-bottom)); }
+            #refereeOverlay > .bg-slate-900:last-child > div { flex-wrap: wrap; justify-content: center; }
+            #preMatchModal > div, #woModal > div, #qrModal > div, #adminAuthModal > div { max-height: calc(88 * min(var(--vh, 1vh), 1vh)); overflow-y: auto; }
+        }
+        @media (orientation: landscape) and (max-height: 600px) {
+            #refereeOverlay .court-container { height: min(calc(57 * min(var(--vh, 1vh), 1vh)), 430px); width: min(78vw, 900px); }
+            #refereeOverlay #rallyHistory { max-height: 4.25rem; margin-top: .35rem; }
+            #refereeOverlay > .bg-slate-900:last-child { padding-top: .35rem; padding-bottom: max(.35rem, env(safe-area-inset-bottom)); }
+            #refereeOverlay > .bg-slate-900:last-child button { min-height: 38px; }
+        }
     </style>
  </head>
  <body data-template-id="__page-root" class="h-full w-full text-slate-100 flex flex-col overflow-hidden" style="background: rgb(2, 6, 23);"><!-- Toast Notification -->
@@ -309,19 +364,29 @@
       </div>
       <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
        <div class="bg-slate-950 rounded-xl border border-amber-500/20 p-3 space-y-3">
-        <h4 data-template-id="seri-a-settings-heading" class="text-xs font-bold text-amber-400 canva-text" style="font-weight: 700; font-style: normal; font-size: 12px;">Seri A · Vô Địch</h4>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="flex items-center justify-between gap-2">
+         <h4 data-template-id="seri-a-settings-heading" class="text-xs font-bold text-amber-400 canva-text" style="font-weight: 700; font-style: normal; font-size: 12px;">Seri A · Vô Địch</h4><span class="flex gap-2"><button type="button" id="seriAEditButton" onclick="beginConfigEdit('seriA')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded-lg text-[10px] font-bold canva-button"><span data-template-id="edit-seri-a-label" class="canva-text" style="color: rgb(103, 232, 249); font-weight: 700; font-size: 10px;">Chỉnh sửa</span></button><button type="button" id="seriASaveButton" onclick="saveConfigEdit('seriA')" class="hidden px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[10px] font-bold canva-button"><span data-template-id="save-seri-a-label" class="canva-text" style="color: rgb(255, 255, 255); font-weight: 700; font-size: 10px;">Lưu</span></button><button type="button" id="seriACancelButton" onclick="cancelConfigEdit('seriA')" class="hidden px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-[10px] font-bold canva-button"><span data-template-id="cancel-seri-a-label" class="canva-text" style="color: rgb(203, 213, 225); font-weight: 700; font-size: 10px;">Hủy</span></button></span>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
          <div class="rounded-lg border border-slate-800 bg-slate-900/70 p-2">
-          <label class="text-[10px] text-slate-400"><span data-template-id="round-16-label" class="canva-text" style="font-weight: 400; font-style: normal; font-size: 14px;">Vòng 16 đội</span><select id="seriA-round16-games" onchange="updatePlayoffConfig('seriA','round16','games',this.value)" class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white"><option value="1">1 Game</option><option value="3" selected="">3 Game</option></select></label><label class="block mt-2 text-[10px] text-slate-400">Cách tính điểm<select id="seriA-round16-rule" onchange="updatePlayoffConfig('seriA','round16','rule',this.value)" class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white"><option value="11_direct">11 thắng ngay</option><option value="11_diff2" selected="">11 cách 2</option><option value="15_direct">15 thắng ngay</option><option value="15_diff2">15 cách 2</option></select></label>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+           <label class="text-[10px] text-slate-400"><span data-template-id="round-16-label" class="canva-text" style="font-weight: 400; font-style: normal; font-size: 14px;">Vòng 16 đội</span><select id="seriA-round16-games" onchange="updatePlayoffConfig('seriA','round16','games',this.value)" class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white"><option value="1">1 Game</option><option value="3" selected="">3 Game</option></select></label><label class="text-[10px] text-slate-400">Cách tính điểm<select id="seriA-round16-rule" onchange="updatePlayoffConfig('seriA','round16','rule',this.value)" class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white"><option value="11_direct">11 thắng ngay</option><option value="11_diff2" selected="">11 cách 2</option><option value="15_direct">15 thắng ngay</option><option value="15_diff2">15 cách 2</option></select></label>
+          </div>
          </div>
          <div class="rounded-lg border border-slate-800 bg-slate-900/70 p-2">
-          <label class="text-[10px] text-slate-400"><span data-template-id="quarterfinal-label" class="canva-text" style="font-weight: 400; font-style: normal; font-size: 14px;">Tứ kết</span><select id="seriA-quarterfinal-games" onchange="updatePlayoffConfig('seriA','quarterfinal','games',this.value)" class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white"><option value="1">1 Game</option><option value="3" selected="">3 Game</option></select></label><label class="block mt-2 text-[10px] text-slate-400">Cách tính điểm<select id="seriA-quarterfinal-rule" onchange="updatePlayoffConfig('seriA','quarterfinal','rule',this.value)" class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white"><option value="11_direct">11 thắng ngay</option><option value="11_diff2" selected="">11 cách 2</option><option value="15_direct">15 thắng ngay</option><option value="15_diff2">15 cách 2</option></select></label>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+           <label class="text-[10px] text-slate-400"><span data-template-id="quarterfinal-label" class="canva-text" style="font-weight: 400; font-style: normal; font-size: 14px;">Tứ kết</span><select id="seriA-quarterfinal-games" onchange="updatePlayoffConfig('seriA','quarterfinal','games',this.value)" class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white"><option value="1">1 Game</option><option value="3" selected="">3 Game</option></select></label><label class="text-[10px] text-slate-400">Cách tính điểm<select id="seriA-quarterfinal-rule" onchange="updatePlayoffConfig('seriA','quarterfinal','rule',this.value)" class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white"><option value="11_direct">11 thắng ngay</option><option value="11_diff2" selected="">11 cách 2</option><option value="15_direct">15 thắng ngay</option><option value="15_diff2">15 cách 2</option></select></label>
+          </div>
          </div>
          <div class="rounded-lg border border-slate-800 bg-slate-900/70 p-2">
-          <label class="text-[10px] text-slate-400"><span data-template-id="semifinal-label" class="canva-text" style="font-weight: 400; font-style: normal; font-size: 14px;">Bán kết</span><select id="seriA-semifinal-games" onchange="updatePlayoffConfig('seriA','semifinal','games',this.value)" class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white"><option value="1">1 Game</option><option value="3" selected="">3 Game</option></select></label><label class="block mt-2 text-[10px] text-slate-400">Cách tính điểm<select id="seriA-semifinal-rule" onchange="updatePlayoffConfig('seriA','semifinal','rule',this.value)" class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white"><option value="11_direct">11 thắng ngay</option><option value="11_diff2" selected="">11 cách 2</option><option value="15_direct">15 thắng ngay</option><option value="15_diff2">15 cách 2</option></select></label>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+           <label class="text-[10px] text-slate-400"><span data-template-id="semifinal-label" class="canva-text" style="font-weight: 400; font-style: normal; font-size: 14px;">Bán kết</span><select id="seriA-semifinal-games" onchange="updatePlayoffConfig('seriA','semifinal','games',this.value)" class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white"><option value="1">1 Game</option><option value="3" selected="">3 Game</option></select></label><label class="text-[10px] text-slate-400">Cách tính điểm<select id="seriA-semifinal-rule" onchange="updatePlayoffConfig('seriA','semifinal','rule',this.value)" class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white"><option value="11_direct">11 thắng ngay</option><option value="11_diff2" selected="">11 cách 2</option><option value="15_direct">15 thắng ngay</option><option value="15_diff2">15 cách 2</option></select></label>
+          </div>
          </div>
          <div class="rounded-lg border border-slate-800 bg-slate-900/70 p-2">
-          <label class="text-[10px] text-slate-400"><span data-template-id="final-label" class="canva-text" style="font-weight: 400; font-style: normal; font-size: 14px;">Chung kết</span><select id="seriA-final-games" onchange="updatePlayoffConfig('seriA','final','games',this.value)" class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white"><option value="1">1 Game</option><option value="3" selected="">3 Game</option></select></label><label class="block mt-2 text-[10px] text-slate-400">Cách tính điểm<select id="seriA-final-rule" onchange="updatePlayoffConfig('seriA','final','rule',this.value)" class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white"><option value="11_direct">11 thắng ngay</option><option value="11_diff2" selected="">11 cách 2</option><option value="15_direct">15 thắng ngay</option><option value="15_diff2">15 cách 2</option></select></label>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+           <label class="text-[10px] text-slate-400"><span data-template-id="final-label" class="canva-text" style="font-weight: 400; font-style: normal; font-size: 14px;">Chung kết</span><select id="seriA-final-games" onchange="updatePlayoffConfig('seriA','final','games',this.value)" class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white"><option value="1">1 Game</option><option value="3" selected="">3 Game</option></select></label><label class="text-[10px] text-slate-400">Cách tính điểm<select id="seriA-final-rule" onchange="updatePlayoffConfig('seriA','final','rule',this.value)" class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white"><option value="11_direct">11 thắng ngay</option><option value="11_diff2" selected="">11 cách 2</option><option value="15_direct">15 thắng ngay</option><option value="15_diff2">15 cách 2</option></select></label>
+          </div>
          </div>
         </div><label data-template-id="playoff-max-score-label" class="block text-[10px] text-slate-400 canva-text" style="font-weight: 600; font-style: normal; font-size: 14px;">Max Score Seri A (tùy chọn)</label> <input id="seriA-max-score" type="number" min="1" placeholder="VD: 13 hoặc 17" onchange="updatePlayoffConfig('seriA','all','maxScore',this.value)" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white text-center">
         <div class="border-t border-amber-500/20 pt-3 mt-3 space-y-3">
@@ -335,304 +400,316 @@
         </div>
        </div>
        <div class="bg-slate-950 rounded-xl border border-indigo-500/20 p-3 space-y-3">
-        <h4 data-template-id="seri-b-settings-heading" class="text-xs font-bold text-indigo-400 canva-text" style="font-weight: 700; font-style: normal; font-size: 12px;">Seri B · Tiếp Theo</h4>
-        <div class="grid grid-cols-2 gap-2">
-         <label class="text-[10px] text-slate-400"><span data-template-id="round-16-label-b" class="canva-text" style="font-weight: 400; font-style: normal; font-size: 14px;">Vòng 16 đội</span><select id="seriB-round16-games" onchange="updatePlayoffConfig('seriB','round16','games',this.value)" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white"><option value="1">1 Game</option><option value="3" selected="">3 Game</option></select></label><label class="block mt-2 text-[10px] text-slate-400">Cách tính điểm<select id="seriB-round16-rule" onchange="updatePlayoffConfig('seriB','round16','rule',this.value)" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white"><option value="11_direct">11 thắng ngay</option><option value="11_diff2" selected="">11 cách 2</option><option value="15_direct">15 thắng ngay</option><option value="15_diff2">15 cách 2</option></select></label> <label class="text-[10px] text-slate-400"><span data-template-id="quarterfinal-label-b" class="canva-text" style="font-weight: 400; font-style: normal; font-size: 14px;">Tứ kết</span><select id="seriB-quarterfinal-games" onchange="updatePlayoffConfig('seriB','quarterfinal','games',this.value)" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white"><option value="1">1 Game</option><option value="3" selected="">3 Game</option></select></label><label class="block mt-2 text-[10px] text-slate-400">Cách tính điểm<select id="seriB-quarterfinal-rule" onchange="updatePlayoffConfig('seriB','quarterfinal','rule',this.value)" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white"><option value="11_direct">11 thắng ngay</option><option value="11_diff2" selected="">11 cách 2</option><option value="15_direct">15 thắng ngay</option><option value="15_diff2">15 cách 2</option></select></label> <label class="text-[10px] text-slate-400"><span data-template-id="semifinal-label-b" class="canva-text" style="font-weight: 400; font-style: normal; font-size: 14px;">Bán kết</span><select id="seriB-semifinal-games" onchange="updatePlayoffConfig('seriB','semifinal','games',this.value)" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white"><option value="1">1 Game</option><option value="3" selected="">3 Game</option></select></label><label class="block mt-2 text-[10px] text-slate-400">Cách tính điểm<select id="seriB-semifinal-rule" onchange="updatePlayoffConfig('seriB','semifinal','rule',this.value)" class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white"><option value="11_direct">11 thắng ngay</option><option value="11_diff2" selected="">11 cách 2</option><option value="15_direct">15 thắng ngay</option><option value="15_diff2">15 cách 2</option></select></label> <label class="text-[10px] text-slate-400"><span data-template-id="final-label-b" class="canva-text" style="font-weight: 400; font-style: normal; font-size: 14px;">Chung kết</span><select id="seriB-final-games" onchange="updatePlayoffConfig('seriB','final','games',this.value)" class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white"><option value="1">1 Game</option><option value="3" selected="">3 Game</option></select></label><label class="block mt-2 text-[10px] text-slate-400">Cách tính điểm<select id="seriB-final-rule" onchange="updatePlayoffConfig('seriB','final','rule',this.value)" class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white"><option value="11_direct">11 thắng ngay</option><option value="11_diff2" selected="">11 cách 2</option><option value="15_direct">15 thắng ngay</option><option value="15_diff2">15 cách 2</option></select></label>
+        <div class="flex items-center justify-between gap-2">
+         <h4 data-template-id="seri-b-settings-heading" class="text-xs font-bold text-indigo-400 canva-text" style="font-weight: 700; font-style: normal; font-size: 12px;">Seri B · Tiếp Theo</h4><span class="flex flex-wrap justify-end gap-2"><button type="button" id="seriBSyncButton" onclick="syncSeriBFromA()" class="px-2.5 py-1 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-200 rounded-lg text-[10px] font-bold border border-indigo-500/40">Đồng nhất cấu hình Seri B giống Seri A</button><button type="button" id="seriBEditButton" onclick="beginConfigEdit('seriB')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded-lg text-[10px] font-bold canva-button"><span data-template-id="edit-seri-b-label" class="canva-text" style="color: rgb(103, 232, 249); font-weight: 700; font-size: 10px;">Chỉnh sửa</span></button><button type="button" id="seriBSaveButton" onclick="saveConfigEdit('seriB')" class="hidden px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[10px] font-bold canva-button"><span data-template-id="save-seri-b-label" class="canva-text" style="color: rgb(255, 255, 255); font-weight: 700; font-size: 10px;">Lưu</span></button><button type="button" id="seriBCancelButton" onclick="cancelConfigEdit('seriB')" class="hidden px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-[10px] font-bold canva-button"><span data-template-id="cancel-seri-b-label" class="canva-text" style="color: rgb(203, 213, 225); font-weight: 700; font-size: 10px;">Hủy</span></button></span>
         </div>
-        <div class="grid grid-cols-2 gap-2">
-        </div><label data-template-id="playoff-max-score-label-b" class="block text-[10px] text-slate-400 canva-text" style="font-weight: 600; font-style: normal; font-size: 14px;">Max Score Seri B (tùy chọn)</label> <input id="seriB-max-score" type="number" min="1" placeholder="VD: 13 hoặc 17" onchange="updatePlayoffConfig('seriB','all','maxScore',this.value)" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white text-center">
-        <div class="border-t border-indigo-500/20 pt-3 mt-3 space-y-3">
+        <div class="grid grid-cols-1 gap-3">
+         <div class="seri-b-round-card">
+          <div class="seri-b-round-controls"><label class="text-[10px] text-slate-400"><span data-template-id="round-16-label-b" class="canva-text" style="font-weight: 400; font-style: normal; font-size: 14px;">Vòng 16 đội</span><select id="seriB-round16-games" onchange="updatePlayoffConfig('seriB','round16','games',this.value)" class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white"><option value="1">1 Game</option><option value="3" selected="">3 Game</option></select></label><label class="text-[10px] text-slate-400"><span data-template-id="round-16-rule-label-b" class="canva-text" style="color: rgb(148, 163, 184); font-weight: 400; font-style: normal; font-size: 10px;">Cách tính điểm từng game</span><select id="seriB-round16-rule" onchange="updatePlayoffConfig('seriB','round16','rule',this.value)" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white"><option value="11_direct">11 thắng ngay</option><option value="11_diff2" selected="">11 cách 2</option><option value="15_direct">15 thắng ngay</option><option value="15_diff2">15 cách 2</option></select></label>
+          </div>
+         </div>
+         <div class="seri-b-round-card">
+          <div class="seri-b-round-controls"><label class="text-[10px] text-slate-400"><span data-template-id="quarterfinal-label-b" class="canva-text" style="font-weight: 400; font-style: normal; font-size: 14px;">Tứ kết</span><select id="seriB-quarterfinal-games" onchange="updatePlayoffConfig('seriB','quarterfinal','games',this.value)" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white"><option value="1">1 Game</option><option value="3" selected="">3 Game</option></select></label><label class="text-[10px] text-slate-400"><span data-template-id="quarterfinal-rule-label-b" class="canva-text" style="color: rgb(148, 163, 184); font-weight: 400; font-style: normal; font-size: 10px;">Cách tính điểm từng game</span><select id="seriB-quarterfinal-rule" onchange="updatePlayoffConfig('seriB','quarterfinal','rule',this.value)" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white"><option value="11_direct">11 thắng ngay</option><option value="11_diff2" selected="">11 cách 2</option><option value="15_direct">15 thắng ngay</option><option value="15_diff2">15 cách 2</option></select></label>
+          </div>
+         </div>
+         <div class="seri-b-round-card">
+          <div class="seri-b-round-controls"><label class="text-[10px] text-slate-400"><span data-template-id="semifinal-label-b" class="canva-text" style="font-weight: 400; font-style: normal; font-size: 14px;">Bán kết</span><select id="seriB-semifinal-games" onchange="updatePlayoffConfig('seriB','semifinal','games',this.value)" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white"><option value="1">1 Game</option><option value="3" selected="">3 Game</option></select></label><label class="text-[10px] text-slate-400"><span data-template-id="semifinal-rule-label-b" class="canva-text" style="color: rgb(148, 163, 184); font-weight: 400; font-style: normal; font-size: 10px;">Cách tính điểm từng game</span><select id="seriB-semifinal-rule" onchange="updatePlayoffConfig('seriB','semifinal','rule',this.value)" class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white"><option value="11_direct">11 thắng ngay</option><option value="11_diff2" selected="">11 cách 2</option><option value="15_direct">15 thắng ngay</option><option value="15_diff2">15 cách 2</option></select></label> <label class="text-[10px] text-slate-400"><span data-template-id="final-label-b" class="canva-text" style="font-weight: 400; font-style: normal; font-size: 14px;">Chung kết</span><select id="seriB-final-games" onchange="updatePlayoffConfig('seriB','final','games',this.value)" class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white"><option value="1">1 Game</option><option value="3" selected="">3 Game</option></select></label><label class="text-[10px] text-slate-400"><span data-template-id="final-rule-label-b" class="canva-text" style="color: rgb(148, 163, 184); font-weight: 400; font-style: normal; font-size: 10px;">Cách tính điểm từng game</span><select id="seriB-final-rule" onchange="updatePlayoffConfig('seriB','final','rule',this.value)" class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white"><option value="11_direct">11 thắng ngay</option><option value="11_diff2" selected="">11 cách 2</option><option value="15_direct">15 thắng ngay</option><option value="15_diff2">15 cách 2</option></select></label>
+          </div>
+         </div>
+         <div class="rounded-xl border border-indigo-500/20 bg-slate-900/70 p-3">
+          <label data-template-id="playoff-max-score-label-b" class="block text-[10px] text-slate-400 canva-text" style="font-weight: 600; font-style: normal; font-size: 14px;">Max Score Seri B (tùy chọn)</label><input id="seriB-max-score" type="number" min="1" placeholder="VD: 13 hoặc 17" onchange="updatePlayoffConfig('seriB','all','maxScore',this.value)" class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white text-center">
+         </div>
+         <div class="border-t border-indigo-500/20 pt-3 mt-3 space-y-3">
+          <div class="flex items-center justify-between">
+           <h5 data-template-id="third-place-seri-b-heading" class="text-xs font-bold text-indigo-400 canva-text" style="color: rgb(129, 140, 248); font-weight: 700; font-size: 12px;">Tranh hạng 3 Seri B</h5>
+          </div><label class="flex items-center gap-2 text-[10px] text-slate-300"><input id="thirdPlaceBEnabled" type="checkbox" class="accent-indigo-500"><span data-template-id="third-place-enabled-label-b" class="canva-text" style="color: rgb(203, 213, 225); font-size: 10px;">Tổ chức trận tranh hạng 3</span></label><label class="flex items-center gap-2 text-[10px] text-slate-300"><input id="thirdPlaceBShared" type="checkbox" class="accent-indigo-500"><span data-template-id="third-place-shared-label-b" class="canva-text" style="color: rgb(203, 213, 225); font-size: 10px;">Đồng hạng 3</span></label>
+          <div class="seri-b-round-controls">
+           <label class="min-w-0 text-[10px] text-slate-400"><span data-template-id="third-place-games-label-b" class="canva-text" style="color: rgb(148, 163, 184); font-size: 10px;">Số game/trận</span><select id="thirdPlaceB-games" class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white"><option value="1">1 Game</option><option value="3" selected="">3 Game</option></select></label><label class="text-[10px] text-slate-400"><span data-template-id="third-place-rule-label-b" class="canva-text" style="color: rgb(148, 163, 184); font-size: 10px;">Luật thắng</span><select id="thirdPlaceB-rule" class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white"><option value="11_direct">11 thắng ngay</option><option value="11_diff2" selected="">11 cách 2</option><option value="15_direct">15 thắng ngay</option><option value="15_diff2">15 cách 2</option></select></label>
+          </div><label class="text-[10px] text-slate-400"><span data-template-id="third-place-max-score-label-b" class="canva-text" style="color: rgb(148, 163, 184); font-size: 10px;">Điểm tối đa (bỏ trống nếu không giới hạn)</span><input id="thirdPlaceB-max-score" type="number" min="1" placeholder="VD: 13 hoặc 17" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white text-center"></label>
+         </div>
+        </div>
+        <div class="hidden bg-slate-950 rounded-xl border border-purple-500/20 p-3 space-y-3" aria-hidden="true">
          <div class="flex items-center justify-between">
-          <h5 data-template-id="third-place-seri-b-heading" class="text-xs font-bold text-indigo-400 canva-text" style="color: rgb(129, 140, 248); font-weight: 700; font-size: 12px;">Tranh hạng 3 Seri B</h5>
-         </div><label class="flex items-center gap-2 text-[10px] text-slate-300"><input id="thirdPlaceBEnabled" type="checkbox" class="accent-indigo-500"><span data-template-id="third-place-enabled-label-b" class="canva-text" style="color: rgb(203, 213, 225); font-size: 10px;">Tổ chức trận tranh hạng 3</span></label><label class="flex items-center gap-2 text-[10px] text-slate-300"><input id="thirdPlaceBShared" type="checkbox" class="accent-indigo-500"><span data-template-id="third-place-shared-label-b" class="canva-text" style="color: rgb(203, 213, 225); font-size: 10px;">Đồng hạng 3</span></label>
-         <div class="grid grid-cols-2 gap-2">
-          <label class="text-[10px] text-slate-400"><span data-template-id="third-place-games-label-b" class="canva-text" style="color: rgb(148, 163, 184); font-size: 10px;">Số game/trận</span><select id="thirdPlaceB-games" class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white"><option value="1">1 Game</option><option value="3" selected="">3 Game</option></select></label><label class="text-[10px] text-slate-400"><span data-template-id="third-place-rule-label-b" class="canva-text" style="color: rgb(148, 163, 184); font-size: 10px;">Luật thắng</span><select id="thirdPlaceB-rule" class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white"><option value="11_direct">11 thắng ngay</option><option value="11_diff2" selected="">11 cách 2</option><option value="15_direct">15 thắng ngay</option><option value="15_diff2">15 cách 2</option></select></label>
-         </div><label class="text-[10px] text-slate-400"><span data-template-id="third-place-max-score-label-b" class="canva-text" style="color: rgb(148, 163, 184); font-size: 10px;">Điểm tối đa (bỏ trống nếu không giới hạn)</span><input id="thirdPlaceB-max-score" type="number" min="1" placeholder="VD: 13 hoặc 17" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white text-center"></label>
-        </div>
-       </div>
-       <div class="hidden bg-slate-950 rounded-xl border border-purple-500/20 p-3 space-y-3" aria-hidden="true">
-        <div class="flex items-center justify-between">
-         <h4 data-template-id="third-place-settings-heading" class="text-xs font-bold text-purple-400 canva-text" style="color: rgb(192, 132, 252); font-weight: 700; font-style: normal; font-size: 12px;">Tranh hạng 3</h4><span class="flex gap-2"><button type="button" id="thirdPlaceEditButton" onclick="beginConfigEdit('thirdPlace')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded-lg text-[10px] font-bold canva-button"><span data-template-id="edit-third-place-label" class="canva-text" style="color: rgb(103, 232, 249); font-weight: 700; font-size: 10px;">Chỉnh sửa</span></button><button type="button" id="thirdPlaceSaveButton" onclick="saveConfigEdit('thirdPlace')" class="hidden px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[10px] font-bold canva-button"><span data-template-id="save-third-place-label" class="canva-text" style="color: rgb(255, 255, 255); font-weight: 700; font-size: 10px;">Lưu</span></button><button type="button" id="thirdPlaceCancelButton" onclick="cancelConfigEdit('thirdPlace')" class="hidden px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-[10px] font-bold canva-button"><span data-template-id="cancel-third-place-label" class="canva-text" style="color: rgb(203, 213, 225); font-weight: 700; font-size: 10px;">Hủy</span></button></span>
-        </div>
-        <div class="grid grid-cols-1 xl:grid-cols-2 gap-3">
-         <div class="rounded-xl border border-amber-500/20 bg-slate-900/70 p-3 space-y-3">
-          <h5 data-template-id="third-place-seri-a-heading" class="text-xs font-bold text-amber-400 canva-text" style="color: rgb(251, 191, 36); font-weight: 700; font-size: 12px;">Tranh hạng 3 Seri A</h5><label class="flex items-center gap-2 text-[10px] text-slate-300"><input id="thirdPlaceAEnabled" type="checkbox" class="accent-amber-500"><span data-template-id="third-place-enabled-label-a" class="canva-text" style="color: rgb(203, 213, 225); font-size: 10px;">Tổ chức trận tranh hạng 3</span></label><label class="flex items-center gap-2 text-[10px] text-slate-300"><input id="thirdPlaceAShared" type="checkbox" class="accent-amber-500"><span data-template-id="third-place-shared-label-a" class="canva-text" style="color: rgb(203, 213, 225); font-size: 10px;">Đồng hạng 3</span></label>
-          <div class="grid grid-cols-2 gap-2"><label class="text-[10px] text-slate-400"><span data-template-id="third-place-games-label-a" class="canva-text" style="color: rgb(148, 163, 184); font-size: 10px;">Số game/trận</span><select id="thirdPlaceA-games" class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white"><option value="1">1 Game</option><option value="3" selected="">3 Game</option></select></label><label class="text-[10px] text-slate-400"><span data-template-id="third-place-rule-label-a" class="canva-text" style="color: rgb(148, 163, 184); font-size: 10px;">Luật thắng</span><select id="thirdPlaceA-rule" class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white"><option value="11_direct">11 thắng ngay</option><option value="11_diff2" selected="">11 cách 2</option><option value="15_direct">15 thắng ngay</option><option value="15_diff2">15 cách 2</option></select></label>
-          </div><label class="text-[10px] text-slate-400"><span data-template-id="third-place-max-score-label-a" class="canva-text" style="color: rgb(148, 163, 184); font-size: 10px;">Điểm tối đa (bỏ trống nếu không giới hạn)</span><input id="thirdPlaceA-max-score" type="number" min="1" placeholder="VD: 13 hoặc 17" class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white text-center"></label>
+          <h4 data-template-id="third-place-settings-heading" class="text-xs font-bold text-purple-400 canva-text" style="color: rgb(192, 132, 252); font-weight: 700; font-style: normal; font-size: 12px;">Tranh hạng 3</h4><span class="flex gap-2"><button type="button" id="thirdPlaceEditButton" onclick="beginConfigEdit('thirdPlace')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded-lg text-[10px] font-bold canva-button"><span data-template-id="edit-third-place-label" class="canva-text" style="color: rgb(103, 232, 249); font-weight: 700; font-size: 10px;">Chỉnh sửa</span></button><button type="button" id="thirdPlaceSaveButton" onclick="saveConfigEdit('thirdPlace')" class="hidden px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[10px] font-bold canva-button"><span data-template-id="save-third-place-label" class="canva-text" style="color: rgb(255, 255, 255); font-weight: 700; font-size: 10px;">Lưu</span></button><button type="button" id="thirdPlaceCancelButton" onclick="cancelConfigEdit('thirdPlace')" class="hidden px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-[10px] font-bold canva-button"><span data-template-id="cancel-third-place-label" class="canva-text" style="color: rgb(203, 213, 225); font-weight: 700; font-size: 10px;">Hủy</span></button></span>
          </div>
-         <div class="rounded-xl border border-indigo-500/20 bg-slate-900/70 p-3 space-y-3">
-          <h5 data-template-id="third-place-seri-b-heading" class="text-xs font-bold text-indigo-400 canva-text" style="color: rgb(129, 140, 248); font-weight: 700; font-size: 12px;">Tranh hạng 3 Seri B</h5><label class="flex items-center gap-2 text-[10px] text-slate-300"><input id="thirdPlaceBEnabled" type="checkbox" class="accent-indigo-500"><span data-template-id="third-place-enabled-label-b" class="canva-text" style="color: rgb(203, 213, 225); font-size: 10px;">Tổ chức trận tranh hạng 3</span></label><label class="flex items-center gap-2 text-[10px] text-slate-300"><input id="thirdPlaceBShared" type="checkbox" class="accent-indigo-500"><span data-template-id="third-place-shared-label-b" class="canva-text" style="color: rgb(203, 213, 225); font-size: 10px;">Đồng hạng 3</span></label>
-          <div class="grid grid-cols-2 gap-2"><label class="text-[10px] text-slate-400"><span data-template-id="third-place-games-label-b" class="canva-text" style="color: rgb(148, 163, 184); font-size: 10px;">Số game/trận</span><select id="thirdPlaceB-games" class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white"><option value="1">1 Game</option><option value="3" selected="">3 Game</option></select></label><label class="text-[10px] text-slate-400"><span data-template-id="third-place-rule-label-b" class="canva-text" style="color: rgb(148, 163, 184); font-size: 10px;">Luật thắng</span><select id="thirdPlaceB-rule" class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white"><option value="11_direct">11 thắng ngay</option><option value="11_diff2" selected="">11 cách 2</option><option value="15_direct">15 thắng ngay</option><option value="15_diff2" selected="">15 cách 2</option></select></label>
-          </div><label class="text-[10px] text-slate-400"><span data-template-id="third-place-max-score-label-b" class="canva-text" style="color: rgb(148, 163, 184); font-size: 10px;">Điểm tối đa (bỏ trống nếu không giới hạn)</span><input id="thirdPlaceB-max-score" type="number" min="1" placeholder="VD: 13 hoặc 17" class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white text-center"></label>
+         <div class="grid grid-cols-1 xl:grid-cols-2 gap-3">
+          <div class="rounded-xl border border-amber-500/20 bg-slate-900/70 p-3 space-y-3">
+           <h5 data-template-id="third-place-seri-a-heading" class="text-xs font-bold text-amber-400 canva-text" style="color: rgb(251, 191, 36); font-weight: 700; font-size: 12px;">Tranh hạng 3 Seri A</h5><label class="flex items-center gap-2 text-[10px] text-slate-300"><input id="thirdPlaceAEnabled" type="checkbox" class="accent-amber-500"><span data-template-id="third-place-enabled-label-a" class="canva-text" style="color: rgb(203, 213, 225); font-size: 10px;">Tổ chức trận tranh hạng 3</span></label><label class="flex items-center gap-2 text-[10px] text-slate-300"><input id="thirdPlaceAShared" type="checkbox" class="accent-amber-500"><span data-template-id="third-place-shared-label-a" class="canva-text" style="color: rgb(203, 213, 225); font-size: 10px;">Đồng hạng 3</span></label>
+           <div class="grid grid-cols-2 gap-2"><label class="text-[10px] text-slate-400"><span data-template-id="third-place-games-label-a" class="canva-text" style="color: rgb(148, 163, 184); font-size: 10px;">Số game/trận</span><select id="thirdPlaceA-games" class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white"><option value="1">1 Game</option><option value="3" selected="">3 Game</option></select></label><label class="text-[10px] text-slate-400"><span data-template-id="third-place-rule-label-a" class="canva-text" style="color: rgb(148, 163, 184); font-size: 10px;">Luật thắng</span><select id="thirdPlaceA-rule" class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white"><option value="11_direct">11 thắng ngay</option><option value="11_diff2" selected="">11 cách 2</option><option value="15_direct">15 thắng ngay</option><option value="15_diff2">15 cách 2</option></select></label>
+           </div><label class="text-[10px] text-slate-400"><span data-template-id="third-place-max-score-label-a" class="canva-text" style="color: rgb(148, 163, 184); font-size: 10px;">Điểm tối đa (bỏ trống nếu không giới hạn)</span><input id="thirdPlaceA-max-score" type="number" min="1" placeholder="VD: 13 hoặc 17" class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white text-center"></label>
+          </div>
+          <div class="rounded-xl border border-indigo-500/20 bg-slate-900/70 p-3 space-y-3">
+           <h5 data-template-id="third-place-seri-b-heading" class="text-xs font-bold text-indigo-400 canva-text" style="color: rgb(129, 140, 248); font-weight: 700; font-size: 12px;">Tranh hạng 3 Seri B</h5><label class="flex items-center gap-2 text-[10px] text-slate-300"><input id="thirdPlaceBEnabled" type="checkbox" class="accent-indigo-500"><span data-template-id="third-place-enabled-label-b" class="canva-text" style="color: rgb(203, 213, 225); font-size: 10px;">Tổ chức trận tranh hạng 3</span></label><label class="flex items-center gap-2 text-[10px] text-slate-300"><input id="thirdPlaceBShared" type="checkbox" class="accent-indigo-500"><span data-template-id="third-place-shared-label-b" class="canva-text" style="color: rgb(203, 213, 225); font-size: 10px;">Đồng hạng 3</span></label>
+           <div class="grid grid-cols-2 gap-2"><label class="text-[10px] text-slate-400"><span data-template-id="third-place-games-label-b" class="canva-text" style="color: rgb(148, 163, 184); font-size: 10px;">Số game/trận</span><select id="thirdPlaceB-games" class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white"><option value="1">1 Game</option><option value="3" selected="">3 Game</option></select></label><label class="text-[10px] text-slate-400"><span data-template-id="third-place-rule-label-b" class="canva-text" style="color: rgb(148, 163, 184); font-size: 10px;">Luật thắng</span><select id="thirdPlaceB-rule" class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white"><option value="11_direct">11 thắng ngay</option><option value="11_diff2" selected="">11 cách 2</option><option value="15_direct">15 thắng ngay</option><option value="15_diff2" selected="">15 cách 2</option></select></label>
+           </div><label class="text-[10px] text-slate-400"><span data-template-id="third-place-max-score-label-b" class="canva-text" style="color: rgb(148, 163, 184); font-size: 10px;">Điểm tối đa (bỏ trống nếu không giới hạn)</span><input id="thirdPlaceB-max-score" type="number" min="1" placeholder="VD: 13 hoặc 17" class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white text-center"></label>
+          </div>
+         </div>
+         <p data-template-id="third-place-help" class="text-[10px] text-slate-500 canva-text" style="color: rgb(100, 116, 139); font-weight: 400; font-style: normal; font-size: 10px;">Khi bật Đồng hạng 3, không bắt buộc tổ chức trận tranh hạng 3.</p><span data-template-id="third-place-enabled-label" class="hidden canva-text" style="color: rgb(203, 213, 225); font-weight: 400; font-style: normal; font-size: 10px;">Tổ chức trận tranh hạng 3</span><span data-template-id="third-place-shared-label" class="hidden canva-text" style="color: rgb(203, 213, 225); font-weight: 400; font-style: normal; font-size: 10px;">Đồng hạng 3</span><span data-template-id="third-place-games-label" class="hidden canva-text" style="color: rgb(148, 163, 184); font-weight: 400; font-style: normal; font-size: 10px;">Số game/trận</span><span data-template-id="third-place-rule-label" class="hidden canva-text" style="color: rgb(148, 163, 184); font-weight: 400; font-style: normal; font-size: 10px;">Luật thắng</span>
+        </div>
+       </div>
+      </div>
+      <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 space-y-4 shadow-lg">
+       <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+        <h3 class="font-bold text-slate-200 text-sm"><i class="fas fa-users-viewfinder text-teal-400 mr-2"></i><span data-template-id="teams-heading" class="canva-text" style="color: rgb(226, 232, 240); font-weight: 700; font-style: normal; font-size: 14px;">3. Danh Sách Đội &amp; Tải Ảnh Chân Dung VĐV (Infographic)</span></h3><button onclick="addMockTeams()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium border border-slate-700"><i class="fas fa-magic text-purple-400 mr-1"></i> <span data-template-id="load-sample-teams-label" class="canva-text" style="font-weight: 400; font-style: normal; font-size: 12px;">Tải Đội Mẫu</span></button>
+       </div>
+       <div class="overflow-x-auto">
+        <table class="w-full text-xs text-left">
+         <thead class="bg-slate-950 text-slate-400 uppercase font-bold text-[10px] border-b border-slate-800">
+          <tr>
+           <th class="px-3 py-2.5 w-16 text-center" data-template-id="team-group-column" style="font-weight: 400; font-style: normal; font-size: 14px;">Bảng</th>
+           <th class="px-3 py-2.5" data-template-id="team-name-column" style="font-weight: 400; font-style: normal; font-size: 14px;">Tên Đội Thi Đấu</th>
+           <th class="px-3 py-2.5" data-template-id="player-one-column" style="font-weight: 400; font-style: normal; font-size: 14px;">Vận Động Viên 1</th>
+           <th class="px-3 py-2.5" data-template-id="player-two-column" style="font-weight: 400; font-style: normal; font-size: 14px;">Vận Động Viên 2</th>
+           <th class="px-3 py-2.5" data-template-id="avatar-column" style="font-weight: 400; font-style: normal; font-size: 14px;">Ảnh Chân Dung (Chọn từ thiết bị hoặc URL)</th>
+           <th class="px-3 py-2.5" data-template-id="admin-notes-column" style="font-weight: 400; font-style: normal; font-size: 14px;">Ghi Chú Admin Ẩn (SĐT)</th>
+          </tr>
+         </thead>
+         <tbody id="teamRegisterTableBody" class="divide-y divide-slate-800/50"></tbody>
+        </table>
+       </div>
+      </div>
+     </div><!-- TAB 2 -->
+     <div id="tab2" class="tab-content max-w-6xl mx-auto space-y-4">
+      <div class="flex justify-between items-center">
+       <h2 class="text-lg font-bold text-white flex items-center gap-2"><i class="fas fa-calendar-days text-blue-400"></i><span data-template-id="matches-heading" class="canva-text" style="color: rgb(255, 255, 255); font-weight: 700; font-style: normal; font-size: 18px;">Lịch Thi Đấu &amp; Live Điểm</span></h2><span data-template-id="matches-description" class="text-xs text-slate-400 canva-text" style="color: rgb(148, 163, 184); font-weight: 400; font-style: normal; font-size: 12px;">Cập nhật realtime &amp; Lấy link trọng tài riêng biệt</span>
+      </div>
+      <div id="matchesListContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+     </div><!-- TAB 3 -->
+     <div id="tab3" class="tab-content max-w-7xl mx-auto space-y-4">
+      <div class="flex justify-between items-center">
+       <h2 class="text-lg font-bold text-white flex items-center gap-2"><i class="fas fa-volleyball text-yellow-400"></i><span data-template-id="courts-heading" class="canva-text" style="color: rgb(255, 255, 255); font-weight: 700; font-style: normal; font-size: 18px;">Bảng Điều Phối Sân Thực Tế &amp; Loa Phát Thanh</span></h2><span class="text-xs text-slate-400"><span data-template-id="total-courts-prefix" class="canva-text" style="font-weight: 400; font-style: normal; font-size: 14px;">Tổng</span> <span id="courtCountDisplay" class="font-bold text-emerald-400">4</span> <span data-template-id="total-courts-suffix" class="canva-text" style="font-weight: 400; font-style: normal; font-size: 14px;">Sân</span></span>
+      </div>
+      <div id="courtsGridContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"></div>
+     </div><!-- TAB 4 -->
+     <div id="tab4" class="tab-content max-w-6xl mx-auto space-y-6">
+      <div class="flex justify-between items-center">
+       <h2 class="text-lg font-bold text-white flex items-center gap-2"><i class="fas fa-ranking-star text-cyan-400"></i><span data-template-id="standings-heading" class="canva-text" style="color: rgb(255, 255, 255); font-weight: 700; font-style: normal; font-size: 18px;">Bảng Xếp Hạng Vòng Bảng</span></h2><span data-template-id="standings-description" class="text-xs text-slate-400 canva-text" style="color: rgb(148, 163, 184); font-weight: 400; font-style: normal; font-size: 12px;">Trận Thắng ➔ Hiệu Số ➔ Đối Đầu</span>
+      </div>
+      <div id="standingsGroupsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+     </div><!-- TAB 5 -->
+     <div id="tab5" class="tab-content max-w-6xl mx-auto space-y-4">
+      <div class="flex justify-between items-center">
+       <h2 class="text-lg font-bold text-white flex items-center gap-2"><i class="fas fa-trophy text-amber-400"></i><span data-template-id="seri-a-heading" class="canva-text" style="color: rgb(255, 255, 255); font-weight: 700; font-style: normal; font-size: 18px;">Sơ Đồ Nhánh Seri A (Vô Địch)</span></h2><span data-template-id="top-seeds-label" class="text-xs text-amber-400 font-semibold bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/30 canva-tag" style="color: rgb(251, 191, 36); font-weight: 600; font-style: normal; font-size: 12px;">Top Hạt Giống</span>
+      </div>
+      <div id="bracketSeriAContainer" class="overflow-x-auto p-6 bg-slate-900 rounded-2xl border border-slate-800 min-h-[400px] flex items-center justify-center"></div>
+     </div><!-- TAB 6 -->
+     <div id="tab6" class="tab-content max-w-6xl mx-auto space-y-4">
+      <div class="flex justify-between items-center">
+       <h2 class="text-lg font-bold text-white flex items-center gap-2"><i class="fas fa-shield-halved text-indigo-400"></i><span data-template-id="seri-b-heading" class="canva-text" style="color: rgb(255, 255, 255); font-weight: 700; font-style: normal; font-size: 18px;">Sơ Đồ Nhánh Seri B</span></h2><span data-template-id="next-seeds-label" class="text-xs text-slate-400 font-semibold bg-slate-800 px-3 py-1 rounded-full border border-slate-700 canva-tag" style="color: rgb(148, 163, 184); font-weight: 600; font-style: normal; font-size: 12px;">Top Tiếp Theo</span>
+      </div>
+      <div id="bracketSeriBContainer" class="overflow-x-auto p-6 bg-slate-900 rounded-2xl border border-slate-800 min-h-[400px] flex items-center justify-center">
+       <div data-template-id="seri-b-waiting" class="text-center text-slate-500 text-xs py-12 canva-text" style="color: rgb(100, 116, 139); font-weight: 400; font-style: normal; font-size: 12px;">Nhánh đấu Seri B đang chờ vòng bảng hoàn tất.</div>
+      </div>
+     </div><!-- TAB 7 -->
+     <div id="tab7" class="tab-content max-w-4xl mx-auto space-y-6">
+      <div class="bg-slate-900 p-8 rounded-2xl border border-slate-800 text-center space-y-6 shadow-2xl">
+       <h2 data-template-id="awards-heading" class="text-2xl font-black text-amber-400 tracking-wider uppercase canva-text" style="color: rgb(251, 191, 36); font-weight: 900; font-style: normal; font-size: 24px;">🏆 BẢNG VÀNG VINH DANH GIẢI ĐẤU 🏆</h2>
+       <div id="podiumContainer" class="flex justify-center items-end gap-6 py-8">
+        <div class="flex flex-col items-center">
+         <div class="text-slate-400 text-2xl mb-1">
+          <i class="fas fa-medal"></i>
+         </div>
+         <div class="bg-slate-800 rounded-t-xl w-28 h-28 flex flex-col items-center justify-center p-2 text-center font-extrabold text-xs text-slate-300">
+          <img data-template-id="runner-up-image" class="w-10 h-10 rounded-full border mb-1 canva-image" src="https://api.dicebear.com/7.x/avataaars/svg?seed=TeamA2" alt="Ảnh đại diện đội hạng nhì"><span data-template-id="runner-up-rank" class="canva-text" style="font-weight: 800; font-style: normal; font-size: 12px;">HẠNG 2</span><span data-template-id="runner-up-name" class="text-[10px] text-white canva-text" style="color: rgb(255, 255, 255); font-weight: 400; font-style: normal; font-size: 10px;">Team D1</span>
          </div>
         </div>
-        <p data-template-id="third-place-help" class="text-[10px] text-slate-500 canva-text" style="color: rgb(100, 116, 139); font-weight: 400; font-style: normal; font-size: 10px;">Khi bật Đồng hạng 3, không bắt buộc tổ chức trận tranh hạng 3.</p><span data-template-id="third-place-enabled-label" class="hidden canva-text" style="color: rgb(203, 213, 225); font-weight: 400; font-style: normal; font-size: 10px;">Tổ chức trận tranh hạng 3</span><span data-template-id="third-place-shared-label" class="hidden canva-text" style="color: rgb(203, 213, 225); font-weight: 400; font-style: normal; font-size: 10px;">Đồng hạng 3</span><span data-template-id="third-place-games-label" class="hidden canva-text" style="color: rgb(148, 163, 184); font-weight: 400; font-style: normal; font-size: 10px;">Số game/trận</span><span data-template-id="third-place-rule-label" class="hidden canva-text" style="color: rgb(148, 163, 184); font-weight: 400; font-style: normal; font-size: 10px;">Luật thắng</span>
+        <div class="flex flex-col items-center">
+         <div class="text-amber-400 text-4xl mb-2 animate-bounce">
+          <i class="fas fa-trophy"></i>
+         </div>
+         <div class="bg-gradient-to-b from-amber-500 to-amber-700 rounded-t-xl w-36 h-36 flex flex-col items-center justify-center p-2 text-center font-black text-xs text-slate-950">
+          <img data-template-id="champion-image" class="w-12 h-12 rounded-full border-2 border-white mb-1 shadow canva-image" src="https://api.dicebear.com/7.x/avataaars/svg?seed=TeamA1" alt="Ảnh đại diện đội vô địch"><span data-template-id="champion-rank" class="canva-text" style="font-weight: 900; font-style: normal; font-size: 12px;">VÔ ĐỊCH 👑</span><span data-template-id="champion-name" class="text-xs text-white canva-text" style="color: rgb(255, 255, 255); font-weight: 400; font-style: normal; font-size: 12px;">Team A1</span>
+         </div>
+        </div>
+        <div class="flex flex-col items-center">
+         <div class="text-amber-700 text-2xl mb-1">
+          <i class="fas fa-medal"></i>
+         </div>
+         <div class="bg-slate-800 rounded-t-xl w-28 h-24 flex flex-col items-center justify-center p-2 text-center font-extrabold text-xs text-amber-500">
+          <img data-template-id="third-place-image" class="w-10 h-10 rounded-full border mb-1 canva-image" src="https://api.dicebear.com/7.x/avataaars/svg?seed=TeamA3" alt="Ảnh đại diện đội hạng ba"><span data-template-id="third-place-rank" class="canva-text" style="font-weight: 800; font-style: normal; font-size: 12px;">HẠNG 3</span><span data-template-id="third-place-name" class="text-[10px] text-white canva-text" style="color: rgb(255, 255, 255); font-weight: 400; font-style: normal; font-size: 10px;">Team C1</span>
+         </div>
+        </div>
+       </div>
+       <div class="pt-4 border-t border-slate-800 flex justify-center gap-4">
+        <button onclick="generateInfographicCard()" class="px-6 py-3 bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 text-slate-950 font-black rounded-xl text-xs shadow-xl flex items-center gap-2"><i class="fas fa-image text-sm"></i> <span data-template-id="generate-infographic-label" class="canva-text" style="font-weight: 900; font-style: normal; font-size: 12px;">🎨 Tạo &amp; Tải Ảnh Infographic Vinh Danh (Gắn Icon &amp; Ảnh VĐV)</span></button>
+       </div>
+      </div>
+      <canvas id="infographicCanvas" width="1200" height="630" class="hidden"></canvas>
+     </div><!-- TAB 8 -->
+     <div id="tab8" class="tab-content max-w-3xl mx-auto space-y-4">
+      <div class="flex justify-between items-center">
+       <h2 class="text-lg font-bold text-white flex items-center gap-2"><i class="fas fa-share-nodes text-teal-400"></i><span data-template-id="zalo-heading" class="canva-text" style="color: rgb(255, 255, 255); font-weight: 700; font-style: normal; font-size: 18px;">Xuất Văn Bản Zalo Chuẩn Đẹp</span></h2><button onclick="copyZaloText()" class="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-teal-950"><i class="fas fa-copy mr-1.5"></i> <span data-template-id="copy-zalo-label" class="canva-text" style="font-weight: 700; font-style: normal; font-size: 12px;">Copy Vô Zalo</span></button>
+      </div>
+      <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800">
+       <textarea id="zaloOutputText" readonly="" class="w-full h-80 bg-slate-950 border border-slate-800 rounded-xl p-4 text-xs font-mono text-slate-300 leading-relaxed outline-none"></textarea>
+      </div>
+     </div><!-- TAB 9 -->
+     <div id="tab9" class="tab-content max-w-[1600px] mx-auto space-y-4">
+      <div class="flex justify-between items-center bg-slate-900 px-4 py-2 rounded-xl border border-slate-800">
+       <div class="flex items-center gap-3">
+        <span class="w-3 h-3 rounded-full bg-red-500 animate-ping"></span><span data-template-id="tv-banner-heading" class="font-bold text-xs text-white canva-text" style="color: rgb(255, 255, 255); font-weight: 700; font-style: normal; font-size: 12px;">BANNER TV 75 INCH (Outdoor Broadcast View)</span>
+       </div><button onclick="toggleTVFullscreen()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded-lg border border-slate-700 font-semibold"><i class="fas fa-expand mr-1"></i> <span data-template-id="fullscreen-label" class="canva-text" style="font-weight: 600; font-style: normal; font-size: 12px;">Toàn Màn Hình</span></button>
+      </div>
+      <div id="tvMainScreen" class="bg-slate-950 border-4 border-slate-800 rounded-2xl p-6 min-h-[600px] flex flex-col justify-between relative overflow-hidden shadow-2xl">
+       <div class="flex justify-between items-center border-b border-slate-800/80 pb-4">
+        <div>
+         <h1 id="tvHeaderTourney" class="text-2xl font-black text-amber-400 uppercase tracking-widest"></h1>
+         <div class="text-xs text-emerald-400 font-semibold flex items-center gap-2 mt-1">
+          <span><i class="fas fa-location-dot mr-1"></i> <span data-template-id="tv-location" class="canva-text" style="color: rgb(52, 211, 153); font-weight: 600; font-style: normal; font-size: 12px;">CLB TRUNG TÂM</span></span> • <span id="tvHeaderClock" class="font-mono text-yellow-400 font-bold">18:40:00</span>
+         </div>
+        </div>
+        <div class="text-right">
+         <span data-template-id="tv-live-badge" class="bg-red-600 text-white font-black text-xs px-3 py-1.5 rounded-full uppercase tracking-wider animate-pulse canva-tag" style="background: rgb(220, 38, 38); color: rgb(255, 255, 255); font-weight: 900; font-style: normal; font-size: 12px;">LIVE BROADCAST</span>
+        </div>
+       </div>
+       <div id="tvBodyContent" class="my-6 grid grid-cols-2 lg:grid-cols-4 gap-4 flex-1"></div>
+       <div class="bg-slate-900 border-t-2 border-amber-500 px-4 py-2 flex items-center overflow-hidden rounded-xl">
+        <span data-template-id="breaking-news-label" class="bg-amber-500 text-slate-950 font-black text-[10px] px-2 py-1 rounded mr-3 uppercase flex-shrink-0 canva-tag" style="background: rgb(245, 158, 11); color: rgb(2, 6, 23); font-weight: 900; font-style: normal; font-size: 10px;">TIN NÓNG</span>
+        <div class="overflow-hidden whitespace-nowrap w-full">
+         <div data-template-id="tv-marquee" id="tvMarqueeText" class="inline-block text-xs font-semibold text-amber-300 animate-marquee canva-text" style="color: rgb(252, 211, 77); font-weight: 600; font-style: normal; font-size: 12px;">🚨 CHÀO MỪNG CÁC VẬN ĐỘNG VIÊN ĐẾN VỚI GIẢI ĐẤU PICKLEBALL VÔ ĐỊCH MÙA HÈ 2026 • THỂ THỨC CHUẨN QUỐC TẾ</div>
+        </div>
        </div>
       </div>
      </div>
-     <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 space-y-4 shadow-lg">
-      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
-       <h3 class="font-bold text-slate-200 text-sm"><i class="fas fa-users-viewfinder text-teal-400 mr-2"></i><span data-template-id="teams-heading" class="canva-text" style="color: rgb(226, 232, 240); font-weight: 700; font-style: normal; font-size: 14px;">3. Danh Sách Đội &amp; Tải Ảnh Chân Dung VĐV (Infographic)</span></h3><button onclick="addMockTeams()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium border border-slate-700"><i class="fas fa-magic text-purple-400 mr-1"></i> <span data-template-id="load-sample-teams-label" class="canva-text" style="font-weight: 400; font-style: normal; font-size: 12px;">Tải Đội Mẫu</span></button>
-      </div>
-      <div class="overflow-x-auto">
-       <table class="w-full text-xs text-left">
-        <thead class="bg-slate-950 text-slate-400 uppercase font-bold text-[10px] border-b border-slate-800">
-         <tr>
-          <th class="px-3 py-2.5 w-16 text-center" data-template-id="team-group-column" style="font-weight: 400; font-style: normal; font-size: 14px;">Bảng</th>
-          <th class="px-3 py-2.5" data-template-id="team-name-column" style="font-weight: 400; font-style: normal; font-size: 14px;">Tên Đội Thi Đấu</th>
-          <th class="px-3 py-2.5" data-template-id="player-one-column" style="font-weight: 400; font-style: normal; font-size: 14px;">Vận Động Viên 1</th>
-          <th class="px-3 py-2.5" data-template-id="player-two-column" style="font-weight: 400; font-style: normal; font-size: 14px;">Vận Động Viên 2</th>
-          <th class="px-3 py-2.5" data-template-id="avatar-column" style="font-weight: 400; font-style: normal; font-size: 14px;">Ảnh Chân Dung (Chọn từ thiết bị hoặc URL)</th>
-          <th class="px-3 py-2.5" data-template-id="admin-notes-column" style="font-weight: 400; font-style: normal; font-size: 14px;">Ghi Chú Admin Ẩn (SĐT)</th>
-         </tr>
-        </thead>
-        <tbody id="teamRegisterTableBody" class="divide-y divide-slate-800/50"></tbody>
-       </table>
-      </div>
-     </div>
-    </div><!-- TAB 2 -->
-    <div id="tab2" class="tab-content max-w-6xl mx-auto space-y-4">
-     <div class="flex justify-between items-center">
-      <h2 class="text-lg font-bold text-white flex items-center gap-2"><i class="fas fa-calendar-days text-blue-400"></i><span data-template-id="matches-heading" class="canva-text" style="color: rgb(255, 255, 255); font-weight: 700; font-style: normal; font-size: 18px;">Lịch Thi Đấu &amp; Live Điểm</span></h2><span data-template-id="matches-description" class="text-xs text-slate-400 canva-text" style="color: rgb(148, 163, 184); font-weight: 400; font-style: normal; font-size: 12px;">Cập nhật realtime &amp; Lấy link trọng tài riêng biệt</span>
-     </div>
-     <div id="matchesListContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
-    </div><!-- TAB 3 -->
-    <div id="tab3" class="tab-content max-w-7xl mx-auto space-y-4">
-     <div class="flex justify-between items-center">
-      <h2 class="text-lg font-bold text-white flex items-center gap-2"><i class="fas fa-volleyball text-yellow-400"></i><span data-template-id="courts-heading" class="canva-text" style="color: rgb(255, 255, 255); font-weight: 700; font-style: normal; font-size: 18px;">Bảng Điều Phối Sân Thực Tế &amp; Loa Phát Thanh</span></h2><span class="text-xs text-slate-400"><span data-template-id="total-courts-prefix" class="canva-text" style="font-weight: 400; font-style: normal; font-size: 14px;">Tổng</span> <span id="courtCountDisplay" class="font-bold text-emerald-400">4</span> <span data-template-id="total-courts-suffix" class="canva-text" style="font-weight: 400; font-style: normal; font-size: 14px;">Sân</span></span>
-     </div>
-     <div id="courtsGridContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"></div>
-    </div><!-- TAB 4 -->
-    <div id="tab4" class="tab-content max-w-6xl mx-auto space-y-6">
-     <div class="flex justify-between items-center">
-      <h2 class="text-lg font-bold text-white flex items-center gap-2"><i class="fas fa-ranking-star text-cyan-400"></i><span data-template-id="standings-heading" class="canva-text" style="color: rgb(255, 255, 255); font-weight: 700; font-style: normal; font-size: 18px;">Bảng Xếp Hạng Vòng Bảng</span></h2><span data-template-id="standings-description" class="text-xs text-slate-400 canva-text" style="color: rgb(148, 163, 184); font-weight: 400; font-style: normal; font-size: 12px;">Trận Thắng ➔ Hiệu Số ➔ Đối Đầu</span>
-     </div>
-     <div id="standingsGroupsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
-    </div><!-- TAB 5 -->
-    <div id="tab5" class="tab-content max-w-6xl mx-auto space-y-4">
-     <div class="flex justify-between items-center">
-      <h2 class="text-lg font-bold text-white flex items-center gap-2"><i class="fas fa-trophy text-amber-400"></i><span data-template-id="seri-a-heading" class="canva-text" style="color: rgb(255, 255, 255); font-weight: 700; font-style: normal; font-size: 18px;">Sơ Đồ Nhánh Seri A (Vô Địch)</span></h2><span data-template-id="top-seeds-label" class="text-xs text-amber-400 font-semibold bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/30 canva-tag" style="color: rgb(251, 191, 36); font-weight: 600; font-style: normal; font-size: 12px;">Top Hạt Giống</span>
-     </div>
-     <div id="bracketSeriAContainer" class="overflow-x-auto p-6 bg-slate-900 rounded-2xl border border-slate-800 min-h-[400px] flex items-center justify-center"></div>
-    </div><!-- TAB 6 -->
-    <div id="tab6" class="tab-content max-w-6xl mx-auto space-y-4">
-     <div class="flex justify-between items-center">
-      <h2 class="text-lg font-bold text-white flex items-center gap-2"><i class="fas fa-shield-halved text-indigo-400"></i><span data-template-id="seri-b-heading" class="canva-text" style="color: rgb(255, 255, 255); font-weight: 700; font-style: normal; font-size: 18px;">Sơ Đồ Nhánh Seri B</span></h2><span data-template-id="next-seeds-label" class="text-xs text-slate-400 font-semibold bg-slate-800 px-3 py-1 rounded-full border border-slate-700 canva-tag" style="color: rgb(148, 163, 184); font-weight: 600; font-style: normal; font-size: 12px;">Top Tiếp Theo</span>
-     </div>
-     <div id="bracketSeriBContainer" class="overflow-x-auto p-6 bg-slate-900 rounded-2xl border border-slate-800 min-h-[400px] flex items-center justify-center">
-      <div data-template-id="seri-b-waiting" class="text-center text-slate-500 text-xs py-12 canva-text" style="color: rgb(100, 116, 139); font-weight: 400; font-style: normal; font-size: 12px;">Nhánh đấu Seri B đang chờ vòng bảng hoàn tất.</div>
-     </div>
-    </div><!-- TAB 7 -->
-    <div id="tab7" class="tab-content max-w-4xl mx-auto space-y-6">
-     <div class="bg-slate-900 p-8 rounded-2xl border border-slate-800 text-center space-y-6 shadow-2xl">
-      <h2 data-template-id="awards-heading" class="text-2xl font-black text-amber-400 tracking-wider uppercase canva-text" style="color: rgb(251, 191, 36); font-weight: 900; font-style: normal; font-size: 24px;">🏆 BẢNG VÀNG VINH DANH GIẢI ĐẤU 🏆</h2>
-      <div id="podiumContainer" class="flex justify-center items-end gap-6 py-8">
-       <div class="flex flex-col items-center">
-        <div class="text-slate-400 text-2xl mb-1">
-         <i class="fas fa-medal"></i>
-        </div>
-        <div class="bg-slate-800 rounded-t-xl w-28 h-28 flex flex-col items-center justify-center p-2 text-center font-extrabold text-xs text-slate-300">
-         <img data-template-id="runner-up-image" class="w-10 h-10 rounded-full border mb-1 canva-image" src="https://api.dicebear.com/7.x/avataaars/svg?seed=TeamA2" alt="Ảnh đại diện đội hạng nhì"><span data-template-id="runner-up-rank" class="canva-text" style="font-weight: 800; font-style: normal; font-size: 12px;">HẠNG 2</span><span data-template-id="runner-up-name" class="text-[10px] text-white canva-text" style="color: rgb(255, 255, 255); font-weight: 400; font-style: normal; font-size: 10px;">Team D1</span>
-        </div>
-       </div>
-       <div class="flex flex-col items-center">
-        <div class="text-amber-400 text-4xl mb-2 animate-bounce">
-         <i class="fas fa-trophy"></i>
-        </div>
-        <div class="bg-gradient-to-b from-amber-500 to-amber-700 rounded-t-xl w-36 h-36 flex flex-col items-center justify-center p-2 text-center font-black text-xs text-slate-950">
-         <img data-template-id="champion-image" class="w-12 h-12 rounded-full border-2 border-white mb-1 shadow canva-image" src="https://api.dicebear.com/7.x/avataaars/svg?seed=TeamA1" alt="Ảnh đại diện đội vô địch"><span data-template-id="champion-rank" class="canva-text" style="font-weight: 900; font-style: normal; font-size: 12px;">VÔ ĐỊCH 👑</span><span data-template-id="champion-name" class="text-xs text-white canva-text" style="color: rgb(255, 255, 255); font-weight: 400; font-style: normal; font-size: 12px;">Team A1</span>
-        </div>
-       </div>
-       <div class="flex flex-col items-center">
-        <div class="text-amber-700 text-2xl mb-1">
-         <i class="fas fa-medal"></i>
-        </div>
-        <div class="bg-slate-800 rounded-t-xl w-28 h-24 flex flex-col items-center justify-center p-2 text-center font-extrabold text-xs text-amber-500">
-         <img data-template-id="third-place-image" class="w-10 h-10 rounded-full border mb-1 canva-image" src="https://api.dicebear.com/7.x/avataaars/svg?seed=TeamA3" alt="Ảnh đại diện đội hạng ba"><span data-template-id="third-place-rank" class="canva-text" style="font-weight: 800; font-style: normal; font-size: 12px;">HẠNG 3</span><span data-template-id="third-place-name" class="text-[10px] text-white canva-text" style="color: rgb(255, 255, 255); font-weight: 400; font-style: normal; font-size: 10px;">Team C1</span>
-        </div>
-       </div>
-      </div>
-      <div class="pt-4 border-t border-slate-800 flex justify-center gap-4">
-       <button onclick="generateInfographicCard()" class="px-6 py-3 bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 text-slate-950 font-black rounded-xl text-xs shadow-xl flex items-center gap-2"><i class="fas fa-image text-sm"></i> <span data-template-id="generate-infographic-label" class="canva-text" style="font-weight: 900; font-style: normal; font-size: 12px;">🎨 Tạo &amp; Tải Ảnh Infographic Vinh Danh (Gắn Icon &amp; Ảnh VĐV)</span></button>
-      </div>
-     </div>
-     <canvas id="infographicCanvas" width="1200" height="630" class="hidden"></canvas>
-    </div><!-- TAB 8 -->
-    <div id="tab8" class="tab-content max-w-3xl mx-auto space-y-4">
-     <div class="flex justify-between items-center">
-      <h2 class="text-lg font-bold text-white flex items-center gap-2"><i class="fas fa-share-nodes text-teal-400"></i><span data-template-id="zalo-heading" class="canva-text" style="color: rgb(255, 255, 255); font-weight: 700; font-style: normal; font-size: 18px;">Xuất Văn Bản Zalo Chuẩn Đẹp</span></h2><button onclick="copyZaloText()" class="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-teal-950"><i class="fas fa-copy mr-1.5"></i> <span data-template-id="copy-zalo-label" class="canva-text" style="font-weight: 700; font-style: normal; font-size: 12px;">Copy Vô Zalo</span></button>
-     </div>
-     <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800">
-      <textarea id="zaloOutputText" readonly="" class="w-full h-80 bg-slate-950 border border-slate-800 rounded-xl p-4 text-xs font-mono text-slate-300 leading-relaxed outline-none"></textarea>
-     </div>
-    </div><!-- TAB 9 -->
-    <div id="tab9" class="tab-content max-w-[1600px] mx-auto space-y-4">
-     <div class="flex justify-between items-center bg-slate-900 px-4 py-2 rounded-xl border border-slate-800">
+    </div><!-- REFEREE OVERLAY -->
+    <div id="refereeOverlay" class="fixed inset-0 bg-slate-950 z-[200] hidden flex-col text-white select-none">
+     <div class="bg-slate-900 px-4 py-2.5 border-b border-slate-800 flex justify-between items-center flex-shrink-0">
       <div class="flex items-center gap-3">
-       <span class="w-3 h-3 rounded-full bg-red-500 animate-ping"></span><span data-template-id="tv-banner-heading" class="font-bold text-xs text-white canva-text" style="color: rgb(255, 255, 255); font-weight: 700; font-style: normal; font-size: 12px;">BANNER TV 75 INCH (Outdoor Broadcast View)</span>
-      </div><button onclick="toggleTVFullscreen()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded-lg border border-slate-700 font-semibold"><i class="fas fa-expand mr-1"></i> <span data-template-id="fullscreen-label" class="canva-text" style="font-weight: 600; font-style: normal; font-size: 12px;">Toàn Màn Hình</span></button>
-     </div>
-     <div id="tvMainScreen" class="bg-slate-950 border-4 border-slate-800 rounded-2xl p-6 min-h-[600px] flex flex-col justify-between relative overflow-hidden shadow-2xl">
-      <div class="flex justify-between items-center border-b border-slate-800/80 pb-4">
+       <button onclick="closeRefereeScreen()" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-300"><i class="fas fa-xmark text-lg"></i></button>
        <div>
-        <h1 id="tvHeaderTourney" class="text-2xl font-black text-amber-400 uppercase tracking-widest"></h1>
-        <div class="text-xs text-emerald-400 font-semibold flex items-center gap-2 mt-1">
-         <span><i class="fas fa-location-dot mr-1"></i> <span data-template-id="tv-location" class="canva-text" style="color: rgb(52, 211, 153); font-weight: 600; font-style: normal; font-size: 12px;">CLB TRUNG TÂM</span></span> • <span id="tvHeaderClock" class="font-mono text-yellow-400 font-bold">18:40:00</span>
+        <div id="refHeaderMatchTitle" class="text-xs font-bold text-emerald-400 uppercase tracking-wide">
+         TRẬN 1 • SÂN SỐ 1 • VÒNG BẢNG
+        </div>
+        <div data-template-id="referee-rule-label" id="refHeaderRule" class="text-[10px] text-slate-400 canva-text" style="color: rgb(148, 163, 184); font-weight: 400; font-style: normal; font-size: 10px;">Luật: Chạm 11 Thắng Cách 2</div>
+       </div>
+      </div>
+      <div class="flex items-center gap-4">
+       <div class="flex items-center gap-2 bg-slate-950 px-3 py-1 rounded-xl border border-slate-800">
+        <i class="fas fa-stopwatch text-yellow-400 text-xs"></i><span id="warmupCountdownText" class="font-mono text-xs text-yellow-400 font-bold">Khởi động: 05:00</span>
+       </div>
+       <div class="flex items-center gap-2">
+        <span id="refMatchStatusDot" class="w-3 h-3 rounded-full bg-red-500 animate-pulse"></span><span data-template-id="referee-live-status" id="refMatchStatusText" class="text-xs font-bold text-red-400 uppercase canva-text" style="color: rgb(248, 113, 113); font-weight: 700; font-style: normal; font-size: 12px;">ĐANG ĐẤU</span>
+       </div>
+      </div>
+     </div>
+     <div class="bg-slate-900/90 border-b border-slate-800 px-4 py-3 flex items-center justify-between flex-shrink-0">
+      <div class="flex-1 text-center border-r border-slate-800 pr-2">
+       <div id="refT1NameDisplay" class="font-bold text-sm md:text-base text-white truncate">
+        TEAM A (BOTTOM)
+       </div>
+       <div id="refT1PlayersDisplay" class="text-[10px] text-slate-400 truncate">
+        Văn A / Thị B
+       </div>
+       <div id="refT1StaticScore" class="text-xs font-mono font-bold text-yellow-400 mt-0.5">
+        Điểm: 0
+       </div>
+      </div>
+      <div class="px-6 text-center relative">
+       <div class="text-[10px] font-bold text-slate-400 uppercase mb-0.5 flex items-center justify-center gap-2">
+        <span id="serveArrowLeft" class="text-yellow-400 text-sm hidden">◀</span><span data-template-id="teleprompter-heading" class="canva-text" style="color: rgb(148, 163, 184); font-weight: 700; font-style: normal; font-size: 10px;">TỶ SỐ HÔ TRỌNG TÀI (TELEPROMPTER)</span><span id="serveArrowRight" class="text-yellow-400 text-sm hidden">▶</span>
+       </div>
+       <div id="refTeleprompter" class="text-3xl md:text-5xl font-black font-mono text-yellow-400 tracking-wider bg-slate-950 px-6 py-1.5 rounded-xl border border-yellow-500/40 shadow-inner">
+        0 - 0 - 2
+       </div>
+       <div id="servingLabelBadge" class="text-[9px] font-black text-yellow-400 bg-yellow-500/10 px-2 py-0.5 rounded-full border border-yellow-500/30 mt-1 uppercase">
+        BÊN NÀY ĐANG GIAO BÓNG
+       </div>
+      </div>
+      <div class="flex-1 text-center border-l border-slate-800 pl-2">
+       <div id="refT2NameDisplay" class="font-bold text-sm md:text-base text-white truncate">
+        TEAM B (TOP)
+       </div>
+       <div id="refT2PlayersDisplay" class="text-[10px] text-slate-400 truncate">
+        Trần C / Hoàng D
+       </div>
+       <div id="refT2StaticScore" class="text-xs font-mono font-bold text-yellow-400 mt-0.5">
+        Điểm: 0
+       </div>
+      </div>
+     </div>
+     <div class="flex-1 p-3 flex flex-col justify-center items-center bg-slate-950 relative overflow-hidden">
+      <div id="refereeTimerOverlay" class="fixed inset-0 z-[230] hidden items-center justify-center bg-slate-950/95 backdrop-blur-sm">
+       <div class="text-center">
+        <div data-template-id="referee-timer-title" class="text-sm font-bold uppercase tracking-widest text-yellow-400 canva-text" style="color: rgb(250, 204, 21); font-weight: 700; font-style: normal; font-size: 14px;">ĐỒNG HỒ TRỌNG TÀI</div>
+        <div id="refereeTimerLarge" class="text-8xl md:text-[11rem] font-black font-mono text-white leading-none"></div>
+        <div data-template-id="referee-timer-warning" class="text-red-400 font-bold text-sm mt-4 animate-pulse canva-text" style="color: rgb(248, 113, 113); font-weight: 900; font-style: normal; font-size: 14px;">CẢNH BÁO: CÒN 15 GIÂY</div><button data-template-id="referee-timer-end-button" type="button" onclick="endRefereeTimer()" class="mt-6 px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 rounded-xl text-xs font-bold shadow-lg canva-button" style="background: rgb(30, 41, 59); color: rgb(255, 255, 255); font-weight: 700; font-style: normal; font-size: 12px;">Kết thúc sớm</button>
+       </div>
+      </div>
+      <div data-template-id="match-point-banner" id="matchPointBanner" class="absolute top-2 z-30 bg-red-600 text-white font-black text-xs md:text-sm px-6 py-1.5 rounded-full shadow-2xl animate-bounce hidden uppercase tracking-widest border border-white canva-banner" style="background: rgb(220, 38, 38); color: rgb(255, 255, 255); font-weight: 900; font-style: normal; font-size: 14px;">⚠️ MATCH POINT / ĐIỂM QUYẾT ĐỊNH ⚠️</div>
+      <div class="w-full max-w-5xl court-container rounded-2xl flex flex-col relative overflow-hidden my-auto">
+       <div class="court-net"></div>
+       <div id="courtTeam2Zone" onclick="handleRallyWinner(2)" class="flex-1 flex flex-col relative cursor-pointer hover:bg-emerald-800/30 transition-colors group p-2 order-3">
+        <div class="absolute top-2 right-2 z-10 bg-slate-900/80 px-2 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5">
+         <span id="t2ScoreStatic" class="text-yellow-400 font-mono text-sm font-black">0</span><span id="t2ServingIndicator" class="hidden text-yellow-400 text-xs"><span data-template-id="top-serving-label" class="canva-text" style="font-weight: 700; font-style: normal; font-size: 12px;">ĐANG GIAO</span> <i class="fas fa-baseball-ball animate-spin"></i></span>
+        </div><button onclick="event.stopPropagation(); manualSwapPlayers(2)" class="absolute bottom-2 right-2 z-20 bg-slate-800/90 hover:bg-slate-700 text-slate-200 px-2 py-0.5 rounded text-[10px] font-bold border border-slate-700"><span data-template-id="swap-top-label" class="canva-text" style="font-weight: 700; font-style: normal; font-size: 10px;">🔄 Đổi Vị Trí</span></button>
+        <div class="flex-1 flex flex-col items-center justify-evenly gap-2 px-6">
+         <div id="pNode_t2_even" class="player-node flex flex-col items-center justify-center w-full min-w-0 h-1/2 border-b-2 border-white/90 pb-2">
+          <div class="w-16 h-16 md:w-24 md:h-24 rounded-full bg-slate-900 border-2 border-white flex items-center justify-center font-bold text-base md:text-xl text-white relative shadow-lg" id="pAvatar_t2_even">
+           C1<span id="pBall_t2_even" class="hidden absolute -top-1 -right-1 text-yellow-400 text-sm"><i class="fas fa-baseball-ball"></i></span>
+          </div><span id="pName_t2_even" class="text-sm md:text-base font-extrabold text-white bg-slate-900/90 px-3 py-1 rounded-lg mt-2 truncate max-w-[170px] shadow-md">Trần C</span><span data-template-id="top-even-court" class="text-[9px] text-yellow-300 font-bold canva-text" style="color: rgb(253, 224, 71); font-weight: 700; font-style: normal; font-size: 9px;">Ô PHẢI (Even) 🎾</span>
+         </div>
+         <div id="pNode_t2_odd" class="player-node flex flex-col items-center justify-center w-full min-w-0 h-1/2 pt-2">
+          <div class="w-16 h-16 md:w-20 md:h-20 rounded-full bg-slate-900 border-2 border-white flex items-center justify-center font-bold text-base md:text-lg text-white relative shadow-lg" id="pAvatar_t2_odd">
+           C2<span id="pBall_t2_odd" class="hidden absolute -top-1 -right-1 text-yellow-400 text-sm"><i class="fas fa-baseball-ball"></i></span>
+          </div><span id="pName_t2_odd" class="text-xs md:text-sm font-extrabold text-white bg-slate-900/90 px-3 py-1 rounded-lg mt-2 truncate max-w-[170px] shadow-md">Hoàng D</span><span data-template-id="top-odd-court" class="text-[9px] text-slate-300 canva-text" style="color: rgb(203, 213, 225); font-weight: 400; font-style: normal; font-size: 9px;">Ô TRÁI (Odd)</span>
+         </div>
         </div>
        </div>
-       <div class="text-right">
-        <span data-template-id="tv-live-badge" class="bg-red-600 text-white font-black text-xs px-3 py-1.5 rounded-full uppercase tracking-wider animate-pulse canva-tag" style="background: rgb(220, 38, 38); color: rgb(255, 255, 255); font-weight: 900; font-style: normal; font-size: 12px;">LIVE BROADCAST</span>
+       <div class="w-[12%] h-full court-kitchen border-l-2 border-r-2 border-white flex-shrink-0 order-2"></div>
+       <div id="courtTeam1Zone" onclick="handleRallyWinner(1)" class="flex-1 flex flex-col relative cursor-pointer hover:bg-emerald-800/30 transition-colors group p-2 order-1">
+        <div class="absolute top-2 left-2 z-10 bg-slate-900/80 px-2 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5">
+         <span id="t1ServingIndicator" class="hidden text-yellow-400 text-xs"><i class="fas fa-baseball-ball animate-spin"></i> <span data-template-id="bottom-serving-label" class="canva-text" style="font-weight: 700; font-style: normal; font-size: 12px;">ĐANG GIAO</span></span><span id="t1ScoreStatic" class="text-yellow-400 font-mono text-sm font-black">0</span>
+        </div><button onclick="event.stopPropagation(); manualSwapPlayers(1)" class="absolute bottom-2 left-2 z-20 bg-slate-800/90 hover:bg-slate-700 text-slate-200 px-2 py-0.5 rounded text-[10px] font-bold border border-slate-700"><span data-template-id="swap-bottom-label" class="canva-text" style="font-weight: 700; font-style: normal; font-size: 10px;">🔄 Đổi Vị Trí</span></button>
+        <div class="flex-1 flex flex-col items-center justify-evenly gap-2 px-6">
+         <div id="pNode_t1_odd" class="player-node flex flex-col items-center justify-center w-full min-w-0 h-1/2 border-b-2 border-white/90 pb-2">
+          <div class="w-16 h-16 md:w-20 md:h-20 rounded-full bg-slate-900 border-2 border-white flex items-center justify-center font-bold text-base md:text-lg text-white relative shadow-lg" id="pAvatar_t1_odd">
+           A2<span id="pBall_t1_odd" class="hidden absolute -top-1 -right-1 text-yellow-400 text-sm"><i class="fas fa-baseball-ball"></i></span>
+          </div><span id="pName_t1_odd" class="text-xs md:text-sm font-extrabold text-white bg-slate-900/90 px-3 py-1 rounded-lg mt-2 truncate max-w-[170px] shadow-md">Lê Thị B</span><span data-template-id="bottom-odd-court" class="text-[9px] text-slate-300 canva-text" style="color: rgb(203, 213, 225); font-weight: 400; font-style: normal; font-size: 9px;">Ô TRÁI (Odd)</span>
+         </div>
+         <div id="pNode_t1_even" class="player-node flex flex-col items-center justify-center w-full min-w-0 h-1/2 pt-2">
+          <div class="w-16 h-16 md:w-20 md:h-20 rounded-full bg-slate-900 border-2 border-white flex items-center justify-center font-bold text-base md:text-lg text-white relative shadow-lg" id="pAvatar_t1_even">
+           A1<span id="pBall_t1_even" class="hidden absolute -top-1 -right-1 text-yellow-400 text-sm"><i class="fas fa-baseball-ball"></i></span>
+          </div><span id="pName_t1_even" class="text-xs md:text-sm font-extrabold text-white bg-slate-900/90 px-3 py-1 rounded-lg mt-2 truncate max-w-[170px] shadow-md">Nguyễn Văn A</span><span data-template-id="bottom-even-court" class="text-[9px] text-yellow-300 font-bold canva-text" style="color: rgb(253, 224, 71); font-weight: 700; font-style: normal; font-size: 9px;">Ô PHẢI (Even) 🎾</span>
+         </div>
+        </div>
        </div>
       </div>
-      <div id="tvBodyContent" class="my-6 grid grid-cols-2 lg:grid-cols-4 gap-4 flex-1"></div>
-      <div class="bg-slate-900 border-t-2 border-amber-500 px-4 py-2 flex items-center overflow-hidden rounded-xl">
-       <span data-template-id="breaking-news-label" class="bg-amber-500 text-slate-950 font-black text-[10px] px-2 py-1 rounded mr-3 uppercase flex-shrink-0 canva-tag" style="background: rgb(245, 158, 11); color: rgb(2, 6, 23); font-weight: 900; font-style: normal; font-size: 10px;">TIN NÓNG</span>
-       <div class="overflow-hidden whitespace-nowrap w-full">
-        <div data-template-id="tv-marquee" id="tvMarqueeText" class="inline-block text-xs font-semibold text-amber-300 animate-marquee canva-text" style="color: rgb(252, 211, 77); font-weight: 600; font-style: normal; font-size: 12px;">🚨 CHÀO MỪNG CÁC VẬN ĐỘNG VIÊN ĐẾN VỚI GIẢI ĐẤU PICKLEBALL VÔ ĐỊCH MÙA HÈ 2026 • THỂ THỨC CHUẨN QUỐC TẾ</div>
-       </div>
+      <div class="mt-3 flex flex-wrap justify-center gap-2"><button type="button" onclick="swapCourtSides()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-yellow-400 border border-yellow-500/40 rounded-xl text-xs font-bold shadow-lg flex items-center gap-2" aria-label="Đổi sân hai đội"><i class="fas fa-arrow-right-arrow-left text-sm"></i><span data-template-id="swap-court-sides-label" class="canva-text" style="color: rgb(250, 204, 21); font-weight: 700; font-style: normal; font-size: 12px;">Đổi sân hai đội</span></button><button type="button" onclick="openResetGameSetup()" class="px-4 py-2 bg-red-600/90 hover:bg-red-500 text-white border border-red-400/50 rounded-xl text-xs font-bold shadow-lg flex items-center gap-2" aria-label="Đặt lại ván"><i class="fas fa-rotate-left text-sm"></i><span data-template-id="reset-game-label" class="canva-text" style="color: rgb(255, 255, 255); font-weight: 700; font-style: normal; font-size: 12px;">Đặt lại ván</span></button>
+      </div>
+      <div id="rallyHistory" class="mt-3 max-w-4xl w-full mx-auto text-xs text-slate-300" aria-live="polite"></div>
+     </div>
+     <div class="bg-slate-900 p-3 border-t border-slate-800 flex flex-wrap gap-2 justify-between items-center flex-shrink-0">
+      <div class="flex gap-2">
+       <button onclick="undoLastRally()" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold border border-slate-700"><i class="fas fa-rotate-left text-yellow-400 mr-1"></i> <span data-template-id="undo-label" class="canva-text" style="font-weight: 700; font-style: normal; font-size: 12px;">Hoàn Tác</span></button><button onclick="startWarmupTimer()" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold border border-slate-700"><i class="fas fa-stopwatch text-blue-400 mr-1"></i> <span data-template-id="warmup-label" class="canva-text" style="font-weight: 700; font-style: normal; font-size: 12px;">Khởi Động 5m</span></button>
+      </div>
+      <div class="flex gap-2 items-center" id="breakControlsContainer">
+       <button data-template-id="timeout-one-label" id="btnTimeoutT1" onclick="triggerTimeout(1)" class="px-3 py-2 bg-amber-500/20 text-amber-400 border border-amber-500/40 rounded-xl text-xs font-bold canva-button" style="color: rgb(251, 191, 36); font-weight: 700; font-style: normal; font-size: 12px;">⏱️ Timeout Team 1</button><button data-template-id="medical-one-label" id="btnMedicalT1" onclick="triggerMedical(1)" class="px-3 py-2 bg-red-500/20 text-red-400 border border-red-500/40 rounded-xl text-xs font-bold canva-button" style="color: rgb(248, 113, 113); font-weight: 700; font-style: normal; font-size: 12px;">🚑 Y Tế Team 1</button><button data-template-id="timeout-two-label" id="btnTimeoutT2" onclick="triggerTimeout(2)" class="px-3 py-2 bg-amber-500/20 text-amber-400 border border-amber-500/40 rounded-xl text-xs font-bold canva-button" style="color: rgb(251, 191, 36); font-weight: 700; font-style: normal; font-size: 12px;">⏱️ Timeout Team 2</button><button data-template-id="medical-two-label" id="btnMedicalT2" onclick="triggerMedical(2)" class="px-3 py-2 bg-red-500/20 text-red-400 border border-red-500/40 rounded-xl text-xs font-bold canva-button" style="color: rgb(248, 113, 113); font-weight: 700; font-style: normal; font-size: 12px;">🚑 Y Tế Team 2</button><button onclick="resetBreaks()" class="px-2.5 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs" title="Khôi phục lượt nghỉ"><i class="fas fa-undo"></i></button>
+      </div>
+      <div class="flex gap-2">
+       <button onclick="openWOModal()" class="px-3.5 py-2 bg-slate-800 text-red-400 rounded-xl text-xs font-bold border border-slate-700"><i class="fas fa-triangle-exclamation mr-1"></i> <span data-template-id="wo-action-label" class="canva-text" style="font-weight: 700; font-style: normal; font-size: 12px;">W.O</span></button><button data-template-id="finish-match-label" onclick="finishRefereeMatch()" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-extrabold shadow-lg canva-button" style="background: rgb(5, 150, 105); color: rgb(255, 255, 255); font-weight: 800; font-style: normal; font-size: 12px;">KẾT THÚC TRẬN</button>
       </div>
      </div>
-    </div>
-   </div>
-  </main><!-- REFEREE OVERLAY -->
-  <div id="refereeOverlay" class="fixed inset-0 bg-slate-950 z-[200] hidden flex-col text-white select-none">
-   <div class="bg-slate-900 px-4 py-2.5 border-b border-slate-800 flex justify-between items-center flex-shrink-0">
-    <div class="flex items-center gap-3">
-     <button onclick="closeRefereeScreen()" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-300"><i class="fas fa-xmark text-lg"></i></button>
-     <div>
-      <div id="refHeaderMatchTitle" class="text-xs font-bold text-emerald-400 uppercase tracking-wide">
-       TRẬN 1 • SÂN SỐ 1 • VÒNG BẢNG
-      </div>
-      <div data-template-id="referee-rule-label" id="refHeaderRule" class="text-[10px] text-slate-400 canva-text" style="color: rgb(148, 163, 184); font-weight: 400; font-style: normal; font-size: 10px;">Luật: Chạm 11 Thắng Cách 2</div>
-     </div>
-    </div>
-    <div class="flex items-center gap-4">
-     <div class="flex items-center gap-2 bg-slate-950 px-3 py-1 rounded-xl border border-slate-800">
-      <i class="fas fa-stopwatch text-yellow-400 text-xs"></i><span id="warmupCountdownText" class="font-mono text-xs text-yellow-400 font-bold">Khởi động: 05:00</span>
-     </div>
-     <div class="flex items-center gap-2">
-      <span id="refMatchStatusDot" class="w-3 h-3 rounded-full bg-red-500 animate-pulse"></span><span data-template-id="referee-live-status" id="refMatchStatusText" class="text-xs font-bold text-red-400 uppercase canva-text" style="color: rgb(248, 113, 113); font-weight: 700; font-style: normal; font-size: 12px;">ĐANG ĐẤU</span>
-     </div>
-    </div>
-   </div>
-   <div class="bg-slate-900/90 border-b border-slate-800 px-4 py-3 flex items-center justify-between flex-shrink-0">
-    <div class="flex-1 text-center border-r border-slate-800 pr-2">
-     <div id="refT1NameDisplay" class="font-bold text-sm md:text-base text-white truncate">
-      TEAM A (BOTTOM)
-     </div>
-     <div id="refT1PlayersDisplay" class="text-[10px] text-slate-400 truncate">
-      Văn A / Thị B
-     </div>
-     <div id="refT1StaticScore" class="text-xs font-mono font-bold text-yellow-400 mt-0.5">
-      Điểm: 0
-     </div>
-    </div>
-    <div class="px-6 text-center relative">
-     <div class="text-[10px] font-bold text-slate-400 uppercase mb-0.5 flex items-center justify-center gap-2">
-      <span id="serveArrowLeft" class="text-yellow-400 text-sm hidden">◀</span><span data-template-id="teleprompter-heading" class="canva-text" style="color: rgb(148, 163, 184); font-weight: 700; font-style: normal; font-size: 10px;">TỶ SỐ HÔ TRỌNG TÀI (TELEPROMPTER)</span><span id="serveArrowRight" class="text-yellow-400 text-sm hidden">▶</span>
-     </div>
-     <div id="refTeleprompter" class="text-3xl md:text-5xl font-black font-mono text-yellow-400 tracking-wider bg-slate-950 px-6 py-1.5 rounded-xl border border-yellow-500/40 shadow-inner">
-      0 - 0 - 2
-     </div>
-     <div id="servingLabelBadge" class="text-[9px] font-black text-yellow-400 bg-yellow-500/10 px-2 py-0.5 rounded-full border border-yellow-500/30 mt-1 uppercase">
-      BÊN NÀY ĐANG GIAO BÓNG
-     </div>
-    </div>
-    <div class="flex-1 text-center border-l border-slate-800 pl-2">
-     <div id="refT2NameDisplay" class="font-bold text-sm md:text-base text-white truncate">
-      TEAM B (TOP)
-     </div>
-     <div id="refT2PlayersDisplay" class="text-[10px] text-slate-400 truncate">
-      Trần C / Hoàng D
-     </div>
-     <div id="refT2StaticScore" class="text-xs font-mono font-bold text-yellow-400 mt-0.5">
-      Điểm: 0
-     </div>
-    </div>
-   </div>
-   <div class="flex-1 p-3 flex flex-col justify-center items-center bg-slate-950 relative overflow-hidden">
-    <div id="refereeTimerOverlay" class="fixed inset-0 z-[230] hidden items-center justify-center bg-slate-950/95 backdrop-blur-sm">
-     <div class="text-center">
-      <div data-template-id="referee-timer-title" class="text-sm font-bold uppercase tracking-widest text-yellow-400 canva-text" style="color: rgb(250, 204, 21); font-weight: 700; font-style: normal; font-size: 14px;">ĐỒNG HỒ TRỌNG TÀI</div>
-      <div id="refereeTimerLarge" class="text-8xl md:text-[11rem] font-black font-mono text-white leading-none"></div>
-      <div data-template-id="referee-timer-warning" class="text-red-400 font-bold text-sm mt-4 animate-pulse canva-text" style="color: rgb(248, 113, 113); font-weight: 900; font-style: normal; font-size: 14px;">CẢNH BÁO: CÒN 15 GIÂY</div><button data-template-id="referee-timer-end-button" type="button" onclick="endRefereeTimer()" class="mt-6 px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 rounded-xl text-xs font-bold shadow-lg canva-button" style="background: rgb(30, 41, 59); color: rgb(255, 255, 255); font-weight: 700; font-style: normal; font-size: 12px;">Kết thúc sớm</button>
-     </div>
-    </div>
-    <div data-template-id="match-point-banner" id="matchPointBanner" class="absolute top-2 z-30 bg-red-600 text-white font-black text-xs md:text-sm px-6 py-1.5 rounded-full shadow-2xl animate-bounce hidden uppercase tracking-widest border border-white canva-banner" style="background: rgb(220, 38, 38); color: rgb(255, 255, 255); font-weight: 900; font-style: normal; font-size: 14px;">⚠️ MATCH POINT / ĐIỂM QUYẾT ĐỊNH ⚠️</div>
-    <div class="w-full max-w-5xl court-container rounded-2xl flex flex-col relative overflow-hidden my-auto">
-     <div class="court-net"></div>
-     <div id="courtTeam2Zone" onclick="handleRallyWinner(2)" class="flex-1 flex flex-col relative cursor-pointer hover:bg-emerald-800/30 transition-colors group p-2 order-3">
-      <div class="absolute top-2 right-2 z-10 bg-slate-900/80 px-2 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5">
-       <span id="t2ScoreStatic" class="text-yellow-400 font-mono text-sm font-black">0</span><span id="t2ServingIndicator" class="hidden text-yellow-400 text-xs"><span data-template-id="top-serving-label" class="canva-text" style="font-weight: 700; font-style: normal; font-size: 12px;">ĐANG GIAO</span> <i class="fas fa-baseball-ball animate-spin"></i></span>
-      </div><button onclick="event.stopPropagation(); manualSwapPlayers(2)" class="absolute bottom-2 right-2 z-20 bg-slate-800/90 hover:bg-slate-700 text-slate-200 px-2 py-0.5 rounded text-[10px] font-bold border border-slate-700"><span data-template-id="swap-top-label" class="canva-text" style="font-weight: 700; font-style: normal; font-size: 10px;">🔄 Đổi Vị Trí</span></button>
-      <div class="flex-1 flex flex-col items-center justify-evenly gap-2 px-6">
-       <div id="pNode_t2_even" class="player-node flex flex-col items-center justify-center w-full min-w-0 h-1/2 border-b-2 border-white/90 pb-2">
-        <div class="w-16 h-16 md:w-24 md:h-24 rounded-full bg-slate-900 border-2 border-white flex items-center justify-center font-bold text-base md:text-xl text-white relative shadow-lg" id="pAvatar_t2_even">
-         C1<span id="pBall_t2_even" class="hidden absolute -top-1 -right-1 text-yellow-400 text-sm"><i class="fas fa-baseball-ball"></i></span>
-        </div><span id="pName_t2_even" class="text-sm md:text-base font-extrabold text-white bg-slate-900/90 px-3 py-1 rounded-lg mt-2 truncate max-w-[170px] shadow-md">Trần C</span><span data-template-id="top-even-court" class="text-[9px] text-yellow-300 font-bold canva-text" style="color: rgb(253, 224, 71); font-weight: 700; font-style: normal; font-size: 9px;">Ô PHẢI (Even) 🎾</span>
-       </div>
-       <div id="pNode_t2_odd" class="player-node flex flex-col items-center justify-center w-full min-w-0 h-1/2 pt-2">
-        <div class="w-16 h-16 md:w-20 md:h-20 rounded-full bg-slate-900 border-2 border-white flex items-center justify-center font-bold text-base md:text-lg text-white relative shadow-lg" id="pAvatar_t2_odd">
-         C2<span id="pBall_t2_odd" class="hidden absolute -top-1 -right-1 text-yellow-400 text-sm"><i class="fas fa-baseball-ball"></i></span>
-        </div><span id="pName_t2_odd" class="text-xs md:text-sm font-extrabold text-white bg-slate-900/90 px-3 py-1 rounded-lg mt-2 truncate max-w-[170px] shadow-md">Hoàng D</span><span data-template-id="top-odd-court" class="text-[9px] text-slate-300 canva-text" style="color: rgb(203, 213, 225); font-weight: 400; font-style: normal; font-size: 9px;">Ô TRÁI (Odd)</span>
+    </div><!-- Pre-Match Setup Modal -->
+    <div id="preMatchModal" class="fixed inset-0 bg-black/95 backdrop-blur-md z-[240] hidden items-center justify-center p-4">
+     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-5 shadow-2xl">
+      <h3 data-template-id="prematch-heading" class="text-lg font-bold text-white text-center border-b border-slate-800 pb-3 uppercase canva-text" style="color: rgb(255, 255, 255); font-weight: 700; font-style: normal; font-size: 18px;">THIẾT LẬP TRƯỚC TRẬN ĐẤU</h3>
+      <p id="resetSetupHint" class="hidden text-[10px] text-slate-400 text-center">Chọn đội và VĐV giao bóng đầu tiên để đặt lại ván.</p>
+      <div>
+       <label data-template-id="prematch-first-team-label" class="block text-xs font-bold text-slate-400 uppercase mb-2 canva-text" style="color: rgb(148, 163, 184); font-weight: 700; font-style: normal; font-size: 12px;">Bước 1: Chọn Đội Giao Bóng Đầu Tiên</label>
+       <div class="grid grid-cols-2 gap-3">
+        <button id="btnSelectTeam1Serve" onclick="selectFirstServeTeam(1)" class="p-3 bg-slate-800 border-2 border-slate-700 rounded-xl text-xs font-bold text-white hover:border-emerald-500"><span data-template-id="prematch-team-one-prefix" class="canva-text" style="font-weight: 400; font-style: normal; font-size: 14px;">Đội 1:</span> <span id="pmTeam1Name">Team A</span></button><button id="btnSelectTeam2Serve" onclick="selectFirstServeTeam(2)" class="p-3 bg-slate-800 border-2 border-slate-700 rounded-xl text-xs font-bold text-white hover:border-emerald-500"><span data-template-id="prematch-team-two-prefix" class="canva-text" style="font-weight: 400; font-style: normal; font-size: 14px;">Đội 2:</span> <span id="pmTeam2Name">Team B</span></button>
        </div>
       </div>
-     </div>
-     <div class="w-[12%] h-full court-kitchen border-l-2 border-r-2 border-white flex-shrink-0 order-2"></div>
-     <div id="courtTeam1Zone" onclick="handleRallyWinner(1)" class="flex-1 flex flex-col relative cursor-pointer hover:bg-emerald-800/30 transition-colors group p-2 order-1">
-      <div class="absolute top-2 left-2 z-10 bg-slate-900/80 px-2 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5">
-       <span id="t1ServingIndicator" class="hidden text-yellow-400 text-xs"><i class="fas fa-baseball-ball animate-spin"></i> <span data-template-id="bottom-serving-label" class="canva-text" style="font-weight: 700; font-style: normal; font-size: 12px;">ĐANG GIAO</span></span><span id="t1ScoreStatic" class="text-yellow-400 font-mono text-sm font-black">0</span>
-      </div><button onclick="event.stopPropagation(); manualSwapPlayers(1)" class="absolute bottom-2 left-2 z-20 bg-slate-800/90 hover:bg-slate-700 text-slate-200 px-2 py-0.5 rounded text-[10px] font-bold border border-slate-700"><span data-template-id="swap-bottom-label" class="canva-text" style="font-weight: 700; font-style: normal; font-size: 10px;">🔄 Đổi Vị Trí</span></button>
-      <div class="flex-1 flex flex-col items-center justify-evenly gap-2 px-6">
-       <div id="pNode_t1_odd" class="player-node flex flex-col items-center justify-center w-full min-w-0 h-1/2 border-b-2 border-white/90 pb-2">
-        <div class="w-16 h-16 md:w-20 md:h-20 rounded-full bg-slate-900 border-2 border-white flex items-center justify-center font-bold text-base md:text-lg text-white relative shadow-lg" id="pAvatar_t1_odd">
-         A2<span id="pBall_t1_odd" class="hidden absolute -top-1 -right-1 text-yellow-400 text-sm"><i class="fas fa-baseball-ball"></i></span>
-        </div><span id="pName_t1_odd" class="text-xs md:text-sm font-extrabold text-white bg-slate-900/90 px-3 py-1 rounded-lg mt-2 truncate max-w-[170px] shadow-md">Lê Thị B</span><span data-template-id="bottom-odd-court" class="text-[9px] text-slate-300 canva-text" style="color: rgb(203, 213, 225); font-weight: 400; font-style: normal; font-size: 9px;">Ô TRÁI (Odd)</span>
-       </div>
-       <div id="pNode_t1_even" class="player-node flex flex-col items-center justify-center w-full min-w-0 h-1/2 pt-2">
-        <div class="w-16 h-16 md:w-20 md:h-20 rounded-full bg-slate-900 border-2 border-white flex items-center justify-center font-bold text-base md:text-lg text-white relative shadow-lg" id="pAvatar_t1_even">
-         A1<span id="pBall_t1_even" class="hidden absolute -top-1 -right-1 text-yellow-400 text-sm"><i class="fas fa-baseball-ball"></i></span>
-        </div><span id="pName_t1_even" class="text-xs md:text-sm font-extrabold text-white bg-slate-900/90 px-3 py-1 rounded-lg mt-2 truncate max-w-[170px] shadow-md">Nguyễn Văn A</span><span data-template-id="bottom-even-court" class="text-[9px] text-yellow-300 font-bold canva-text" style="color: rgb(253, 224, 71); font-weight: 700; font-style: normal; font-size: 9px;">Ô PHẢI (Even) 🎾</span>
-       </div>
+      <div id="step2ServerWrapper" class="opacity-40 pointer-events-none transition-all">
+       <label data-template-id="prematch-first-server-label" class="block text-xs font-bold text-slate-400 uppercase mb-2 canva-text" style="color: rgb(148, 163, 184); font-weight: 700; font-style: normal; font-size: 12px;">Bước 2: Chọn VĐV Giao Bóng Đầu (First Server)</label>
+       <div class="grid grid-cols-2 gap-3" id="pmServerPlayersList"></div>
+       <p class="text-[10px] text-yellow-400 mt-1.5"><i class="fas fa-info-circle mr-1"></i><span data-template-id="prematch-server-help" class="canva-text" style="color: rgb(250, 204, 21); font-weight: 400; font-style: normal; font-size: 10px;">VĐV chọn sẽ tự động đứng ở ô PHẢI (Even Court) và khởi tạo hô 0 - 0 - 2</span></p>
+       <p id="serveSetupPreview" class="text-[10px] text-emerald-300 font-semibold mt-2 text-center">Chưa chọn cấu hình giao bóng</p>
+      </div>
+      <div class="flex gap-2"><button type="button" onclick="cancelServeSetup()" class="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold">Hủy</button><button data-template-id="prematch-start-label" id="btnStartMatchConfirm" onclick="confirmStartMatch()" disabled="" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 text-white font-bold rounded-xl text-xs shadow-lg uppercase tracking-wider canva-button" style="color: rgb(255, 255, 255); font-weight: 700; font-style: normal; font-size: 12px;">BẮT ĐẦU TRẬN ĐẤU</button>
       </div>
      </div>
-    </div>
-    <div class="mt-3 flex flex-wrap justify-center gap-2"><button type="button" onclick="swapCourtSides()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-yellow-400 border border-yellow-500/40 rounded-xl text-xs font-bold shadow-lg flex items-center gap-2" aria-label="Đổi sân hai đội"><i class="fas fa-arrow-right-arrow-left text-sm"></i><span data-template-id="swap-court-sides-label" class="canva-text" style="color: rgb(250, 204, 21); font-weight: 700; font-style: normal; font-size: 12px;">Đổi sân hai đội</span></button><button type="button" onclick="openResetGameSetup()" class="px-4 py-2 bg-red-600/90 hover:bg-red-500 text-white border border-red-400/50 rounded-xl text-xs font-bold shadow-lg flex items-center gap-2" aria-label="Đặt lại ván"><i class="fas fa-rotate-left text-sm"></i><span data-template-id="reset-game-label" class="canva-text" style="color: rgb(255, 255, 255); font-weight: 700; font-style: normal; font-size: 12px;">Đặt lại ván</span></button>
-    </div>
-    <div id="rallyHistory" class="mt-3 max-w-4xl w-full mx-auto text-xs text-slate-300" aria-live="polite"></div>
-   </div>
-   <div class="bg-slate-900 p-3 border-t border-slate-800 flex flex-wrap gap-2 justify-between items-center flex-shrink-0">
-    <div class="flex gap-2">
-     <button onclick="undoLastRally()" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold border border-slate-700"><i class="fas fa-rotate-left text-yellow-400 mr-1"></i> <span data-template-id="undo-label" class="canva-text" style="font-weight: 700; font-style: normal; font-size: 12px;">Hoàn Tác</span></button><button onclick="startWarmupTimer()" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold border border-slate-700"><i class="fas fa-stopwatch text-blue-400 mr-1"></i> <span data-template-id="warmup-label" class="canva-text" style="font-weight: 700; font-style: normal; font-size: 12px;">Khởi Động 5m</span></button>
-    </div>
-    <div class="flex gap-2 items-center" id="breakControlsContainer">
-     <button data-template-id="timeout-one-label" id="btnTimeoutT1" onclick="triggerTimeout(1)" class="px-3 py-2 bg-amber-500/20 text-amber-400 border border-amber-500/40 rounded-xl text-xs font-bold canva-button" style="color: rgb(251, 191, 36); font-weight: 700; font-style: normal; font-size: 12px;">⏱️ Timeout Team 1</button><button data-template-id="medical-one-label" id="btnMedicalT1" onclick="triggerMedical(1)" class="px-3 py-2 bg-red-500/20 text-red-400 border border-red-500/40 rounded-xl text-xs font-bold canva-button" style="color: rgb(248, 113, 113); font-weight: 700; font-style: normal; font-size: 12px;">🚑 Y Tế Team 1</button><button data-template-id="timeout-two-label" id="btnTimeoutT2" onclick="triggerTimeout(2)" class="px-3 py-2 bg-amber-500/20 text-amber-400 border border-amber-500/40 rounded-xl text-xs font-bold canva-button" style="color: rgb(251, 191, 36); font-weight: 700; font-style: normal; font-size: 12px;">⏱️ Timeout Team 2</button><button data-template-id="medical-two-label" id="btnMedicalT2" onclick="triggerMedical(2)" class="px-3 py-2 bg-red-500/20 text-red-400 border border-red-500/40 rounded-xl text-xs font-bold canva-button" style="color: rgb(248, 113, 113); font-weight: 700; font-style: normal; font-size: 12px;">🚑 Y Tế Team 2</button><button onclick="resetBreaks()" class="px-2.5 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs" title="Khôi phục lượt nghỉ"><i class="fas fa-undo"></i></button>
-    </div>
-    <div class="flex gap-2">
-     <button onclick="openWOModal()" class="px-3.5 py-2 bg-slate-800 text-red-400 rounded-xl text-xs font-bold border border-slate-700"><i class="fas fa-triangle-exclamation mr-1"></i> <span data-template-id="wo-action-label" class="canva-text" style="font-weight: 700; font-style: normal; font-size: 12px;">W.O</span></button><button data-template-id="finish-match-label" onclick="finishRefereeMatch()" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-extrabold shadow-lg canva-button" style="background: rgb(5, 150, 105); color: rgb(255, 255, 255); font-weight: 800; font-style: normal; font-size: 12px;">KẾT THÚC TRẬN</button>
-    </div>
-   </div>
-  </div><!-- Pre-Match Setup Modal -->
-  <div id="preMatchModal" class="fixed inset-0 bg-black/95 backdrop-blur-md z-[240] hidden items-center justify-center p-4">
-   <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-5 shadow-2xl">
-    <h3 data-template-id="prematch-heading" class="text-lg font-bold text-white text-center border-b border-slate-800 pb-3 uppercase canva-text" style="color: rgb(255, 255, 255); font-weight: 700; font-style: normal; font-size: 18px;">THIẾT LẬP TRƯỚC TRẬN ĐẤU</h3>
-    <p id="resetSetupHint" class="hidden text-[10px] text-slate-400 text-center">Chọn đội và VĐV giao bóng đầu tiên để đặt lại ván.</p>
-    <div>
-     <label data-template-id="prematch-first-team-label" class="block text-xs font-bold text-slate-400 uppercase mb-2 canva-text" style="color: rgb(148, 163, 184); font-weight: 700; font-style: normal; font-size: 12px;">Bước 1: Chọn Đội Giao Bóng Đầu Tiên</label>
-     <div class="grid grid-cols-2 gap-3">
-      <button id="btnSelectTeam1Serve" onclick="selectFirstServeTeam(1)" class="p-3 bg-slate-800 border-2 border-slate-700 rounded-xl text-xs font-bold text-white hover:border-emerald-500"><span data-template-id="prematch-team-one-prefix" class="canva-text" style="font-weight: 400; font-style: normal; font-size: 14px;">Đội 1:</span> <span id="pmTeam1Name">Team A</span></button><button id="btnSelectTeam2Serve" onclick="selectFirstServeTeam(2)" class="p-3 bg-slate-800 border-2 border-slate-700 rounded-xl text-xs font-bold text-white hover:border-emerald-500"><span data-template-id="prematch-team-two-prefix" class="canva-text" style="font-weight: 400; font-style: normal; font-size: 14px;">Đội 2:</span> <span id="pmTeam2Name">Team B</span></button>
-     </div>
-    </div>
-    <div id="step2ServerWrapper" class="opacity-40 pointer-events-none transition-all">
-     <label data-template-id="prematch-first-server-label" class="block text-xs font-bold text-slate-400 uppercase mb-2 canva-text" style="color: rgb(148, 163, 184); font-weight: 700; font-style: normal; font-size: 12px;">Bước 2: Chọn VĐV Giao Bóng Đầu (First Server)</label>
-     <div class="grid grid-cols-2 gap-3" id="pmServerPlayersList"></div>
-     <p class="text-[10px] text-yellow-400 mt-1.5"><i class="fas fa-info-circle mr-1"></i><span data-template-id="prematch-server-help" class="canva-text" style="color: rgb(250, 204, 21); font-weight: 400; font-style: normal; font-size: 10px;">VĐV chọn sẽ tự động đứng ở ô PHẢI (Even Court) và khởi tạo hô 0 - 0 - 2</span></p>
-     <p id="serveSetupPreview" class="text-[10px] text-emerald-300 font-semibold mt-2 text-center">Chưa chọn cấu hình giao bóng</p>
-    </div>
-    <div class="flex gap-2"><button type="button" onclick="cancelServeSetup()" class="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold">Hủy</button><button data-template-id="prematch-start-label" id="btnStartMatchConfirm" onclick="confirmStartMatch()" disabled="" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 text-white font-bold rounded-xl text-xs shadow-lg uppercase tracking-wider canva-button" style="color: rgb(255, 255, 255); font-weight: 700; font-style: normal; font-size: 12px;">BẮT ĐẦU TRẬN ĐẤU</button>
-    </div>
-   </div>
-   <script>
+     <script>
         const DEFAULT_FIREBASE_URL = "https://pickleball-34cb5-default-rtdb.asia-southeast1.firebasedatabase.app";
         let isAdmin = false;
         let isTournamentStarted = false;
@@ -666,7 +743,9 @@
         };
         let pmState = { firstTeam: null, firstServerPlayer: null };
         let configEditSnapshot = null;
-        let configEditMode = { general: false, rules: false };
+        let configEditMode = { general: false, rules: false, seriA: false, seriB: false };
+        let seriBSyncArmed = false;
+        let seriBSyncTimer = null;
 
         function beginConfigEdit(section) {
             if (!isAdmin) { showToast('Chỉ Admin mới được chỉnh sửa cấu hình!', 'warning'); return; }
@@ -763,11 +842,68 @@
                 if (localStorage.getItem('pb_matches')) matches = JSON.parse(localStorage.getItem('pb_matches'));
             } catch(e) {}
         }
-        function saveLocalState() {
-            localStorage.setItem('pb_config', JSON.stringify(tournamentConfig));
-            localStorage.setItem('pb_teams', JSON.stringify(teams));
-            localStorage.setItem('pb_matches', JSON.stringify(matches));
+        let stateSyncInProgress = false;
+        let stateSyncTimer = null;
+        let sharedStateVersion = 0;
+        function readSharedState() {
+            const envelope = localStorage.getItem('pb_shared_state');
+            if (envelope) {
+                const parsed = JSON.parse(envelope);
+                return parsed && parsed.state ? parsed : null;
+            }
+            const storedConfig = localStorage.getItem('pb_config');
+            const storedTeams = localStorage.getItem('pb_teams');
+            const storedMatches = localStorage.getItem('pb_matches');
+            return { version: 0, timestamp: 0, state: {
+                config: storedConfig ? JSON.parse(storedConfig) : tournamentConfig,
+                teams: storedTeams ? JSON.parse(storedTeams) : teams,
+                matches: storedMatches ? JSON.parse(storedMatches) : matches
+            }};
         }
+        function saveLocalState() {
+            const current = readSharedState();
+            const version = Math.max(Number(current?.version) || 0, sharedStateVersion) + 1;
+            const envelope = { version, timestamp: Date.now(), state: {
+                config: JSON.parse(JSON.stringify(tournamentConfig)),
+                teams: JSON.parse(JSON.stringify(teams)),
+                matches: JSON.parse(JSON.stringify(matches))
+            }};
+            sharedStateVersion = version;
+            localStorage.setItem('pb_shared_state', JSON.stringify(envelope));
+            // Legacy keys remain readable, while every view now follows one versioned source.
+            localStorage.setItem('pb_config', JSON.stringify(envelope.state.config));
+            localStorage.setItem('pb_teams', JSON.stringify(envelope.state.teams));
+            localStorage.setItem('pb_matches', JSON.stringify(envelope.state.matches));
+            window.dispatchEvent(new CustomEvent('picklepro:state-changed', { detail: { version, timestamp: envelope.timestamp } }));
+        }
+        function refreshSharedState() {
+            if (stateSyncInProgress) return;
+            stateSyncInProgress = true;
+            try {
+                const envelope = readSharedState();
+                if (!envelope || Number(envelope.version) < sharedStateVersion) return;
+                sharedStateVersion = Number(envelope.version) || 0;
+                tournamentConfig = envelope.state.config;
+                teams = envelope.state.teams;
+                matches = envelope.state.matches;
+                initPlayoffConfigUI();
+                renderAllTabs();
+                updateAdminUIState();
+            } catch (e) {
+                showToast('Không thể đồng bộ dữ liệu mới nhất.', 'warning');
+            } finally {
+                stateSyncInProgress = false;
+            }
+        }
+        function scheduleSharedStateRefresh() {
+            clearTimeout(stateSyncTimer);
+            stateSyncTimer = setTimeout(refreshSharedState, 0);
+        }
+        window.addEventListener('picklepro:state-changed', scheduleSharedStateRefresh);
+        window.addEventListener('storage', event => {
+            if (event.key === 'pb_shared_state' || event.key === 'pb_config' || event.key === 'pb_teams' || event.key === 'pb_matches') scheduleSharedStateRefresh();
+        });
+        document.addEventListener('visibilitychange', () => { if (!document.hidden) scheduleSharedStateRefresh(); });
         function updatePlayoffConfig(series, round, field, value) {
             // Rule controls stay draft-only until the Rules section is saved.
             if (configEditMode.rules) return;
@@ -845,6 +981,8 @@
         }
 
         function switchTab(tabId) {
+            // Always rebuild from the shared source before showing a tab.
+            refreshSharedState();
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.nav-btn').forEach(btn => {
                 btn.classList.remove('bg-slate-800', 'text-white', 'border', 'border-slate-700/50');
@@ -930,15 +1068,17 @@
             wrapper.classList.toggle('opacity-60', !isAdmin || isTournamentStarted || (!configEditMode.general && !configEditMode.rules));
             // Keep the section controls reachable so Admin can tap Chỉnh sửa first.
             wrapper.classList.toggle('pointer-events-none', !isAdmin || isTournamentStarted);
-            ['general', 'rules', 'thirdPlace'].forEach(section => {
+            ['general', 'rules', 'seriA', 'seriB'].forEach(section => {
                 const editing = isAdmin && !isTournamentStarted && configEditMode[section];
                 document.getElementById(`${section}EditButton`)?.classList.toggle('hidden', editing);
                 document.getElementById(`${section}SaveButton`)?.classList.toggle('hidden', !editing);
                 document.getElementById(`${section}CancelButton`)?.classList.toggle('hidden', !editing);
                 const sectionFields = section === 'general'
                     ? ['cfgFirebaseUrl', 'cfgTourneyName', 'cfgLocation', 'cfgDate', 'cfgCourtsCount', 'cfgAdminPass']
-                    : section === 'thirdPlace'
-                    ? ['thirdPlaceAEnabled', 'thirdPlaceAShared', 'thirdPlaceA-games', 'thirdPlaceA-rule', 'thirdPlaceA-max-score', 'thirdPlaceBEnabled', 'thirdPlaceBShared', 'thirdPlaceB-games', 'thirdPlaceB-rule', 'thirdPlaceB-max-score']
+                    : section === 'seriA'
+                    ? ['seriA-round16-games', 'seriA-round16-rule', 'seriA-quarterfinal-games', 'seriA-quarterfinal-rule', 'seriA-semifinal-games', 'seriA-semifinal-rule', 'seriA-final-games', 'seriA-final-rule', 'seriA-max-score', 'thirdPlaceAEnabled', 'thirdPlaceAShared', 'thirdPlaceA-games', 'thirdPlaceA-rule', 'thirdPlaceA-max-score']
+                    : section === 'seriB'
+                    ? ['seriB-round16-games', 'seriB-round16-rule', 'seriB-quarterfinal-games', 'seriB-quarterfinal-rule', 'seriB-semifinal-games', 'seriB-semifinal-rule', 'seriB-final-games', 'seriB-final-rule', 'seriB-max-score', 'thirdPlaceBEnabled', 'thirdPlaceBShared', 'thirdPlaceB-games', 'thirdPlaceB-rule', 'thirdPlaceB-max-score']
                     : ['cfgGroupsCount', 'cfgGameFormat', 'cfgSeriAQualifiers', 'cfgSeriBQualifiers', 'cfgMaxCapPoint', 'seriA-round16-games', 'seriA-round16-rule', 'seriA-quarterfinal-games', 'seriA-quarterfinal-rule', 'seriA-semifinal-games', 'seriA-semifinal-rule', 'seriA-final-games', 'seriA-final-rule', 'seriA-max-score', 'seriB-round16-games', 'seriB-round16-rule', 'seriB-quarterfinal-games', 'seriB-quarterfinal-rule', 'seriB-semifinal-games', 'seriB-semifinal-rule', 'seriB-final-games', 'seriB-final-rule', 'seriB-max-score'];
                 sectionFields.forEach(id => {
                     const field = document.getElementById(id);
@@ -956,8 +1096,44 @@
             document.getElementById('startTourneyIcon').className = isTournamentStarted ? 'fas fa-lock mr-1.5' : 'fas fa-flag-checkered mr-1.5';
             btn.classList.toggle('bg-amber-600', isTournamentStarted);
             btn.classList.toggle('bg-emerald-600', !isTournamentStarted);
+            saveLocalState();
             updateAdminUIState();
+            // Refresh all public tournament views immediately when the event starts or unlocks.
+            if (isTournamentStarted) {
+                renderTab2();
+                renderTab3();
+                renderTab4();
+            } else {
+                renderAllTabs();
+            }
             showToast(isTournamentStarted ? "Đã khóa cấu hình giải đấu!" : "Đã mở khóa cấu hình!", "info");
+        }
+        function syncSeriBFromA() {
+            if (!isAdmin) { showToast('Chỉ Admin mới được đồng nhất cấu hình Seri B!', 'warning'); return; }
+            const button = document.getElementById('seriBSyncButton');
+            if (!seriBSyncArmed) {
+                seriBSyncArmed = true;
+                if (button) button.innerText = 'Bấm lại để xác nhận đồng nhất';
+                clearTimeout(seriBSyncTimer);
+                seriBSyncTimer = setTimeout(() => { seriBSyncArmed = false; if (button) button.innerText = 'Đồng nhất cấu hình Seri B giống Seri A'; }, 4000);
+                showToast('Bấm lại để xác nhận: chỉ cấu hình Seri B sẽ được thay thế.', 'warning');
+                return;
+            }
+            const a = tournamentConfig.playoff?.seriA || {};
+            const b = tournamentConfig.playoff?.seriB || {};
+            tournamentConfig.playoff = tournamentConfig.playoff || {};
+            tournamentConfig.playoff.seriB = JSON.parse(JSON.stringify({ ...b, round16: a.round16, quarterfinal: a.quarterfinal, semifinal: a.semifinal, final: a.final, maxScore: a.maxScore }));
+            tournamentConfig.playoff.thirdPlace = tournamentConfig.playoff.thirdPlace || {};
+            const thirdA = tournamentConfig.playoff.thirdPlace.seriA || {};
+            const thirdB = tournamentConfig.playoff.thirdPlace.seriB || {};
+            tournamentConfig.playoff.thirdPlace.seriB = JSON.parse(JSON.stringify(thirdA));
+            seriBSyncArmed = false;
+            clearTimeout(seriBSyncTimer);
+            if (button) button.innerText = 'Đồng nhất cấu hình Seri B giống Seri A';
+            initPlayoffConfigUI();
+            saveLocalState();
+            updateAdminUIState();
+            showToast('Đã đồng nhất cấu hình Seri B từ Seri A. Dữ liệu thi đấu không thay đổi.', 'success');
         }
         function renderTab1() {
             document.getElementById('teamRegisterTableBody').innerHTML = teams.map(t => `
@@ -1513,6 +1689,8 @@
             setTimeout(() => t.classList.add('translate-x-full'), 3000);
         }
     </script>
-  </div>
+    </div>
+   </div>
+  </main>
  
 </body></html>
