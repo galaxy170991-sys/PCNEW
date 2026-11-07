@@ -738,7 +738,7 @@
       </div>
      </div>
      <script>
-        const DEFAULT_FIREBASE_URL = "https://pickleball-34cb5-default-rtdb.asia-southeast1.firebasedatabase.app";
+        const DEFAULT_FIREBASE_URL = 'https://pickleball-ba0cb-default-rtdb.asia-southeast1.firebasedatabase.app';
         let isAdmin = false;
         let isTournamentStarted = false;
         let syncStatusTimer = null;
@@ -776,6 +776,428 @@
         let seriBSyncArmed = false;
         let seriBSyncTimer = null;
 
+        /* ================= FIREBASE SYNC (Realtime Database) =================
+           Mô hình dữ liệu:  picklepro/config | started | teams/{id} | matches/m{id} | live/m{id}
+           - Mỗi trận là một bản ghi riêng => nhiều trọng tài chấm song song không đè nhau.
+           - live/m{id}: trạng thái giao bóng + lịch sử của trọng tài (chỉ đọc khi mở lại trận).
+           - Mật khẩu Admin không đẩy lên DB, chỉ đẩy mã băm (SHA-256).                          */
+        const FB_ROOT_PATH = 'picklepro';
+        const FB = { enabled: false, ready: false, online: false, db: null, root: null, applying: false,
+            lastSent: { config: '', started: null, teams: {}, matches: {} }, readyQueue: [], dirty: {} };
+        let fbUrlChanged = false;
+        let fbRenderTimer = null;
+
+        function sha256Hex(ascii) {
+            const rotr = (x, n) => (x >>> n) | (x << (32 - n));
+            const maxWord = Math.pow(2, 32);
+            let result = '';
+            const words = [];
+            const asciiBitLength = ascii.length * 8;
+            let hash = sha256Hex.h = sha256Hex.h || [];
+            const k = sha256Hex.k = sha256Hex.k || [];
+            let primeCounter = k.length;
+            const isComposite = {};
+            for (let candidate = 2; primeCounter < 64; candidate++) {
+                if (!isComposite[candidate]) {
+                    for (let i = 0; i < 313; i += candidate) isComposite[i] = candidate;
+                    hash[primeCounter] = (Math.pow(candidate, 0.5) * maxWord) | 0;
+                    k[primeCounter++] = (Math.pow(candidate, 1 / 3) * maxWord) | 0;
+                }
+            }
+            ascii += '\x80';
+            while (ascii.length % 64 - 56) ascii += '\x00';
+            for (let i = 0; i < ascii.length; i++) {
+                const j = ascii.charCodeAt(i);
+                words[i >> 2] |= j << (((3 - i) % 4) * 8);
+            }
+            words[words.length] = ((asciiBitLength / maxWord) | 0);
+            words[words.length] = asciiBitLength;
+            for (let j = 0; j < words.length;) {
+                const w = words.slice(j, j += 16);
+                const oldHash = hash;
+                hash = hash.slice(0, 8);
+                for (let i = 0; i < 64; i++) {
+                    const w15 = w[i - 15], w2 = w[i - 2];
+                    const a = hash[0], e = hash[4];
+                    const temp1 = hash[7] + (rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25)) + ((e & hash[5]) ^ ((~e) & hash[6])) + k[i]
+                        + (w[i] = (i < 16) ? w[i] : (w[i - 16] + (rotr(w15, 7) ^ rotr(w15, 18) ^ (w15 >>> 3)) + w[i - 7] + (rotr(w2, 17) ^ rotr(w2, 19) ^ (w2 >>> 10))) | 0);
+                    const temp2 = (rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22)) + ((a & hash[1]) ^ (a & hash[2]) ^ (hash[1] & hash[2]));
+                    hash = [(temp1 + temp2) | 0].concat(hash);
+                    hash[4] = (hash[4] + temp1) | 0;
+                }
+                for (let i = 0; i < 8; i++) hash[i] = (hash[i] + oldHash[i]) | 0;
+            }
+            for (let i = 0; i < 8; i++) for (let j = 3; j + 1; j--) { const b = (hash[i] >> (j * 8)) & 255; result += ((b < 16) ? 0 : '') + b.toString(16); }
+            return result;
+        }
+        function passHash(p) { return sha256Hex('picklepro:' + unescape(encodeURIComponent(String(p)))); }
+        function ensureAdminHash() { if (tournamentConfig.adminPass) tournamentConfig.adminPassHash = passHash(tournamentConfig.adminPass); }
+        function checkAdminPass(pass) {
+            if (tournamentConfig.adminPassHash) return passHash(pass) === tournamentConfig.adminPassHash;
+            return pass === tournamentConfig.adminPass;
+        }
+
+        function fbStable(v) {
+            if (v === null || typeof v !== 'object') return JSON.stringify(v);
+            if (Array.isArray(v)) return '[' + v.map(fbStable).join(',') + ']';
+            return '{' + Object.keys(v).sort().filter(k => v[k] !== undefined).map(k => JSON.stringify(k) + ':' + fbStable(v[k])).join(',') + '}';
+        }
+        function fbClean(v) { return JSON.parse(JSON.stringify(v)); }
+        function fbNum(id) { return Number(String(id).replace(/\D/g, '')) || 0; }
+        function fbNormalizeUrl(u) { u = String(u || '').trim().replace(/\/+$/, ''); return /^https:\/\/\S+$/i.test(u) ? u : ''; }
+        function fbWillUse() { return typeof firebase !== 'undefined' && !!fbNormalizeUrl(tournamentConfig.firebaseUrl || DEFAULT_FIREBASE_URL); }
+        function fbNormTeam(t) { return fbClean(Object.assign({ group: 'A', name: '', p1: '', p2: '', avatar: '', note: '' }, t)); }
+        function fbConfigFor(cfg) { const c = fbClean(cfg); delete c.adminPass; delete c.firebaseUrl; return c; }
+        function fbTeamsFromRemote(o) { return Object.keys(o || {}).map(k => o[k]).filter(x => x && x.id).map(fbNormTeam).sort((a, b) => fbNum(a.id) - fbNum(b.id)); }
+        function fbMatchesFromRemote(o) { return Object.keys(o || {}).map(k => o[k]).filter(x => x && x.id != null).map(fbClean).sort((a, b) => fbNum(a.id) - fbNum(b.id)); }
+
+        /* ---------- Gửi lên Firebase (chỉ gửi phần thay đổi) ---------- */
+        function fbPushDiff() {
+            if (!FB.enabled || !FB.ready || FB.applying) return;
+            const upd = {}; let count = 0;
+            const cfg = fbConfigFor(tournamentConfig), cfgS = fbStable(cfg);
+            if (cfgS !== FB.lastSent.config) { upd['config'] = cfg; FB.lastSent.config = cfgS; count++; }
+            const started = !!isTournamentStarted;
+            if (started !== FB.lastSent.started) { upd['started'] = started; FB.lastSent.started = started; count++; }
+            teams.forEach(t => {
+                const c = fbNormTeam(t), s = fbStable(c);
+                if (FB.lastSent.teams[t.id] !== s) { upd['teams/' + t.id] = c; FB.lastSent.teams[t.id] = s; count++; }
+            });
+            matches.forEach(m => {
+                const c = fbClean(m), s = fbStable(c);
+                if (FB.lastSent.matches[m.id] !== s) { upd['matches/m' + m.id] = c; FB.lastSent.matches[m.id] = s; count++; }
+            });
+            if (!count) { if (FB.online) setSyncStatus('Đã đồng bộ'); return; }
+            setSyncStatus('Đang gửi');
+            FB.root.update(upd).then(() => { if (FB.online) setSyncStatus('Đã đồng bộ'); }).catch(fbFail);
+        }
+        function fbFail(err) {
+            console.error('[Firebase]', err);
+            const denied = err && (err.code === 'PERMISSION_DENIED' || /permission/i.test(err.message || ''));
+            setSyncStatus('Lỗi Firebase');
+            showToast(denied ? 'Firebase từ chối truy cập, hãy kiểm tra Rules.' : 'Lỗi Firebase: ' + ((err && err.message) || err));
+        }
+
+        /* ---------- Nhận từ Firebase ---------- */
+        function fbCacheLocal() { FB.applying = true; try { saveLocalState(); } finally { FB.applying = false; } }
+        function fbOnTeams(v) {
+            const arr = fbTeamsFromRemote(v);
+            arr.forEach(t => { FB.lastSent.teams[t.id] = fbStable(t); });
+            if (fbStable(arr) === fbStable(teams.map(fbNormTeam))) return;
+            teams = arr; fbCacheLocal(); fbMarkDirty('teams');
+        }
+        function fbOnMatches(v) {
+            const arr = fbMatchesFromRemote(v);
+            arr.forEach(m => { FB.lastSent.matches[m.id] = fbStable(m); });
+            if (fbStable(arr) === fbStable(matches.map(fbClean))) return;
+            matches = arr; fbCacheLocal(); fbMarkDirty('matches');
+            fbSyncOpenReferee();
+        }
+        function fbOnConfig(v) {
+            if (!v) return;
+            if (Object.values(configEditMode).some(Boolean)) return;
+            const merged = Object.assign({}, v, { firebaseUrl: tournamentConfig.firebaseUrl });
+            const localPlain = tournamentConfig.adminPass;
+            merged.adminPass = (localPlain && (!v.adminPassHash || passHash(localPlain) === v.adminPassHash)) ? localPlain : '';
+            FB.lastSent.config = fbStable(fbConfigFor(merged));
+            if (fbStable(fbConfigFor(merged)) === fbStable(fbConfigFor(tournamentConfig))) return;
+            tournamentConfig = merged; fbCacheLocal(); fbMarkDirty('config');
+        }
+        function fbOnStarted(v) {
+            const s = !!v; FB.lastSent.started = s;
+            if (s === isTournamentStarted) return;
+            isTournamentStarted = s; fbCacheLocal(); fbMarkDirty('started');
+        }
+        function fbSyncOpenReferee() {
+            const overlay = document.getElementById('refereeOverlay');
+            if (!overlay || overlay.classList.contains('hidden') || activeMatchId == null) return;
+            const cm = matches.find(x => Number(x.id) === Number(activeMatchId));
+            if (!cm || Number(refState.matchId) !== Number(activeMatchId)) return;
+            const sw = refState.sidesSwapped === true;
+            const a = Number(sw ? cm.team2Score : cm.team1Score) || 0, b = Number(sw ? cm.team1Score : cm.team2Score) || 0;
+            if (a === refState.team1.score && b === refState.team2.score) return;
+            refState.team1.score = a; refState.team2.score = b;
+            isApplyingSharedState = true; try { update2DCourtUI(); } finally { isApplyingSharedState = false; }
+        }
+        function fbMarkDirty(kind) {
+            FB.dirty[kind] = true;
+            clearTimeout(fbRenderTimer);
+            fbRenderTimer = setTimeout(fbRenderDirty, 100);
+        }
+        function fbRenderDirty() {
+            const d = FB.dirty; FB.dirty = {};
+            const editing = Object.values(configEditMode).some(Boolean);
+            const inside = (sel) => { const ae = document.activeElement; return !!(ae && ae.closest && ae.closest(sel)); };
+            if ((d.config || d.started) && !editing) { fillConfigForm(); initPlayoffConfigUI(); }
+            if (d.started) applyStartedUI();
+            if ((d.teams || d.config) && !inside('#teamRegisterTableBody')) renderTab1();
+            if (!inside('#matchesListContainer')) renderTab2();
+            renderTab3(); renderTab4(); renderTab5(); renderTab6(); renderTab7(); renderTab8(); renderTab9();
+            updateAdminUIState();
+        }
+
+        /* ---------- Khởi động ---------- */
+        function fbStart() {
+            if (!FB.enabled) { setSyncStatus('Chế độ offline'); return; }
+            ensureAdminHash();
+            try {
+                const url = fbNormalizeUrl(tournamentConfig.firebaseUrl || DEFAULT_FIREBASE_URL);
+                const app = (firebase.apps || []).find(a => a.name === 'picklepro') || firebase.initializeApp({ databaseURL: url }, 'picklepro');
+                FB.db = app.database();
+                FB.root = FB.db.ref(FB_ROOT_PATH);
+            } catch (e) { FB.enabled = false; fbFail(e); return; }
+            setSyncStatus('Đang cập nhật');
+            FB.db.ref('.info/connected').on('value', s => {
+                FB.online = !!s.val();
+                setSyncStatus(FB.online ? 'Đã đồng bộ' : 'Mất kết nối');
+            });
+            const giveUp = setTimeout(() => {
+                if (!FB.ready) { showToast('Chưa kết nối được Firebase, đang dùng dữ liệu lưu trên máy.'); fbFlushReady(); }
+            }, 8000);
+            FB.root.once('value').then(snap => {
+                clearTimeout(giveUp);
+                const v = snap.val() || {};
+                if (v.config) fbOnConfig(v.config);
+                if (v.started != null) fbOnStarted(v.started);
+                if (v.teams) fbOnTeams(v.teams);
+                if (v.matches) fbOnMatches(v.matches);
+                if (!v.teams || !v.matches) { initDefaultData(); }   // DB trống: gieo dữ liệu mẫu 1 lần
+                FB.ready = true;
+                fillConfigForm(); initPlayoffConfigUI(); applyStartedUI();
+                fbPushDiff();
+                const r = FB.root;
+                r.child('config').on('value', s => fbOnConfig(s.val()));
+                r.child('started').on('value', s => fbOnStarted(s.val()));
+                r.child('teams').on('value', s => fbOnTeams(s.val()));
+                r.child('matches').on('value', s => fbOnMatches(s.val()));
+                fbMarkDirty('teams'); fbMarkDirty('config'); fbMarkDirty('started');
+                fbFlushReady();
+            }).catch(err => { clearTimeout(giveUp); fbFail(err); fbFlushReady(); });
+        }
+        function fbWhenReady(cb) {
+            if (!FB.enabled) { setTimeout(cb, 300); return; }
+            if (FB.ready) { setTimeout(cb, 0); return; }
+            FB.readyQueue.push(cb);
+        }
+        function fbFlushReady() { FB.readyQueue.splice(0).forEach(cb => { try { cb(); } catch (e) { console.error(e); } }); }
+
+        /* ---------- Trạng thái trọng tài (live) ---------- */
+        function snapRef() { const h = refState.history; refState.history = []; const c = JSON.parse(JSON.stringify(refState)); refState.history = h; return c; }
+        function refScoresForMatch() {
+            const sw = refState.sidesSwapped === true;
+            return [Number(sw ? refState.team2.score : refState.team1.score) || 0, Number(sw ? refState.team1.score : refState.team2.score) || 0];
+        }
+        function fbPushLive() {
+            if (!FB.enabled || !FB.ready || refState.matchId == null) return;
+            const snap = snapRef();
+            snap.history = refState.history.slice(-40).map(h => fbClean(h));
+            FB.root.child('live/m' + refState.matchId).set(fbClean(snap)).catch(fbFail);
+        }
+        function fbClearLive(id) { if (FB.enabled && FB.ready && id != null) FB.root.child('live/m' + id).remove().catch(() => {}); }
+        function fbRestoreLive(m, fallback) {
+            if (!FB.enabled || !FB.ready || m.status !== 'LIVE') { fallback(); return; }
+            FB.root.child('live/m' + m.id).once('value').then(s => {
+                const L = s.val();
+                if (!L || !L.team1 || !L.team2 || !L.servingTeam) { fallback(); return; }
+                L.history = Array.isArray(L.history) ? L.history : [];
+                L.matchId = m.id;
+                refState = L;
+                document.getElementById('refereeOverlay').classList.remove('hidden');
+                document.getElementById('refereeOverlay').classList.add('flex');
+                isApplyingSharedState = true; try { update2DCourtUI(); } finally { isApplyingSharedState = false; }
+                showToast('Đã khôi phục trận đang đấu từ Firebase.');
+            }).catch(() => fallback());
+        }
+
+        /* ---------- Form cấu hình & nút Bắt đầu theo dữ liệu đã đồng bộ ---------- */
+        function fillConfigForm() {
+            const c = tournamentConfig, set = (id, v) => { const el = document.getElementById(id); if (el) el.value = (v === undefined || v === null) ? '' : v; };
+            set('cfgFirebaseUrl', c.firebaseUrl || DEFAULT_FIREBASE_URL);
+            set('cfgTourneyName', c.name); set('cfgLocation', c.location); set('cfgDate', c.date);
+            set('cfgCourtsCount', c.courtsCount); set('cfgAdminPass', c.adminPass || '');
+            set('cfgGroupsCount', c.groupsCount); set('cfgGameFormat', c.gameFormat); set('cfgMaxCapPoint', c.maxCapPoint);
+            document.querySelectorAll('input[name="ruleTarget"]').forEach(i => { i.checked = i.value === c.ruleTarget; });
+        }
+        function applyStartedUI() {
+            const btn = document.getElementById('btnStartTourney'); if (!btn) return;
+            document.getElementById('startTournamentLabel')?.classList.toggle('hidden', isTournamentStarted);
+            document.getElementById('unlockTournamentLabel')?.classList.toggle('hidden', !isTournamentStarted);
+            const icon = document.getElementById('startTourneyIcon');
+            if (icon) icon.className = isTournamentStarted ? 'fas fa-lock mr-1.5' : 'fas fa-flag-checkered mr-1.5';
+            btn.classList.toggle('bg-amber-600', isTournamentStarted);
+            btn.classList.toggle('bg-emerald-600', !isTournamentStarted);
+        }
+
+        /* ---------- Nén ảnh VĐV (ảnh gốc tới 5MB sẽ làm nghẽn DB) ---------- */
+        function fbCompressImage(dataUrl, size, quality) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => {
+                    const c = document.createElement('canvas'); c.width = size; c.height = size;
+                    const side = Math.min(img.width, img.height);
+                    c.getContext('2d').drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, size, size);
+                    resolve(c.toDataURL('image/jpeg', quality));
+                };
+                img.onerror = reject; img.src = dataUrl;
+            });
+        }
+
+
+        /* ================= LUẬT TÍNH ĐIỂM & BO3 =================
+           Luật mỗi trận lấy từ cấu hình: vòng bảng (gameFormat, ruleTarget, maxCapPoint),
+           playoff theo từng vòng (m.stage = 'PLAYOFF', m.series = seriA|seriB, m.round = round16|quarterfinal|semifinal|final|third).
+           Dữ liệu trận: team1Score/team2Score = điểm ván hiện tại; games = [{a,b}] các ván đã đấu;
+           gamesWon1/2 = số ván thắng; winnerId = đội thắng trận; forced = kết thúc sớm / W.O.        */
+        function parseRuleCode(code) {
+            const parts = String(code || '11_diff2').split('_');
+            return { target: Number(parts[0]) === 15 ? 15 : 11, diff2: parts[1] !== 'direct' };
+        }
+        function getMatchRules(m) {
+            const cfg = tournamentConfig || {}, po = cfg.playoff || {};
+            let games, rule, cap;
+            if (m && m.stage === 'PLAYOFF') {
+                const sp = po[m.series] || {};
+                if (m.round === 'third') { const t = (po.thirdPlace || {})[m.series] || {}; games = t.games; rule = t.rule; cap = t.maxScore; }
+                else { const r = sp[m.round] || {}; games = r.games; rule = r.rule; cap = sp.maxScore; }
+            } else { games = cfg.gameFormat; rule = cfg.ruleTarget; cap = cfg.maxCapPoint; }
+            const p = parseRuleCode(rule), capN = Math.floor(Number(cap));
+            const g = Number(games) === 3 ? 3 : 1;
+            return { games: g, needed: g === 3 ? 2 : 1, target: p.target, diff2: p.diff2, cap: (p.diff2 && capN > p.target) ? capN : 0 };
+        }
+        function ruleText(r) { return `Chạm ${r.target} ${r.diff2 ? 'thắng cách 2' : 'thắng ngay'}${r.cap ? ` (trần ${r.cap})` : ''}`; }
+        // Trả về 1 nếu bên 1 thắng ván, 2 nếu bên 2 thắng, 0 nếu chưa phân thắng bại
+        function gameWinnerOf(s1, s2, r) {
+            const wins = (a, b) => r.diff2 ? ((a >= r.target && a - b >= 2) || (r.cap > 0 && a >= r.cap)) : a >= r.target;
+            return wins(s1, s2) ? 1 : (wins(s2, s1) ? 2 : 0);
+        }
+        function refMatch() { return matches.find(x => Number(x.id) === Number(refState.matchId)); }
+        function refRules() { return getMatchRules(refMatch()); }
+        function sideToMatchIdx(pos) { return refState.sidesSwapped === true ? (pos === 1 ? 2 : 1) : pos; }
+
+        function finishCurrentGame(gw) {
+            const sc = refScoresForMatch();
+            refState.finished = (refState.finished || []).concat([{ a: sc[0], b: sc[1] }]);
+            const team = refState['team' + gw];
+            team.games = (team.games || 0) + 1;
+            refState.matchOver = team.games >= refRules().needed;
+            if (refState.matchOver) refState.winnerIdx = sideToMatchIdx(gw);
+            else setTimeout(openNextGameSetup, 1500);
+        }
+        function forceEndMatch(winnerPos) {
+            if (!refState.gameOver && (refState.team1.score + refState.team2.score) > 0) {
+                const sc = refScoresForMatch();
+                refState.finished = (refState.finished || []).concat([{ a: sc[0], b: sc[1], partial: true }]);
+            }
+            refState.gameOver = true; refState.matchOver = true; refState.forced = true;
+            refState.winnerIdx = sideToMatchIdx(winnerPos);
+        }
+        function pickForcedWinner() {
+            const g1 = refState.team1.games || 0, g2 = refState.team2.games || 0;
+            if (g1 !== g2) return g1 > g2 ? 1 : 2;
+            if (refState.team1.score !== refState.team2.score) return refState.team1.score > refState.team2.score ? 1 : 2;
+            return 0;
+        }
+        function syncRefStateToMatch(m) {
+            const sw = refState.sidesSwapped === true;
+            const A = sw ? refState.team2 : refState.team1, B = sw ? refState.team1 : refState.team2;
+            m.gamesWon1 = A.games || 0; m.gamesWon2 = B.games || 0;
+            if (refState.finished && refState.finished.length) m.games = refState.finished.map(g => ({ a: g.a, b: g.b, ...(g.partial ? { partial: true } : {}) }));
+            else delete m.games;
+            if (refState.matchOver) {
+                m.status = 'COMPLETED';
+                m.winnerId = refState.winnerIdx === 2 ? m.team2Id : m.team1Id;
+                if (refState.forced) m.forced = true; else delete m.forced;
+            } else { m.status = 'LIVE'; delete m.winnerId; delete m.forced; }
+        }
+        // Dựng trạng thái trọng tài từ dữ liệu trận (mở mới, mở lại, hoặc đang đấu dở)
+        function initRefStateFromMatch(m) {
+            const g = Array.isArray(m.games) ? m.games.map(x => ({ a: Number(x.a) || 0, b: Number(x.b) || 0, ...(x.partial ? { partial: true } : {}) })) : [];
+            refState.finished = g;
+            refState.team1.games = Number(m.gamesWon1) || 0; refState.team2.games = Number(m.gamesWon2) || 0;
+            refState.sidesSwapped = false; refState.matchOver = false; refState.gameOver = false; refState.gameWinner = 0; refState.forced = false;
+            const s1 = Number(m.team1Score) || 0, s2 = Number(m.team2Score) || 0;
+            if (m.status === 'COMPLETED' && g.length) {
+                // Mở lại trận đã kết thúc: lấy lại ván cuối, bỏ điểm quyết định (trừ trận kết thúc sớm / W.O)
+                const last = g.pop();
+                let a = last.a, b = last.b;
+                if (!last.partial) {
+                    if (a > b) { a--; refState.team1.games = Math.max(0, refState.team1.games - 1); }
+                    else if (b > a) { b--; refState.team2.games = Math.max(0, refState.team2.games - 1); }
+                }
+                refState.team1.score = a; refState.team2.score = b;
+            } else if (m.status === 'LIVE' && g.length && !g[g.length - 1].partial && g[g.length - 1].a === s1 && g[g.length - 1].b === s2
+                       && g.length === refState.team1.games + refState.team2.games) {
+                refState.team1.score = 0; refState.team2.score = 0;   // ván trước đã xong, chờ bắt đầu ván mới
+            } else { refState.team1.score = s1; refState.team2.score = s2; }
+        }
+        function openNextGameSetup() {
+            if (!refState.gameOver || refState.matchOver) return;
+            pmState = { firstTeam: null, firstServerPlayer: null };
+            const n = (refState.finished || []).length + 1;
+            const hint = document.getElementById('resetSetupHint');
+            hint.innerText = `Ván ${n}: chọn đội và VĐV giao bóng đầu tiên. Nhớ đổi sân hai đội trước khi bắt đầu.`;
+            hint.classList.remove('hidden');
+            document.querySelector('[data-template-id="prematch-heading"]').textContent = `VÁN ${n} • THIẾT LẬP GIAO BÓNG`;
+            document.getElementById('btnStartMatchConfirm').disabled = true;
+            document.getElementById('btnStartMatchConfirm').onclick = confirmResetGame;
+            document.getElementById('preMatchModal').classList.remove('hidden');
+            document.getElementById('preMatchModal').classList.add('flex');
+        }
+        function refGameOverText() {
+            const r = refRules(), sc = `${refState.team1.score}-${refState.team2.score}`;
+            if (r.games === 1) return `VÁN KẾT THÚC · ${sc}`;
+            const gt = `ván ${refState.team1.games || 0}-${refState.team2.games || 0}`;
+            return refState.matchOver ? `TRẬN KẾT THÚC · ${gt}` : `HẾT VÁN ${(refState.finished || []).length} · ${sc} · ${gt}`;
+        }
+        function refreshRefereeHeader() {
+            const m = refMatch(); if (!m) return;
+            const r = getMatchRules(m), set = (id, t) => { const el = document.getElementById(id); if (el) el.innerText = t; };
+            set('refHeaderMatchTitle', `TRẬN ${m.id} • SÂN SỐ ${m.courtId} • ${String(m.roundName || '').toUpperCase()}`);
+            const gameNo = Math.min(r.games, (refState.finished || []).length + (refState.gameOver ? 0 : 1));
+            set('refHeaderRule', `Luật: ${ruleText(r)}${r.games === 3 ? ` • Bo3 · Ván ${gameNo}` : ''}`);
+            if (r.games === 3) {
+                set('refT1StaticScore', `Điểm: ${refState.team1.score} · Ván thắng: ${refState.team1.games || 0}`);
+                set('refT2StaticScore', `Điểm: ${refState.team2.score} · Ván thắng: ${refState.team2.games || 0}`);
+            }
+            set('refMatchStatusText', refState.matchOver ? 'ĐÃ KẾT THÚC' : (refState.gameOver ? 'HẾT VÁN' : 'ĐANG ĐẤU'));
+        }
+        // Chuỗi mô tả ván cho danh sách trận: " • Bo3 (1-1) · 11-9, 8-11"
+        function matchGameSuffix(m) {
+            const r = getMatchRules(m), list = Array.isArray(m.games) ? m.games : [];
+            let t = '';
+            if (r.games === 3 && (m.status !== 'UPCOMING')) t += ` • Bo3 (${m.gamesWon1 || 0}-${m.gamesWon2 || 0})`;
+            if (list.length && (r.games === 3 || m.forced)) t += ' · ' + list.map(x => `${x.a}-${x.b}`).join(', ');
+            if (m.forced) t += ' · W.O/Kết thúc sớm';
+            return t;
+        }
+
+        /* ---------- Bảng xếp hạng: chỉ tính trận đã HOÀN TẤT ---------- */
+        function matchOutcome(m) {
+            const g1 = Number(m.gamesWon1) || 0, g2 = Number(m.gamesWon2) || 0;
+            let p1 = 0, p2 = 0;
+            if (Array.isArray(m.games) && m.games.length) m.games.forEach(x => { p1 += Number(x.a) || 0; p2 += Number(x.b) || 0; });
+            else { p1 = Number(m.team1Score) || 0; p2 = Number(m.team2Score) || 0; }
+            let winnerId = m.winnerId || null;
+            if (!winnerId) winnerId = g1 !== g2 ? (g1 > g2 ? m.team1Id : m.team2Id) : (p1 > p2 ? m.team1Id : (p2 > p1 ? m.team2Id : null));
+            return { p1, p2, g1, g2, winnerId };
+        }
+        function computeGroupStats(g) {
+            const done = matches.filter(m => (!m.stage || m.stage === 'GROUP') && m.group === g && m.status === 'COMPLETED');
+            const rows = teams.filter(t => t.group === g).map(t => {
+                let wins = 0, diff = 0, played = 0; const beat = {};
+                done.forEach(m => {
+                    const first = m.team1Id === t.id;
+                    if (!first && m.team2Id !== t.id) return;
+                    const o = matchOutcome(m); played++;
+                    diff += first ? o.p1 - o.p2 : o.p2 - o.p1;
+                    if (o.winnerId === t.id) { wins++; beat[first ? m.team2Id : m.team1Id] = true; }
+                });
+                return { ...t, played, wins, diff, pts: wins, beat };
+            });
+            // Thứ tự: số trận thắng ➔ hiệu số điểm ➔ đối đầu
+            return rows.sort((a, b) => b.pts - a.pts || b.diff - a.diff || ((b.beat[a.id] ? 1 : 0) - (a.beat[b.id] ? 1 : 0)));
+        }
+
         function beginConfigEdit(section) {
             if (!isAdmin) { showToast('Chỉ Admin mới được chỉnh sửa cấu hình!', 'warning'); return; }
             if (!configEditSnapshot) configEditSnapshot = JSON.parse(JSON.stringify(tournamentConfig));
@@ -786,7 +1208,7 @@
             if (!isAdmin) return;
             const read = id => document.getElementById(id)?.value ?? '';
             if (section === 'general') {
-                tournamentConfig.firebaseUrl = read('cfgFirebaseUrl');
+                { const _old = tournamentConfig.firebaseUrl; tournamentConfig.firebaseUrl = read('cfgFirebaseUrl').trim(); if ((_old || '') !== tournamentConfig.firebaseUrl) fbUrlChanged = true; }
                 tournamentConfig.name = read('cfgTourneyName');
                 tournamentConfig.location = read('cfgLocation');
                 tournamentConfig.date = read('cfgDate');
@@ -828,6 +1250,7 @@
             renderAllTabs();
             updateAdminUIState();
             showToast('Đã lưu và áp dụng thiết lập thành công!', 'success');
+            if (fbUrlChanged) { fbUrlChanged = false; setTimeout(() => location.reload(), 900); }
         }
         function cancelConfigEdit(section) {
             if (configEditSnapshot) tournamentConfig = JSON.parse(JSON.stringify(configEditSnapshot));
@@ -854,14 +1277,18 @@
 
         window.addEventListener('DOMContentLoaded', () => {
             loadLocalState();
-            initDefaultData();
+            // Link Firebase cũ (mặc định của bản trước) đã lưu trong trình duyệt -> chuyển sang link mặc định mới
+            if (/pickleball-34cb5/i.test(tournamentConfig.firebaseUrl || '')) { tournamentConfig.firebaseUrl = DEFAULT_FIREBASE_URL; saveLocalState(); }
+            FB.enabled = fbWillUse();
+            if (!FB.enabled) initDefaultData();
             if (new URLSearchParams(window.location.search).get('viewer') === '1') enableViewerMode();
             const sharedMatchId = Number(new URLSearchParams(window.location.search).get('match'));
-            if (sharedMatchId) setTimeout(() => openRefereeScreen(sharedMatchId), 300);
+            if (sharedMatchId) fbWhenReady(() => openRefereeScreen(sharedMatchId));
             initPlayoffConfigUI();
             renderAllTabs();
             updateAdminUIState();
             initTVClock();
+            fbStart();
         });
 
         function loadLocalState() {
@@ -904,6 +1331,7 @@
             }};
         }
         function saveLocalState() {
+            ensureAdminHash();
             const current = readSharedState();
             const version = Math.max(Number(current?.version) || 0, sharedStateVersion) + 1;
             const timestamp = Date.now();
@@ -919,10 +1347,12 @@
             localStorage.setItem('pb_config', JSON.stringify(state.config));
             localStorage.setItem('pb_teams', JSON.stringify(state.teams));
             localStorage.setItem('pb_matches', JSON.stringify(state.matches));
-            setSyncStatus('Đã đồng bộ');
+            setSyncStatus(FB.enabled ? (FB.online ? 'Đang gửi' : 'Mất kết nối') : 'Chế độ offline');
             window.dispatchEvent(new CustomEvent('picklepro:state-changed', { detail: { version, timestamp } }));
+            fbPushDiff();
         }
         function refreshSharedState() {
+            if (FB.enabled) return false;
             if (stateSyncInProgress) return false;
             setSyncStatus('Đang cập nhật');
             stateSyncInProgress = true;
@@ -1146,7 +1576,7 @@
         }
         function submitAdminAuth() {
             const pass = document.getElementById('adminPassInput').value;
-            if (pass === tournamentConfig.adminPass) {
+            if (checkAdminPass(pass)) {
                 isAdmin = true;
                 closeAdminAuthModal();
                 showToast("Đăng nhập Admin thành công!", "success");
@@ -1254,8 +1684,10 @@
             if (file.size > 5 * 1024 * 1024) { showToast('Ảnh cần nhỏ hơn 5MB!', 'warning'); return; }
             const reader = new FileReader();
             reader.onload = (event) => {
-                const t = teams.find(x => x.id === id);
-                if (t) { t.avatar = event.target.result; saveLocalState(); renderTab1(); showToast('Đã cập nhật ảnh đại diện!', 'success'); }
+                fbCompressImage(event.target.result, 256, 0.82).then(dataUrl => {
+                    const t = teams.find(x => x.id === id);
+                    if (t) { t.avatar = dataUrl; saveLocalState(); renderTab1(); showToast('Đã cập nhật ảnh đại diện!', 'success'); }
+                }).catch(() => showToast('Không thể xử lý ảnh!', 'warning'));
             };
             reader.onerror = () => showToast('Không thể đọc tệp ảnh!', 'warning');
             reader.readAsDataURL(file);
@@ -1282,7 +1714,7 @@
                 if (m.status === 'COMPLETED') badge = `<span class="bg-emerald-500/20 text-emerald-400 text-[10px] px-2 py-0.5 rounded font-bold">✓ HOÀN TẤT</span>`;
                 return `
                     <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 space-y-3 shadow-lg">
-                        <div class="flex justify-between items-center text-xs"><span class="font-bold text-slate-400">${m.roundName} • Sân ${m.courtId}</span>${badge}</div>
+                        <div class="flex justify-between items-center text-xs"><span class="font-bold text-slate-400">${m.roundName} • Sân ${m.courtId}${matchGameSuffix(m)}</span>${badge}</div>
                         <div class="flex items-center justify-between py-2 border-y border-slate-800">
                             <div class="flex-1 text-right font-bold text-sm text-white truncate pr-3">${t1.name}</div>
                             <div class="bg-slate-950 px-4 py-1.5 rounded-xl border border-slate-800 text-xl font-mono font-black text-yellow-400 flex gap-2"><span>${m.team1Score}</span><span>-</span><span>${m.team2Score}</span></div>
@@ -1358,23 +1790,12 @@
         }
         function renderTab4() {
             document.getElementById('standingsGroupsContainer').innerHTML = ['A', 'B', 'C', 'D'].map(g => {
-                const stats = teams.filter(t => t.group === g).map(t => {
-                    const playedMatches = matches.filter(m => (m.team1Id === t.id || m.team2Id === t.id) && (m.status === 'LIVE' || m.status === 'COMPLETED'));
-                    let wins = 0, diff = 0;
-                    playedMatches.forEach(m => {
-                        const isTeam1 = m.team1Id === t.id;
-                        const own = isTeam1 ? Number(m.team1Score) : Number(m.team2Score);
-                        const opp = isTeam1 ? Number(m.team2Score) : Number(m.team1Score);
-                        diff += own - opp;
-                        if (own > opp) wins++;
-                    });
-                    return { ...t, played: playedMatches.length, wins, diff, pts: wins };
-                }).sort((a,b)=>b.pts-a.pts || b.diff-a.diff);
+                const stats = computeGroupStats(g);
                 return `
                     <div class="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden shadow-lg">
                         <div class="bg-emerald-600/20 px-4 py-3 border-b border-slate-800 font-bold text-sm text-emerald-400 flex justify-between"><span>BẢNG ${g}</span><span class="text-xs text-slate-400">Top 2 vào Seri A</span></div>
                         <table class="w-full text-xs text-left"><thead class="bg-slate-950 text-slate-400 uppercase text-[10px] font-bold"><tr><th class="px-3 py-2 text-center w-10">Hạng</th><th class="px-3 py-2">Đội</th><th class="px-3 py-2 text-center">Trận</th><th class="px-3 py-2 text-center">T</th><th class="px-3 py-2 text-center">HS</th><th class="px-3 py-2 text-center">Điểm</th></tr></thead>
-                        <tbody class="divide-y divide-slate-800/60">${stats.map((s, idx) => `<tr class="${idx < 2 ? 'bg-emerald-500/10' : ''}"><td class="px-3 py-2.5 text-center font-bold text-amber-400">${idx + 1}</td><td class="px-3 py-2.5 font-bold text-white">${s.name}</td><td class="px-3 py-2.5 text-center text-slate-400">${s.played}</td><td class="px-3 py-2.5 text-center text-emerald-400 font-bold">${s.wins}</td><td class="px-3 py-2.5 text-center text-slate-300 font-mono">+${s.diff}</td><td class="px-3 py-2.5 text-center font-bold text-cyan-400 font-mono">${s.pts}</td></tr>`).join('')}</tbody></table>
+                        <tbody class="divide-y divide-slate-800/60">${stats.map((s, idx) => `<tr class="${idx < 2 ? 'bg-emerald-500/10' : ''}"><td class="px-3 py-2.5 text-center font-bold text-amber-400">${idx + 1}</td><td class="px-3 py-2.5 font-bold text-white">${s.name}</td><td class="px-3 py-2.5 text-center text-slate-400">${s.played}</td><td class="px-3 py-2.5 text-center text-emerald-400 font-bold">${s.wins}</td><td class="px-3 py-2.5 text-center text-slate-300 font-mono">${s.diff > 0 ? '+' : ''}${s.diff}</td><td class="px-3 py-2.5 text-center font-bold text-cyan-400 font-mono">${s.pts}</td></tr>`).join('')}</tbody></table>
                     </div>`;
             }).join('');
         }
@@ -1446,6 +1867,7 @@
             const m = matches.find(x => x.id === refState.matchId);
             if (!m || !refState.matchId) { showToast('Chưa có ván đang mở để đặt lại.', 'warning'); return; }
             pmState = { firstTeam: null, firstServerPlayer: null };
+            document.getElementById('resetSetupHint').innerText = 'Chọn đội và VĐV giao bóng đầu tiên để đặt lại ván.';
             document.getElementById('resetSetupHint').classList.remove('hidden');
             document.querySelector('[data-template-id="prematch-heading"]').textContent = 'ĐẶT LẠI VÁN ĐẤU';
             document.getElementById('btnStartMatchConfirm').disabled = true;
@@ -1468,7 +1890,7 @@
             refState[`${key}_even`] = selectedPlayer;
             refState[`${key}_odd`] = otherPlayer;
             refState.team1.score = 0; refState.team2.score = 0;
-            refState.history = []; refState.gameOver = false;
+            refState.history = []; refState.gameOver = false; refState.gameWinner = 0;
             refState.servingTeam = pmState.firstTeam;
             refState.serverNumber = 2;
             refState.serverPlayerId = selectedPlayer;
@@ -1501,10 +1923,17 @@
                 servingTeam: 1, serverNumber: 1, serverPlayerId: 'p1',
                 t1_even: 'p1', t1_odd: 'p2', t2_even: 'p1', t2_odd: 'p2', history: []
             };
-            document.getElementById('pmTeam1Name').innerText = t1.name;
-            document.getElementById('pmTeam2Name').innerText = t2.name;
-            document.getElementById('preMatchModal').classList.remove('hidden');
-            document.getElementById('preMatchModal').classList.add('flex');
+            initRefStateFromMatch(m);
+            const showPreMatch = () => {
+                document.querySelector('[data-template-id="prematch-heading"]').textContent = 'THIẾT LẬP TRƯỚC TRẬN ĐẤU';
+                document.getElementById('resetSetupHint').classList.add('hidden');
+                document.getElementById('btnStartMatchConfirm').onclick = confirmStartMatch;
+                document.getElementById('pmTeam1Name').innerText = t1.name;
+                document.getElementById('pmTeam2Name').innerText = t2.name;
+                document.getElementById('preMatchModal').classList.remove('hidden');
+                document.getElementById('preMatchModal').classList.add('flex');
+            };
+            fbRestoreLive(m, showPreMatch);
         }
         function closeRefereeScreen() {
             document.getElementById('refereeOverlay').classList.add('hidden');
@@ -1573,7 +2002,7 @@
             const now = Date.now();
             if (now - lastTapTime < 400 || refState.gameOver) return;
             lastTapTime = now;
-            const before = JSON.parse(JSON.stringify(refState));
+            const before = snapRef();
             const servingTeam = refState.servingTeam;
             const servingKey = servingTeam === 1 ? 't1' : 't2';
             const wasOpeningServe = refState.team1.score === 0 && refState.team2.score === 0 && refState.serverNumber === 2 && refState.history.length === 0;
@@ -1612,16 +2041,17 @@
                 transition = 'Đổi người giao';
             }
 
-            const winningScore = servingTeam === 1 ? refState.team1.score : refState.team2.score;
-            const receivingScore = servingTeam === 1 ? refState.team2.score : refState.team1.score;
             const currentScore = refState.servingTeam === 1 ? refState.team1.score : refState.team2.score;
             const opponentScore = refState.servingTeam === 1 ? refState.team2.score : refState.team1.score;
-            refState.gameOver = currentScore >= 11 && currentScore - opponentScore >= 2;
+            const _gw = gameWinnerOf(refState.team1.score, refState.team2.score, refRules());
+            refState.gameOver = _gw > 0; refState.gameWinner = _gw;
+            if (_gw) finishCurrentGame(_gw);
             refState.history.push({ ...before, rallyWinner: winningTeam, scoreAfter: `${refState.team1.score}-${refState.team2.score}`, displayAfter: `${currentScore}-${opponentScore}-${refState.serverNumber}`, transition, servingTeamAfter: refState.servingTeam, serverPlayerIdAfter: refState.serverPlayerId, gameOverAfter: refState.gameOver });
             update2DCourtUI();
         }
         function swapCourtSides() {
-            refState.history.push(JSON.parse(JSON.stringify(refState)));
+            refState.history.push(snapRef());
+            refState.sidesSwapped = !refState.sidesSwapped;
             const team1 = refState.team1;
             refState.team1 = refState.team2;
             refState.team2 = team1;
@@ -1633,7 +2063,7 @@
             showToast('Đã đổi sân cho hai đội!', 'info');
         }
         function manualSwapPlayers(teamNum) {
-            refState.history.push(JSON.parse(JSON.stringify(refState)));
+            refState.history.push(snapRef());
             if (teamNum === 1) {
                 let tmp = refState.t1_even; refState.t1_even = refState.t1_odd; refState.t1_odd = tmp;
             } else {
@@ -1644,11 +2074,12 @@
         }
         function undoLastRally() {
             if (refState.history.length === 0) { showToast("Không có thao tác để Undo!", "warning"); return; }
-            refState = refState.history.pop();
+            const prev = refState.history.pop(); prev.history = refState.history; refState = prev;
             showToast("Đã hoàn tác 1 pha bóng!", "info");
             update2DCourtUI();
         }
         function update2DCourtUI() {
+            if (refState.history.length > 80) refState.history.splice(0, refState.history.length - 80);
             document.getElementById('refT1NameDisplay').innerText = refState.team1.name;
             document.getElementById('refT1PlayersDisplay').innerText = `${refState.team1.p1} / ${refState.team1.p2}`;
             document.getElementById('refT2NameDisplay').innerText = refState.team2.name;
@@ -1665,7 +2096,7 @@
             document.getElementById('courtTeam2Zone').style.pointerEvents = gameOver ? 'none' : '';
             document.getElementById('refTeleprompter').classList.toggle('text-red-400', gameOver);
             document.getElementById('refTeleprompter').innerText = gameOver
-                ? `VÁN KẾT THÚC · ${refState.team1.score}-${refState.team2.score}`
+                ? refGameOverText()
                 : `${servScore} - ${recvScore} - ${refState.serverNumber}`;
             const historyEl = document.getElementById('rallyHistory');
             if (historyEl) {
@@ -1713,14 +2144,14 @@
                 document.getElementById(`pBall_${activeKey}`).classList.remove('hidden');
                 document.getElementById(`pAvatar_${activeKey}`).classList.add('border-yellow-400', 'bg-yellow-500', 'text-slate-950');
             }
+            refreshRefereeHeader();
             const m = matches.find(x => Number(x.id) === Number(refState.matchId));
             if (m) {
-                m.team1Score = Number(refState.team1.score) || 0;
-                m.team2Score = Number(refState.team2.score) || 0;
-                m.status = refState.gameOver ? 'COMPLETED' : 'LIVE';
+                const _sc = refScoresForMatch(); m.team1Score = _sc[0]; m.team2Score = _sc[1];
+                syncRefStateToMatch(m);
                 m.updatedAt = Date.now();
                 m.courtId = Number(m.courtId) || 1;
-                if (!isApplyingSharedState) saveLocalState();
+                if (!isApplyingSharedState) { saveLocalState(); fbPushLive(); }
                 refreshSharedState();
                 renderTab2();
                 renderTab3();
@@ -1761,30 +2192,39 @@
             });
             showToast("Đã khôi phục các lượt Timeout & Y tế!", "info");
         }
-        function openWOModal() { document.getElementById('woModal').classList.remove('hidden'); document.getElementById('woModal').classList.add('flex'); }
+        function openWOModal() {
+            document.getElementById('woLabelTeam1').innerText = refState.team1.name || 'Đội 1';
+            document.getElementById('woLabelTeam2').innerText = refState.team2.name || 'Đội 2';
+            document.getElementById('woModal').classList.remove('hidden'); document.getElementById('woModal').classList.add('flex');
+        }
         function closeWOModal() { document.getElementById('woModal').classList.add('hidden'); }
         function confirmWOFinish() {
             const score1 = Math.max(0, Number(document.getElementById('woScoreTeam1')?.value) || 0);
             const score2 = Math.max(0, Number(document.getElementById('woScoreTeam2')?.value) || 0);
-            refState.team1.score = score1;
-            refState.team2.score = score2;
-            refState.gameOver = true;
+            if (score1 === score2) { showToast('Tỷ số W.O phải phân thắng bại, không được hòa.', 'warning'); return; }
+            refState.team1.score = score1; refState.team2.score = score2;
+            forceEndMatch(score1 > score2 ? 1 : 2);
             closeWOModal();
             finishRefereeMatch();
         }
         function finishRefereeMatch() {
-            const m = matches.find(x => Number(x.id) === Number(refState.matchId));
+            if (!refState.matchOver) {
+                if (!window.confirm('Trận chưa kết thúc theo luật. Kết thúc ngay theo tỷ số hiện tại?')) return;
+                const w = pickForcedWinner();
+                if (!w) { showToast('Đang hòa nên chưa thể xác định đội thắng. Hãy dùng W.O để chọn tỷ số.', 'warning'); return; }
+                forceEndMatch(w);
+            }
+            const m = refMatch();
             if (m) {
-                m.team1Score = Number(refState.team1.score) || 0;
-                m.team2Score = Number(refState.team2.score) || 0;
-                m.status = 'COMPLETED';
+                const _sc = refScoresForMatch(); m.team1Score = _sc[0]; m.team2Score = _sc[1];
+                syncRefStateToMatch(m);
                 m.updatedAt = Date.now();
                 m.courtId = Number(m.courtId) || 1;
                 saveLocalState();
                 refreshSharedState();
                 renderTab2(); renderTab3(); renderTab4(); renderTab9();
             }
-            closeRefereeScreen(); showToast("Đã hoàn tất trận đấu!", "success"); switchTab('tab2');
+            fbClearLive(refState.matchId); closeRefereeScreen(); showToast("Đã hoàn tất trận đấu!", "success"); switchTab('tab2');
         }
         function openQRModal(id) {
             const m = matches.find(x => x.id === id);
@@ -1824,8 +2264,10 @@
             const el = document.getElementById('syncStatus');
             if (!el) return;
             el.innerText = label;
-            el.classList.toggle('text-yellow-300', label === 'Đang cập nhật');
-            el.classList.toggle('text-emerald-300', label !== 'Đang cập nhật');
+            const bad = /offline|Mất kết nối|Lỗi/i.test(label), busy = label === 'Đang cập nhật' || label === 'Đang gửi';
+            el.classList.toggle('text-yellow-300', busy);
+            el.classList.toggle('text-red-400', bad);
+            el.classList.toggle('text-emerald-300', !bad && !busy);
             clearTimeout(syncStatusTimer);
             if (label === 'Đã đồng bộ') syncStatusTimer = setTimeout(() => el.classList.add('opacity-70'), 1800);
             else el.classList.remove('opacity-70');
