@@ -782,7 +782,9 @@
            - live/m{id}: trạng thái giao bóng + lịch sử của trọng tài (chỉ đọc khi mở lại trận).
            - Mật khẩu Admin không đẩy lên DB, chỉ đẩy mã băm (SHA-256).                          */
         const FB_ROOT_PATH = 'picklepro';
+        const PICKLEPRO_BUILD = 'v3 · 07/11/2026';
         const FB = { enabled: false, ready: false, online: false, db: null, root: null, applying: false,
+            error: null, pending: 0, localEdited: false, lastSync: 0, lastToast: '', retryTimer: null, retryMs: 10000,
             lastSent: { config: '', started: null, teams: {}, matches: {} }, readyQueue: [], dirty: {} };
         let fbUrlChanged = false;
         let fbRenderTimer = null;
@@ -867,15 +869,28 @@
                 const c = fbClean(m), s = fbStable(c);
                 if (FB.lastSent.matches[m.id] !== s) { upd['matches/m' + m.id] = c; FB.lastSent.matches[m.id] = s; count++; }
             });
-            if (!count) { if (FB.online) setSyncStatus('Đã đồng bộ'); return; }
-            setSyncStatus('Đang gửi');
-            FB.root.update(upd).then(() => { if (FB.online) setSyncStatus('Đã đồng bộ'); }).catch(fbFail);
+            if (!count) { fbRefreshStatus(); return; }
+            FB.pending++; fbRefreshStatus();
+            FB.root.update(upd)
+                .then(() => { FB.pending--; FB.error = null; FB.lastSync = Date.now(); fbRefreshStatus(); })
+                .catch(err => { FB.pending--; fbFail(err); });
+        }
+        // Nhãn trạng thái luôn suy ra từ trạng thái thật, không bị sự kiện khác ghi đè
+        function fbRefreshStatus() {
+            if (!FB.enabled) return setSyncStatus('Chế độ offline');
+            if (FB.error) return setSyncStatus(FB.error.kind === 'timeout' ? 'Mất kết nối' : 'Lỗi Firebase');
+            if (!FB.ready) return setSyncStatus('Đang cập nhật');
+            if (!FB.online) return setSyncStatus('Mất kết nối');
+            if (FB.pending > 0) return setSyncStatus('Đang gửi');
+            return setSyncStatus('Đã đồng bộ');
         }
         function fbFail(err) {
             console.error('[Firebase]', err);
             const denied = err && (err.code === 'PERMISSION_DENIED' || /permission/i.test(err.message || ''));
-            setSyncStatus('Lỗi Firebase');
-            showToast(denied ? 'Firebase từ chối truy cập, hãy kiểm tra Rules.' : 'Lỗi Firebase: ' + ((err && err.message) || err));
+            FB.error = { kind: denied ? 'denied' : 'error', message: String((err && err.message) || err) };
+            const msg = denied ? 'Firebase từ chối truy cập: hãy dán Rules mới và bấm Publish.' : 'Lỗi Firebase: ' + FB.error.message;
+            if (FB.lastToast !== msg) { FB.lastToast = msg; showToast(msg); }
+            fbRefreshStatus();
         }
 
         /* ---------- Nhận từ Firebase ---------- */
@@ -886,8 +901,17 @@
             if (fbStable(arr) === fbStable(teams.map(fbNormTeam))) return;
             teams = arr; fbCacheLocal(); fbMarkDirty('teams');
         }
-        function fbOnMatches(v) {
+        function fbOnMatches(v, mergeLocalNewer) {
             const arr = fbMatchesFromRemote(v);
+            if (mergeLocalNewer) {
+                // Vừa kết nối lại: trận nào sửa trên máy này mới hơn Firebase thì giữ bản trên máy và gửi lên
+                const merged = arr.map(r => { const l = matches.find(x => x.id === r.id); return (l && (Number(l.updatedAt) || 0) > (Number(r.updatedAt) || 0)) ? fbClean(l) : r; });
+                matches.forEach(l => { if (!merged.some(r => r.id === l.id)) merged.push(fbClean(l)); });
+                merged.sort((a, b) => fbNum(a.id) - fbNum(b.id));
+                arr.forEach(r => { const m = merged.find(x => x.id === r.id); if (m && fbStable(m) === fbStable(r)) FB.lastSent.matches[r.id] = fbStable(r); });
+                if (fbStable(merged) !== fbStable(matches.map(fbClean))) { matches = merged; fbCacheLocal(); fbMarkDirty('matches'); }
+                return;
+            }
             arr.forEach(m => { FB.lastSent.matches[m.id] = fbStable(m); });
             if (fbStable(arr) === fbStable(matches.map(fbClean))) return;
             matches = arr; fbCacheLocal(); fbMarkDirty('matches');
@@ -938,41 +962,85 @@
 
         /* ---------- Khởi động ---------- */
         function fbStart() {
-            if (!FB.enabled) { setSyncStatus('Chế độ offline'); return; }
+            console.info('[PicklePro] build', PICKLEPRO_BUILD);
+            fbDebugPanel();
+            if (!FB.enabled) { fbRefreshStatus(); return; }
             ensureAdminHash();
             try {
                 const url = fbNormalizeUrl(tournamentConfig.firebaseUrl || DEFAULT_FIREBASE_URL);
                 const app = (firebase.apps || []).find(a => a.name === 'picklepro') || firebase.initializeApp({ databaseURL: url }, 'picklepro');
                 FB.db = app.database();
                 FB.root = FB.db.ref(FB_ROOT_PATH);
-            } catch (e) { FB.enabled = false; fbFail(e); return; }
-            setSyncStatus('Đang cập nhật');
-            FB.db.ref('.info/connected').on('value', s => {
-                FB.online = !!s.val();
-                setSyncStatus(FB.online ? 'Đã đồng bộ' : 'Mất kết nối');
-            });
+            } catch (e) { fbFail(e); FB.enabled = false; fbRefreshStatus(); return; }
+            fbRefreshStatus();
+            FB.db.ref('.info/connected').on('value', s => { FB.online = !!s.val(); fbRefreshStatus(); });
+            fbConnect();
+        }
+        // Đọc dữ liệu lần đầu. Nếu bị từ chối (Rules chưa Publish) hoặc lỗi mạng thì tự thử lại, giao diện vẫn dùng dữ liệu trên máy.
+        function fbConnect() {
+            clearTimeout(FB.retryTimer);
+            let settled = false;
             const giveUp = setTimeout(() => {
-                if (!FB.ready) { showToast('Chưa kết nối được Firebase, đang dùng dữ liệu lưu trên máy.'); fbFlushReady(); }
+                if (settled || FB.ready) return;
+                FB.error = { kind: 'timeout', message: 'Hết thời gian chờ Firebase' };
+                if (FB.lastToast !== 'timeout') { FB.lastToast = 'timeout'; showToast('Chưa kết nối được Firebase, đang dùng dữ liệu lưu trên máy.'); }
+                fbRefreshStatus(); fbFlushReady();
             }, 8000);
             FB.root.once('value').then(snap => {
-                clearTimeout(giveUp);
-                const v = snap.val() || {};
+                settled = true; clearTimeout(giveUp);
+                if (FB.ready) return;
+                FB.error = null;
+                fbAdoptRemote(snap.val() || {});
+            }).catch(err => {
+                settled = true; clearTimeout(giveUp);
+                fbFail(err); fbFlushReady();
+                FB.retryTimer = setTimeout(fbConnect, FB.retryMs);
+            });
+        }
+        function fbAdoptRemote(v) {
+            let keepLocal = false;
+            if (FB.localEdited && (v.config || v.teams || v.started != null)) {
+                keepLocal = window.confirm('Máy này có thay đổi chưa gửi lên Firebase (làm lúc mất kết nối).\n\nOK: giữ dữ liệu trên máy và ghi đè Firebase.\nHủy: lấy dữ liệu từ Firebase.');
+            }
+            if (!keepLocal) {
                 if (v.config) fbOnConfig(v.config);
                 if (v.started != null) fbOnStarted(v.started);
                 if (v.teams) fbOnTeams(v.teams);
-                if (v.matches) fbOnMatches(v.matches);
-                if (!v.teams || !v.matches) { initDefaultData(); }   // DB trống: gieo dữ liệu mẫu 1 lần
-                FB.ready = true;
-                fillConfigForm(); initPlayoffConfigUI(); applyStartedUI();
-                fbPushDiff();
-                const r = FB.root;
-                r.child('config').on('value', s => fbOnConfig(s.val()));
-                r.child('started').on('value', s => fbOnStarted(s.val()));
-                r.child('teams').on('value', s => fbOnTeams(s.val()));
-                r.child('matches').on('value', s => fbOnMatches(s.val()));
-                fbMarkDirty('teams'); fbMarkDirty('config'); fbMarkDirty('started');
-                fbFlushReady();
-            }).catch(err => { clearTimeout(giveUp); fbFail(err); fbFlushReady(); });
+            }
+            if (v.matches) fbOnMatches(v.matches, FB.localEdited);
+            else if (v.teams && !keepLocal) matches = [];
+            initDefaultData();   // chỉ tạo khi còn thiếu (Firebase trống lần đầu)
+            FB.localEdited = false; FB.ready = true; FB.lastSync = Date.now();
+            fillConfigForm(); initPlayoffConfigUI(); applyStartedUI();
+            fbPushDiff();
+            const r = FB.root;
+            r.child('config').on('value', s => fbOnConfig(s.val()));
+            r.child('started').on('value', s => fbOnStarted(s.val()));
+            r.child('teams').on('value', s => fbOnTeams(s.val()));
+            r.child('matches').on('value', s => fbOnMatches(s.val()));
+            fbMarkDirty('teams'); fbMarkDirty('config'); fbMarkDirty('started');
+            fbFlushReady(); fbRefreshStatus();
+        }
+        // Bảng chẩn đoán: chỉ hiện khi mở link có ?debug=1, giao diện bình thường không đổi
+        function fbDebugPanel() {
+            if (new URLSearchParams(location.search).get('debug') !== '1') return;
+            const box = document.createElement('div');
+            box.style.cssText = 'position:fixed;left:8px;bottom:8px;z-index:99999;max-width:94vw;background:#020617ee;color:#e2e8f0;border:1px solid #334155;border-radius:12px;padding:10px 12px;font:12px/1.5 monospace;white-space:pre-wrap';
+            const pre = document.createElement('div'); box.appendChild(pre);
+            const btn = (t, f) => { const b = document.createElement('button'); b.textContent = t; b.style.cssText = 'margin:6px 6px 0 0;padding:5px 10px;border-radius:8px;background:#0f766e;color:#fff;border:0;font:12px sans-serif'; b.onclick = f; box.appendChild(b); };
+            btn('Ghi thử', async () => {
+                try { const ref = FB.root.child('live/_ping'); await ref.set(Date.now()); const s = await ref.once('value'); await ref.remove(); alert('Ghi và đọc thử OK: ' + s.val()); }
+                catch (e) { alert('Lỗi: ' + (e.code || '') + ' ' + (e.message || e)); }
+            });
+            btn('Kết nối lại', () => { FB.error = null; fbConnect(); fbRefreshStatus(); });
+            document.body.appendChild(box);
+            const upd = () => {
+                pre.textContent = ['PicklePro ' + PICKLEPRO_BUILD, 'SDK Firebase: ' + (typeof firebase !== 'undefined' ? 'đã tải' : 'KHÔNG tải được'),
+                    'Link DB: ' + (tournamentConfig.firebaseUrl || DEFAULT_FIREBASE_URL), 'enabled=' + FB.enabled + ' ready=' + FB.ready + ' online=' + FB.online + ' đang gửi=' + FB.pending,
+                    'Lỗi: ' + (FB.error ? FB.error.kind + ' - ' + FB.error.message : 'không'), 'Dữ liệu trên máy: ' + teams.length + ' đội, ' + matches.length + ' trận, started=' + isTournamentStarted,
+                    'Đồng bộ lần cuối: ' + (FB.lastSync ? new Date(FB.lastSync).toLocaleTimeString() : 'chưa'), 'Có thay đổi chưa gửi: ' + FB.localEdited].join('\n');
+            };
+            setInterval(upd, 1000); upd();
         }
         function fbWhenReady(cb) {
             if (!FB.enabled) { setTimeout(cb, 300); return; }
@@ -1280,7 +1348,7 @@
             // Link Firebase cũ (mặc định của bản trước) đã lưu trong trình duyệt -> chuyển sang link mặc định mới
             if (/pickleball-34cb5/i.test(tournamentConfig.firebaseUrl || '')) { tournamentConfig.firebaseUrl = DEFAULT_FIREBASE_URL; saveLocalState(); }
             FB.enabled = fbWillUse();
-            if (!FB.enabled) initDefaultData();
+            initDefaultData();   // luôn có dữ liệu để hiển thị; khi Firebase tải xong sẽ thay thế
             if (new URLSearchParams(window.location.search).get('viewer') === '1') enableViewerMode();
             const sharedMatchId = Number(new URLSearchParams(window.location.search).get('match'));
             if (sharedMatchId) fbWhenReady(() => openRefereeScreen(sharedMatchId));
@@ -1347,7 +1415,8 @@
             localStorage.setItem('pb_config', JSON.stringify(state.config));
             localStorage.setItem('pb_teams', JSON.stringify(state.teams));
             localStorage.setItem('pb_matches', JSON.stringify(state.matches));
-            setSyncStatus(FB.enabled ? (FB.online ? 'Đang gửi' : 'Mất kết nối') : 'Chế độ offline');
+            if (FB.enabled && !FB.ready && !FB.applying) FB.localEdited = true;
+            fbRefreshStatus();
             window.dispatchEvent(new CustomEvent('picklepro:state-changed', { detail: { version, timestamp } }));
             fbPushDiff();
         }
@@ -1626,13 +1695,7 @@
             btn.classList.toggle('bg-emerald-600', !isTournamentStarted);
             updateAdminUIState();
             // Refresh all public tournament views immediately when the event starts or unlocks.
-            if (isTournamentStarted) {
-                renderTab2();
-                renderTab3();
-                renderTab4();
-            } else {
-                renderAllTabs();
-            }
+            renderAllTabs();
             showToast(isTournamentStarted ? "Đã khóa cấu hình giải đấu!" : "Đã mở khóa cấu hình!", "info");
         }
         function syncSeriBFromA() {
