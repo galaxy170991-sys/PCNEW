@@ -53,6 +53,13 @@
         body.viewer-mode .tab-content.active { display: block !important; }
         /* Người xem (quét QR): chỉ xem tab 2, 4, 5, 6, 7, 9 */
         body.viewer-mode .nav-btn[data-tab="tab1"], body.viewer-mode .nav-btn[data-tab="tab3"], body.viewer-mode .nav-btn[data-tab="tab8"] { display: none !important; }
+        /* Người xem: thanh chọn tab riêng, luôn hiện cố định ở cuối màn hình */
+        body.viewer-mode #appSidebar, body.viewer-mode main > header button[onclick="toggleMobileSidebar()"] { display: none !important; }
+        body.viewer-mode #workspaceContainer { padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px)); }
+        #viewerNav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 9000; display: flex; gap: 6px; overflow-x: auto; padding: 8px 10px calc(8px + env(safe-area-inset-bottom, 0px)); background: rgba(2,6,23,.96); border-top: 1px solid #1e293b; backdrop-filter: blur(8px); }
+        #viewerNav button { flex: 1 0 auto; min-width: 64px; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 7px 10px; border-radius: 12px; font-size: 10px; font-weight: 700; color: #94a3b8; background: transparent; border: 1px solid transparent; white-space: nowrap; }
+        #viewerNav button i { font-size: 17px; }
+        #viewerNav button.active { color: #34d399; background: rgba(16,185,129,.12); border-color: rgba(16,185,129,.35); }
         body.viewer-mode #appSidebar nav .nav-btn[data-tab="tab4"],
         body.viewer-mode #appSidebar nav .nav-btn[data-tab="tab5"],
         body.viewer-mode #appSidebar nav .nav-btn[data-tab="tab6"],
@@ -1318,12 +1325,24 @@
             };
             document.getElementById('currentTabTitle').innerText = titles[tabId] || 'PicklePro';
             if (window.innerWidth < 768) document.getElementById('appSidebar').classList.add('-translate-x-full');
+            updateViewerNav(tabId);
             renderTabSpecific(tabId);
             currentTabId = tabId; saveUiSession();
         }
         function toggleMobileSidebar() { document.getElementById('appSidebar').classList.toggle('hidden'); }
+        function buildViewerNav() {
+            if (document.getElementById('viewerNav')) return;
+            const items = [['tab2', 'fa-calendar-days', 'Lịch đấu'], ['tab4', 'fa-ranking-star', 'Xếp hạng'], ['tab5', 'fa-trophy', 'Nhánh A'], ['tab6', 'fa-shield-halved', 'Nhánh B'], ['tab7', 'fa-award', 'Vinh danh'], ['tab9', 'fa-tv', 'TV']];
+            const nav = document.createElement('div'); nav.id = 'viewerNav';
+            nav.innerHTML = items.map(([id, ic, lb]) => `<button type="button" data-vtab="${id}" onclick="switchTab('${id}')"><i class="fas ${ic}"></i><span>${lb}</span></button>`).join('');
+            document.body.appendChild(nav);
+        }
+        function updateViewerNav(tabId) {
+            document.querySelectorAll('#viewerNav button').forEach(b => b.classList.toggle('active', b.dataset.vtab === tabId));
+        }
         function enableViewerMode() {
             document.body.classList.add('viewer-mode');
+            buildViewerNav();
             isAdmin = false;
             switchTab('tab2');
             showToast('Chế độ người xem: xem lịch đấu, bảng xếp hạng, nhánh đấu, vinh danh và TV Banner', 'info');
