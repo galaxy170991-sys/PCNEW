@@ -3204,7 +3204,7 @@
         <label class="mt-3 block text-xs text-slate-300">Auth Domain<input id="ppAuthDomain" autocomplete="off" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm" placeholder="your-project.firebaseapp.com" /></label>
         <label class="mt-3 block text-xs text-slate-300">Project ID<input id="ppProjectId" autocomplete="off" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm" value="pickleball-ba0cb" /></label>
         <label class="mt-3 block text-xs text-slate-300">App ID (không bắt buộc)<input id="ppAppId" autocomplete="off" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm" placeholder="1:...:web:..." /></label>
-        <button id="ppSaveFirebaseConfig" class="mt-3 w-full rounded-lg bg-cyan-700 px-4 py-2 text-sm font-bold">Lưu cấu hình Firebase trên thiết bị</button>
+        <button type="button" id="ppSaveFirebaseConfig" class="mt-3 w-full rounded-lg bg-cyan-700 px-4 py-3 text-sm font-bold text-white" style="pointer-events:auto;position:relative;z-index:2">Lưu cấu hình Firebase trên thiết bị</button><div id="ppFirebaseConfigMessage" class="mt-2 text-xs text-amber-300" aria-live="polite">Nhập đủ API Key, Auth Domain và Project ID rồi nhấn lưu.</div>
       </details>
       <div class="mt-4"><div class="text-sm font-bold">2. Đăng nhập tài khoản Admin</div>
         <label class="mt-3 block text-xs text-slate-300">Email Admin<input id="ppAdminEmail" type="email" autocomplete="username" class="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-2 text-sm" placeholder="admin@example.com" /></label>
@@ -3217,13 +3217,24 @@
     const c=readWebConfig();
     ['apiKey','authDomain','projectId','appId'].forEach(k=>{const x=document.getElementById('pp'+k[0].toUpperCase()+k.slice(1));if(x&&c[k])x.value=c[k]});
     document.getElementById('ppSecureClose').onclick=()=>{el.classList.add('hidden');el.classList.remove('flex')};
-    document.getElementById('ppSaveFirebaseConfig').onclick=async()=>{
+    function msg(t){const m=document.getElementById('ppAdminLoginMessage');if(m)m.textContent=t;const cmsg=document.getElementById('ppFirebaseConfigMessage');if(cmsg)cmsg.textContent=t;}
+    const saveConfigButton=document.getElementById('ppSaveFirebaseConfig');
+    saveConfigButton.type='button';
+    saveConfigButton.addEventListener('click',async(ev)=>{
+      ev.preventDefault();ev.stopPropagation();
       const v={apiKey:document.getElementById('ppApiKey').value.trim(),authDomain:document.getElementById('ppAuthDomain').value.trim(),projectId:document.getElementById('ppProjectId').value.trim(),appId:document.getElementById('ppAppId').value.trim()};
-      if(!v.apiKey||!v.authDomain||v.projectId!=='pickleball-ba0cb'){msg('Cần nhập API Key, Auth Domain và đúng Project ID pickleball-ba0cb.');return;}
-      try{writeWebConfig(v);const prior=(firebase.apps||[]).find(x=>x.name==='picklepro-main-v2');if(prior){await prior.delete();}const a=app();a.auth();msg('Đã lưu cấu hình Firebase. Bạn có thể đăng nhập Admin.');if(typeof initFirebaseSync==='function'){fbStarted=false;initFirebaseSync();}}
-      catch(e){msg('Không khởi tạo được Firebase: '+(e.message||e));}
-    };
-    function msg(t){document.getElementById('ppAdminLoginMessage').textContent=t;}
+      if(!v.apiKey||!v.authDomain||v.projectId!=='pickleball-ba0cb'){msg('Chưa lưu: cần nhập API Key, Auth Domain và đúng Project ID pickleball-ba0cb.');return;}
+      if(v.authDomain!=='pickleball-ba0cb.firebaseapp.com'){msg('Auth Domain chưa đúng. Hãy nhập pickleball-ba0cb.firebaseapp.com.');return;}
+      if(typeof firebase==='undefined'||!firebase.initializeApp){msg('Không tải được Firebase SDK. Hãy kiểm tra Internet rồi tải lại trang.');return;}
+      try{
+        writeWebConfig(v);
+        const prior=(firebase.apps||[]).find(x=>x.name==='picklepro-main-v2');
+        if(prior)await prior.delete();
+        const a=app();a.auth();
+        msg('ĐÃ LƯU cấu hình Firebase trên thiết bị này. Database: pickleball-ba0cb.');
+        if(typeof initFirebaseSync==='function'){fbStarted=false;initFirebaseSync();}
+      }catch(e){msg('Lỗi khi lưu/khởi tạo Firebase: '+(e.code||e.message||e));}
+    },{passive:false});
     document.getElementById('ppAdminLogin').onclick=async()=>{
       const email=document.getElementById('ppAdminEmail').value.trim(),password=document.getElementById('ppAdminPassword').value;
       if(!email||!password){msg('Nhập email và mật khẩu Firebase Authentication.');return;}
