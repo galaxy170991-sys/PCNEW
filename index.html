@@ -194,39 +194,65 @@
         #rallyHistoryItems::-webkit-scrollbar { width: 7px; }
         #rallyHistoryItems::-webkit-scrollbar-track { background: #0f172a; border-radius: 999px; }
         #rallyHistoryItems::-webkit-scrollbar-thumb { background: #475569; border-radius: 999px; }
-        /* Touch-first referee layout: keep controls clear in both iPhone orientations. */
+        /* ===== Màn hình trọng tài: co giãn theo màn hình (iPhone/iPad, dọc & ngang), mọi phần tử nằm trong luồng nên không chồng lấn ===== */
         #refereeOverlay { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); overflow: hidden; }
-        #refereeOverlay button { min-height: 38px; touch-action: manipulation; }
-        #refereeOverlay .bg-slate-900\/90 { flex-shrink: 0; }
-        #refereeOverlay #rallyHistory { flex-shrink: 1; }
-        #refereeOverlay > .bg-slate-900:last-child { position: relative; z-index: 40; }
-        #refereeOverlay .court-container { z-index: 10; }
-        #refereeOverlay .court-container { max-width: min(94vw, 1120px); max-height: calc(58 * min(var(--vh, 1vh), 1vh)); }
+        #refereeOverlay button { touch-action: manipulation; }
+        #refereeOverlay .ref-head { display: flex; align-items: center; gap: .5rem; padding: .35rem .6rem; min-height: 44px; }
+        #refereeOverlay .ref-icon-btn { width: 36px; height: 36px; flex: 0 0 auto; border-radius: .75rem; background: #1e293b; color: #cbd5e1; display: flex; align-items: center; justify-content: center; }
+        #refereeOverlay .ref-scorebar { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr) minmax(0, 1fr); align-items: center; gap: .35rem; padding: .4rem .5rem; }
+        #refereeOverlay .ref-tele { font-size: clamp(1.25rem, 6.4vw, 2.75rem); padding: .1rem .5rem; line-height: 1.15; white-space: nowrap; }
+        #refereeOverlay #servingLabelBadge { display: block; max-width: 100%; white-space: normal; line-height: 1.15; font-size: clamp(.5rem, 1.9vw, .65rem); margin: .2rem auto 0; padding: .1rem .45rem; text-align: center; }
+        #refereeOverlay .ref-stage { flex: 1 1 0; min-height: 0; position: relative; overflow: hidden; display: flex; flex-direction: column; background: #020617; }
+        #refereeOverlay .ref-banner { flex: 0 0 auto; align-self: center; margin-top: .25rem; }
+        #refereeOverlay .ref-court-wrap { flex: 1 1 0; min-height: 0; position: relative; }
+        #refereeOverlay .court-container { position: absolute !important; top: .4rem; bottom: .4rem; left: 50%; transform: translateX(-50%); width: min(calc(100% - 1rem), 1180px) !important; height: auto !important; max-width: none !important; max-height: none !important; aspect-ratio: auto !important; margin: 0 !important; display: flex !important; flex-direction: row !important; container-type: size; }
+        #refereeOverlay .ref-zone { flex: 1 1 0; min-width: 0; min-height: 0; height: 100%; display: flex; flex-direction: column; position: relative; padding: .3rem; z-index: 10; }
+        #refereeOverlay .ref-zone-top { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem; flex: 0 0 auto; position: relative; z-index: 12; }
+        #refereeOverlay #courtTeam2Zone .ref-zone-top { flex-direction: row-reverse; }
+        #refereeOverlay .ref-score { background: rgba(15, 23, 42, .85); border-radius: .6rem; padding: .1rem .55rem; font-family: ui-monospace, monospace; font-weight: 900; color: #facc15; font-size: clamp(.9rem, 5.5cqh, 1.3rem); line-height: 1.5; }
+        #refereeOverlay .ref-serving { background: rgba(15, 23, 42, .85); border-radius: .6rem; padding: .15rem .45rem; font-weight: 800; color: #facc15; white-space: nowrap; font-size: .65rem; }
+        #refereeOverlay .ref-swap { margin-left: auto; display: flex; align-items: center; gap: .3rem; min-height: 32px; padding: 0 .55rem; border-radius: .6rem; background: rgba(30, 41, 59, .92); border: 1px solid #475569; color: #e2e8f0; font-size: .62rem; font-weight: 700; white-space: nowrap; }
+        #refereeOverlay #courtTeam2Zone .ref-swap { margin-left: 0; margin-right: auto; }
+        #refereeOverlay .ref-players { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; padding: 0 .25rem 1.5rem; }
+        #refereeOverlay .ref-node { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .15rem; padding: .15rem 0; overflow: hidden; }
+        #refereeOverlay .ref-avatar { width: clamp(2.25rem, min(17cqh, 15cqw), 5.25rem); height: clamp(2.25rem, min(17cqh, 15cqw), 5.25rem); font-size: clamp(.75rem, 4.2cqh, 1.25rem); flex: 0 0 auto; }
+        #refereeOverlay .ref-name { max-width: 100%; padding: .1rem .5rem; font-size: clamp(.62rem, 3.6cqh, .95rem); line-height: 1.25; }
+        #refereeOverlay .ref-court-label { font-size: clamp(.5rem, 2.4cqh, .65rem) !important; line-height: 1; }
+        #refereeOverlay #courtTeam1Zone::after, #refereeOverlay #courtTeam2Zone::after { inset: auto auto .4rem 50%; transform: translateX(-50%); font-size: .55rem; padding: .2rem .5rem; white-space: nowrap; }
+        @container (max-width: 560px) { #refereeOverlay .ref-swap-txt { display: none; } #refereeOverlay .ref-swap { padding: 0 .6rem; } }
+        @container (max-height: 300px) { #refereeOverlay .ref-court-label { display: none; } }
+        @container (max-height: 240px) { #refereeOverlay #courtTeam1Zone::after, #refereeOverlay #courtTeam2Zone::after { display: none; } }
+        /* Lịch sử pha: ngăn kéo nổi, mở bằng nút "Lịch sử" */
+        #refereeOverlay #rallyHistory { display: none; position: absolute; left: .5rem; right: .5rem; bottom: .5rem; z-index: 35; height: auto; max-height: min(60%, 24rem); overflow-y: auto; background: rgba(2, 6, 23, .97); border: 1px solid #334155; border-radius: 1rem; padding: .5rem; box-shadow: 0 10px 30px rgba(0, 0, 0, .6); }
+        #refereeOverlay #rallyHistory.open { display: block; }
+        #rallyHistoryItems { height: auto; max-height: 14rem; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; touch-action: pan-y; }
+        /* Thanh thao tác: lưới đều, mỗi nút = biểu tượng + nhãn ngắn */
+        #refereeOverlay .ref-actions { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: .35rem; padding: .4rem .5rem; position: relative; z-index: 40; }
+        #refereeOverlay .ref-act { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .15rem; min-height: 46px; padding: .3rem .15rem; border-radius: .75rem; background: #1e293b; border: 1px solid #334155; color: #e2e8f0; font-size: .62rem; font-weight: 700; line-height: 1.1; text-align: center; }
+        #refereeOverlay .ref-act i { font-size: 1rem; }
+        #refereeOverlay .ref-act:active { transform: scale(.96); }
+        #refereeOverlay .hidden { display: none !important; } /* nút Timeout/Y tế đã dùng sẽ ẩn hẳn */
+        #refereeOverlay .ref-danger { color: #f87171; }
+        #refereeOverlay .ref-to { background: rgba(245, 158, 11, .15); border-color: rgba(245, 158, 11, .4); color: #fbbf24; }
+        #refereeOverlay .ref-med { background: rgba(239, 68, 68, .15); border-color: rgba(239, 68, 68, .4); color: #f87171; }
+        #refereeOverlay .ref-finish { grid-column: span 2; background: #059669; border-color: #34d399; color: #fff; font-size: .72rem; font-weight: 800; }
+        @media (min-width: 800px) {
+            #refereeOverlay .ref-actions { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+            #refereeOverlay .ref-act { min-height: 50px; }
+        }
+        @media (min-width: 1100px) {
+            #refereeOverlay .ref-act { flex-direction: row; gap: .45rem; font-size: .75rem; }
+        }
+        @media (max-height: 520px) {
+            #refereeOverlay .ref-head { min-height: 38px; padding-top: .2rem; padding-bottom: .2rem; }
+            #refereeOverlay .ref-caption, #refereeOverlay .ref-team-players { display: none; }
+            #refereeOverlay .ref-scorebar { padding: .25rem .5rem; }
+            #refereeOverlay .ref-tele { font-size: 1.5rem; }
+            #refereeOverlay .ref-act { min-height: 40px; }
+            #refereeOverlay .ref-act i { font-size: .9rem; }
+        }
         #preMatchModal, #woModal, #qrModal, #adminAuthModal { padding-top: max(1rem, env(safe-area-inset-top)); padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
-        @media (orientation: portrait) and (max-width: 600px) {
-            #refereeOverlay .bg-slate-900\/90 { padding: .65rem .5rem; }
-            #refereeOverlay .bg-slate-900\/90 .px-6 { padding-left: .35rem; padding-right: .35rem; }
-            #refereeOverlay #refTeleprompter { font-size: clamp(1.35rem, 7vw, 2.25rem); padding: .25rem .5rem; }
-            #refereeOverlay .court-container { width: calc(100vw - .75rem); max-width: none; height: min(calc(47 * min(var(--vh, 1vh), 1vh)), 470px); aspect-ratio: auto; margin-top: .25rem; margin-bottom: .25rem; }
-            #refereeOverlay .bg-slate-900\/90 { padding-top: .4rem; padding-bottom: .4rem; }
-            #refereeOverlay .bg-slate-900\/90 button { min-height: 34px; }
-            #refereeOverlay .bg-slate-900:last-child { padding: .4rem; gap: .35rem; }
-            #refereeOverlay .bg-slate-900:last-child button { min-height: 34px; padding: .45rem .6rem; font-size: .68rem; }
-            #refereeOverlay #rallyHistory { margin-top: .35rem; }
-            #refereeOverlay #breakControlsContainer { flex-wrap: wrap; justify-content: center; gap: .25rem; }
-            #refereeOverlay #breakControlsContainer button { padding: .4rem .5rem; font-size: .62rem; }
-            #refereeOverlay [id^="pAvatar_"] { width: clamp(3.25rem, 18vw, 5rem); height: clamp(3.25rem, 18vw, 5rem); }
-            #refereeOverlay #rallyHistory { max-height: 6.5rem; }
-            #refereeOverlay > .bg-slate-900:last-child { padding-bottom: max(.75rem, env(safe-area-inset-bottom)); }
-            #refereeOverlay > .bg-slate-900:last-child > div { flex-wrap: wrap; justify-content: center; }
-            #preMatchModal > div, #woModal > div, #qrModal > div, #adminAuthModal > div { max-height: calc(88 * min(var(--vh, 1vh), 1vh)); overflow-y: auto; }
-        }
-        @media (orientation: landscape) and (max-height: 600px) {
-            #refereeOverlay .court-container { height: min(calc(57 * min(var(--vh, 1vh), 1vh)), 430px); width: min(78vw, 900px); }
-            #refereeOverlay #rallyHistory { max-height: 4.25rem; margin-top: .35rem; }
-            #refereeOverlay > .bg-slate-900:last-child { padding-top: .35rem; padding-bottom: max(.35rem, env(safe-area-inset-bottom)); }
-            #refereeOverlay > .bg-slate-900:last-child button { min-height: 38px; }
-        }
+        #preMatchModal > div, #woModal > div, #qrModal > div, #adminAuthModal > div { max-height: calc(88 * min(var(--vh, 1vh), 1vh)); overflow-y: auto; }
     </style>
  </head>
  <body data-template-id="__page-root" class="h-full w-full text-slate-100 flex flex-col overflow-hidden" style="background: rgb(2, 6, 23);"><!-- Toast Notification -->
@@ -597,62 +623,39 @@
      </div>
     <!-- REFEREE OVERLAY -->
     <div id="refereeOverlay" class="fixed inset-0 bg-slate-950 z-[200] hidden flex-col text-white select-none">
-     <div class="bg-slate-900 px-4 py-2.5 border-b border-slate-800 flex justify-between items-center flex-shrink-0">
-      <div class="flex items-center gap-3">
-       <button onclick="closeRefereeScreen()" class="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-300"><i class="fas fa-xmark text-lg"></i></button>
-       <div>
-        <div id="refHeaderMatchTitle" class="text-xs font-bold text-emerald-400 uppercase tracking-wide">
-         TRẬN 1 • SÂN SỐ 1 • VÒNG BẢNG
-        </div>
-        <div data-template-id="referee-rule-label" id="refHeaderRule" class="text-[10px] text-slate-400 canva-text" style="color: rgb(148, 163, 184); font-weight: 400; font-style: normal; font-size: 10px;">Luật: Chạm 11 Thắng Cách 2</div>
-        <div id="refGameBar" class="hidden mt-0.5"><div id="refGameBarMain" class="text-xs font-black text-yellow-400 tracking-wide"></div><div id="refGameBarSub" class="text-[10px] text-slate-400 font-mono"></div></div>
-       </div>
+     <div class="ref-head bg-slate-900 border-b border-slate-800 flex-shrink-0">
+      <button onclick="closeRefereeScreen()" class="ref-icon-btn" aria-label="Đóng màn hình trọng tài"><i class="fas fa-xmark text-lg"></i></button>
+      <div class="min-w-0 flex-1">
+       <div id="refHeaderMatchTitle" class="text-[11px] sm:text-xs font-bold text-emerald-400 uppercase tracking-wide truncate">TRẬN 1 • SÂN SỐ 1 • VÒNG BẢNG</div>
+       <div data-template-id="referee-rule-label" id="refHeaderRule" class="text-[10px] text-slate-400 truncate canva-text" style="color: rgb(148, 163, 184); font-weight: 400; font-style: normal; font-size: 10px;">Luật: Chạm 11 Thắng Cách 2</div>
+       <div id="refGameBar" class="hidden"><div id="refGameBarMain" class="text-xs font-black text-yellow-400 tracking-wide truncate"></div><div id="refGameBarSub" class="text-[10px] text-slate-400 font-mono truncate"></div></div>
       </div>
-      <div class="flex items-center gap-4">
-       <div class="flex items-center gap-2 bg-slate-950 px-3 py-1 rounded-xl border border-slate-800">
-        <i class="fas fa-stopwatch text-yellow-400 text-xs"></i><span id="warmupCountdownText" class="font-mono text-xs text-yellow-400 font-bold">Khởi động: 05:00</span>
-       </div>
-       <div class="flex items-center gap-2">
-        <span id="refMatchStatusDot" class="w-3 h-3 rounded-full bg-red-500 animate-pulse"></span><span data-template-id="referee-live-status" id="refMatchStatusText" class="text-xs font-bold text-red-400 uppercase canva-text" style="color: rgb(248, 113, 113); font-weight: 700; font-style: normal; font-size: 12px;">ĐANG ĐẤU</span>
-       </div>
+      <div class="flex items-center gap-1.5 flex-shrink-0 bg-slate-950 px-2.5 py-1 rounded-xl border border-slate-800">
+       <span id="refMatchStatusDot" class="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse"></span><span data-template-id="referee-live-status" id="refMatchStatusText" class="text-[11px] font-bold text-red-400 uppercase canva-text" style="color: rgb(248, 113, 113); font-weight: 700; font-style: normal; font-size: 11px;">ĐANG ĐẤU</span>
       </div>
      </div>
-     <div class="bg-slate-900/90 border-b border-slate-800 px-4 py-3 flex items-center justify-between flex-shrink-0">
-      <div class="flex-1 text-center border-r border-slate-800 pr-2">
-       <div id="refT1NameDisplay" class="font-bold text-sm md:text-base text-white truncate">
-        TEAM A (BOTTOM)
-       </div>
-       <div id="refT1PlayersDisplay" class="text-[10px] text-slate-400 truncate">
-        Văn A / Thị B
-       </div>
-       <div id="refT1StaticScore" class="text-xs font-mono font-bold text-yellow-400 mt-0.5">
-        Điểm: 0
-       </div>
+     <div class="ref-scorebar bg-slate-900/90 border-b border-slate-800 flex-shrink-0">
+      <div class="text-center min-w-0">
+       <div id="refT1NameDisplay" class="font-bold text-xs sm:text-base text-white truncate">TEAM A (BOTTOM)</div>
+       <div id="refT1PlayersDisplay" class="ref-team-players text-[10px] text-slate-400 truncate">Văn A / Thị B</div>
+       <div id="refT1StaticScore" class="text-xs font-mono font-bold text-yellow-400">Điểm: 0</div>
       </div>
-      <div class="px-6 text-center relative">
-       <div class="text-[10px] font-bold text-slate-400 uppercase mb-0.5 flex items-center justify-center gap-2">
-        <span id="serveArrowLeft" class="text-yellow-400 text-sm hidden">◀</span><span data-template-id="teleprompter-heading" class="canva-text" style="color: rgb(148, 163, 184); font-weight: 700; font-style: normal; font-size: 10px;">TỶ SỐ HÔ TRỌNG TÀI (TELEPROMPTER)</span><span id="serveArrowRight" class="text-yellow-400 text-sm hidden">▶</span>
+      <div class="text-center min-w-0">
+       <div class="ref-caption text-[9px] font-bold text-slate-400 uppercase mb-0.5"><span data-template-id="teleprompter-heading" class="canva-text" style="color: rgb(148, 163, 184); font-weight: 700; font-style: normal; font-size: 9px;">TỶ SỐ HÔ TRỌNG TÀI</span></div>
+       <div class="flex items-center justify-center gap-1">
+        <span id="serveArrowLeft" class="text-yellow-400 text-sm hidden">◀</span>
+        <div id="refTeleprompter" class="ref-tele font-black font-mono text-yellow-400 tracking-wider bg-slate-950 rounded-xl border border-yellow-500/40 shadow-inner">0 - 0 - 2</div>
+        <span id="serveArrowRight" class="text-yellow-400 text-sm hidden">▶</span>
        </div>
-       <div id="refTeleprompter" class="text-3xl md:text-5xl font-black font-mono text-yellow-400 tracking-wider bg-slate-950 px-6 py-1.5 rounded-xl border border-yellow-500/40 shadow-inner">
-        0 - 0 - 2
-       </div>
-       <div id="servingLabelBadge" class="text-[9px] font-black text-yellow-400 bg-yellow-500/10 px-2 py-0.5 rounded-full border border-yellow-500/30 mt-1 uppercase">
-        BÊN NÀY ĐANG GIAO BÓNG
-       </div>
+       <div id="servingLabelBadge" class="font-black text-yellow-400 bg-yellow-500/10 rounded-full border border-yellow-500/30 uppercase">BÊN NÀY ĐANG GIAO BÓNG</div>
       </div>
-      <div class="flex-1 text-center border-l border-slate-800 pl-2">
-       <div id="refT2NameDisplay" class="font-bold text-sm md:text-base text-white truncate">
-        TEAM B (TOP)
-       </div>
-       <div id="refT2PlayersDisplay" class="text-[10px] text-slate-400 truncate">
-        Trần C / Hoàng D
-       </div>
-       <div id="refT2StaticScore" class="text-xs font-mono font-bold text-yellow-400 mt-0.5">
-        Điểm: 0
-       </div>
+      <div class="text-center min-w-0">
+       <div id="refT2NameDisplay" class="font-bold text-xs sm:text-base text-white truncate">TEAM B (TOP)</div>
+       <div id="refT2PlayersDisplay" class="ref-team-players text-[10px] text-slate-400 truncate">Trần C / Hoàng D</div>
+       <div id="refT2StaticScore" class="text-xs font-mono font-bold text-yellow-400">Điểm: 0</div>
       </div>
      </div>
-     <div class="flex-1 p-3 flex flex-col justify-center items-center bg-slate-950 relative overflow-hidden">
+     <div class="ref-stage">
       <div id="refereeTimerOverlay" class="fixed inset-0 z-[230] hidden items-center justify-center bg-slate-950/95 backdrop-blur-sm">
        <div class="text-center">
         <div data-template-id="referee-timer-title" class="text-sm font-bold uppercase tracking-widest text-yellow-400 canva-text" style="color: rgb(250, 204, 21); font-weight: 700; font-style: normal; font-size: 14px;">ĐỒNG HỒ TRỌNG TÀI</div>
@@ -660,59 +663,57 @@
         <div data-template-id="referee-timer-warning" class="text-red-400 font-bold text-sm mt-4 animate-pulse canva-text" style="color: rgb(248, 113, 113); font-weight: 900; font-style: normal; font-size: 14px;">CẢNH BÁO: CÒN 15 GIÂY</div><button data-template-id="referee-timer-end-button" type="button" onclick="endRefereeTimer()" class="mt-6 px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 rounded-xl text-xs font-bold shadow-lg canva-button" style="background: rgb(30, 41, 59); color: rgb(255, 255, 255); font-weight: 700; font-style: normal; font-size: 12px;">Kết thúc sớm</button>
        </div>
       </div>
-      <div data-template-id="match-point-banner" id="matchPointBanner" class="absolute top-2 z-30 bg-red-600 text-white font-black text-xs md:text-sm px-6 py-1.5 rounded-full shadow-2xl animate-bounce hidden uppercase tracking-widest border border-white canva-banner" style="background: rgb(220, 38, 38); color: rgb(255, 255, 255); font-weight: 900; font-style: normal; font-size: 14px;">⚠️ MATCH POINT / ĐIỂM QUYẾT ĐỊNH ⚠️</div>
-      <div class="w-full max-w-5xl court-container rounded-2xl flex flex-col relative overflow-hidden my-auto">
-       <div class="court-net"></div>
-       <div id="courtTeam2Zone" onclick="handleRallyWinner(2)" class="flex-1 flex flex-col relative cursor-pointer hover:bg-emerald-800/30 transition-colors group p-2 order-3">
-        <div class="absolute top-2 right-2 z-10 bg-slate-900/80 px-2 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5">
-         <span id="t2ScoreStatic" class="text-yellow-400 font-mono text-sm font-black">0</span><span id="t2ServingIndicator" class="hidden text-yellow-400 text-xs"><span data-template-id="top-serving-label" class="canva-text" style="font-weight: 700; font-style: normal; font-size: 12px;">ĐANG GIAO</span> <i class="fas fa-baseball-ball animate-spin"></i></span>
-        </div><button onclick="event.stopPropagation(); manualSwapPlayers(2)" class="absolute bottom-2 right-2 z-20 bg-slate-800/90 hover:bg-slate-700 text-slate-200 px-2 py-0.5 rounded text-[10px] font-bold border border-slate-700"><span data-template-id="swap-top-label" class="canva-text" style="font-weight: 700; font-style: normal; font-size: 10px;">🔄 Đổi Vị Trí</span></button>
-        <div class="flex-1 flex flex-col items-center justify-evenly gap-2 px-6">
-         <div id="pNode_t2_even" class="player-node flex flex-col items-center justify-center w-full min-w-0 h-1/2 border-b-2 border-white/90 pb-2">
-          <div class="w-16 h-16 md:w-24 md:h-24 rounded-full bg-slate-900 border-2 border-white flex items-center justify-center font-bold text-base md:text-xl text-white relative shadow-lg" id="pAvatar_t2_even">
-           C1<span id="pBall_t2_even" class="hidden absolute -top-1 -right-1 text-yellow-400 text-sm"><i class="fas fa-baseball-ball"></i></span>
-          </div><span id="pName_t2_even" class="text-sm md:text-base font-extrabold text-white bg-slate-900/90 px-3 py-1 rounded-lg mt-2 truncate max-w-[170px] shadow-md">Trần C</span><span data-template-id="top-even-court" class="text-[9px] text-yellow-300 font-bold canva-text" style="color: rgb(253, 224, 71); font-weight: 700; font-style: normal; font-size: 9px;">Ô PHẢI (Even) 🎾</span>
+      <div data-template-id="match-point-banner" id="matchPointBanner" class="ref-banner bg-red-600 text-white font-black text-[11px] md:text-sm px-4 py-1 rounded-full shadow-2xl animate-bounce hidden uppercase tracking-wider border border-white canva-banner" style="background: rgb(220, 38, 38); color: rgb(255, 255, 255); font-weight: 900; font-style: normal;">⚠️ MATCH POINT / ĐIỂM QUYẾT ĐỊNH ⚠️</div>
+      <div class="ref-court-wrap">
+       <div class="court-container rounded-2xl overflow-hidden">
+        <div class="court-net"></div>
+        <div id="courtTeam2Zone" onclick="handleRallyWinner(2)" class="ref-zone cursor-pointer hover:bg-emerald-800/30 transition-colors group order-3">
+         <div class="ref-zone-top">
+          <span id="t2ScoreStatic" class="ref-score">0</span>
+          <span id="t2ServingIndicator" class="hidden ref-serving"><span data-template-id="top-serving-label" class="canva-text" style="font-weight: 700; font-style: normal; font-size: 11px;">ĐANG GIAO</span> <i class="fas fa-baseball-ball animate-spin"></i></span>
+          <button onclick="event.stopPropagation(); manualSwapPlayers(2)" class="ref-swap" aria-label="Đổi vị trí hai VĐV đội 2"><i class="fas fa-shuffle"></i><span class="ref-swap-txt canva-text" data-template-id="swap-top-label">Đổi vị trí</span></button>
          </div>
-         <div id="pNode_t2_odd" class="player-node flex flex-col items-center justify-center w-full min-w-0 h-1/2 pt-2">
-          <div class="w-16 h-16 md:w-20 md:h-20 rounded-full bg-slate-900 border-2 border-white flex items-center justify-center font-bold text-base md:text-lg text-white relative shadow-lg" id="pAvatar_t2_odd">
-           C2<span id="pBall_t2_odd" class="hidden absolute -top-1 -right-1 text-yellow-400 text-sm"><i class="fas fa-baseball-ball"></i></span>
-          </div><span id="pName_t2_odd" class="text-xs md:text-sm font-extrabold text-white bg-slate-900/90 px-3 py-1 rounded-lg mt-2 truncate max-w-[170px] shadow-md">Hoàng D</span><span data-template-id="top-odd-court" class="text-[9px] text-slate-300 canva-text" style="color: rgb(203, 213, 225); font-weight: 400; font-style: normal; font-size: 9px;">Ô TRÁI (Odd)</span>
+         <div class="ref-players">
+          <div id="pNode_t2_even" class="player-node ref-node border-b-2 border-white/90">
+           <div class="ref-avatar rounded-full bg-slate-900 border-2 border-white flex items-center justify-center font-bold text-white relative shadow-lg" id="pAvatar_t2_even">C1<span id="pBall_t2_even" class="hidden absolute -top-1 -right-1 text-yellow-400 text-sm"><i class="fas fa-baseball-ball"></i></span></div><span id="pName_t2_even" class="ref-name font-extrabold text-white bg-slate-900/90 rounded-lg shadow-md truncate">Trần C</span><span data-template-id="top-even-court" class="ref-court-label text-yellow-300 font-bold canva-text" style="color: rgb(253, 224, 71); font-weight: 700; font-style: normal;">Ô PHẢI (Even) 🎾</span>
+          </div>
+          <div id="pNode_t2_odd" class="player-node ref-node">
+           <div class="ref-avatar rounded-full bg-slate-900 border-2 border-white flex items-center justify-center font-bold text-white relative shadow-lg" id="pAvatar_t2_odd">C2<span id="pBall_t2_odd" class="hidden absolute -top-1 -right-1 text-yellow-400 text-sm"><i class="fas fa-baseball-ball"></i></span></div><span id="pName_t2_odd" class="ref-name font-extrabold text-white bg-slate-900/90 rounded-lg shadow-md truncate">Hoàng D</span><span data-template-id="top-odd-court" class="ref-court-label text-slate-300 canva-text" style="color: rgb(203, 213, 225); font-weight: 400; font-style: normal;">Ô TRÁI (Odd)</span>
+          </div>
          </div>
         </div>
-       </div>
-       <div class="w-[12%] h-full court-kitchen border-l-2 border-r-2 border-white flex-shrink-0 order-2"></div>
-       <div id="courtTeam1Zone" onclick="handleRallyWinner(1)" class="flex-1 flex flex-col relative cursor-pointer hover:bg-emerald-800/30 transition-colors group p-2 order-1">
-        <div class="absolute top-2 left-2 z-10 bg-slate-900/80 px-2 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5">
-         <span id="t1ServingIndicator" class="hidden text-yellow-400 text-xs"><i class="fas fa-baseball-ball animate-spin"></i> <span data-template-id="bottom-serving-label" class="canva-text" style="font-weight: 700; font-style: normal; font-size: 12px;">ĐANG GIAO</span></span><span id="t1ScoreStatic" class="text-yellow-400 font-mono text-sm font-black">0</span>
-        </div><button onclick="event.stopPropagation(); manualSwapPlayers(1)" class="absolute bottom-2 left-2 z-20 bg-slate-800/90 hover:bg-slate-700 text-slate-200 px-2 py-0.5 rounded text-[10px] font-bold border border-slate-700"><span data-template-id="swap-bottom-label" class="canva-text" style="font-weight: 700; font-style: normal; font-size: 10px;">🔄 Đổi Vị Trí</span></button>
-        <div class="flex-1 flex flex-col items-center justify-evenly gap-2 px-6">
-         <div id="pNode_t1_odd" class="player-node flex flex-col items-center justify-center w-full min-w-0 h-1/2 border-b-2 border-white/90 pb-2">
-          <div class="w-16 h-16 md:w-20 md:h-20 rounded-full bg-slate-900 border-2 border-white flex items-center justify-center font-bold text-base md:text-lg text-white relative shadow-lg" id="pAvatar_t1_odd">
-           A2<span id="pBall_t1_odd" class="hidden absolute -top-1 -right-1 text-yellow-400 text-sm"><i class="fas fa-baseball-ball"></i></span>
-          </div><span id="pName_t1_odd" class="text-xs md:text-sm font-extrabold text-white bg-slate-900/90 px-3 py-1 rounded-lg mt-2 truncate max-w-[170px] shadow-md">Lê Thị B</span><span data-template-id="bottom-odd-court" class="text-[9px] text-slate-300 canva-text" style="color: rgb(203, 213, 225); font-weight: 400; font-style: normal; font-size: 9px;">Ô TRÁI (Odd)</span>
+        <div class="w-[12%] h-full court-kitchen border-l-2 border-r-2 border-white flex-shrink-0 order-2"></div>
+        <div id="courtTeam1Zone" onclick="handleRallyWinner(1)" class="ref-zone cursor-pointer hover:bg-emerald-800/30 transition-colors group order-1">
+         <div class="ref-zone-top">
+          <span id="t1ScoreStatic" class="ref-score">0</span>
+          <span id="t1ServingIndicator" class="hidden ref-serving"><i class="fas fa-baseball-ball animate-spin"></i> <span data-template-id="bottom-serving-label" class="canva-text" style="font-weight: 700; font-style: normal; font-size: 11px;">ĐANG GIAO</span></span>
+          <button onclick="event.stopPropagation(); manualSwapPlayers(1)" class="ref-swap" aria-label="Đổi vị trí hai VĐV đội 1"><i class="fas fa-shuffle"></i><span class="ref-swap-txt canva-text" data-template-id="swap-bottom-label">Đổi vị trí</span></button>
          </div>
-         <div id="pNode_t1_even" class="player-node flex flex-col items-center justify-center w-full min-w-0 h-1/2 pt-2">
-          <div class="w-16 h-16 md:w-20 md:h-20 rounded-full bg-slate-900 border-2 border-white flex items-center justify-center font-bold text-base md:text-lg text-white relative shadow-lg" id="pAvatar_t1_even">
-           A1<span id="pBall_t1_even" class="hidden absolute -top-1 -right-1 text-yellow-400 text-sm"><i class="fas fa-baseball-ball"></i></span>
-          </div><span id="pName_t1_even" class="text-xs md:text-sm font-extrabold text-white bg-slate-900/90 px-3 py-1 rounded-lg mt-2 truncate max-w-[170px] shadow-md">Nguyễn Văn A</span><span data-template-id="bottom-even-court" class="text-[9px] text-yellow-300 font-bold canva-text" style="color: rgb(253, 224, 71); font-weight: 700; font-style: normal; font-size: 9px;">Ô PHẢI (Even) 🎾</span>
+         <div class="ref-players">
+          <div id="pNode_t1_odd" class="player-node ref-node border-b-2 border-white/90">
+           <div class="ref-avatar rounded-full bg-slate-900 border-2 border-white flex items-center justify-center font-bold text-white relative shadow-lg" id="pAvatar_t1_odd">A2<span id="pBall_t1_odd" class="hidden absolute -top-1 -right-1 text-yellow-400 text-sm"><i class="fas fa-baseball-ball"></i></span></div><span id="pName_t1_odd" class="ref-name font-extrabold text-white bg-slate-900/90 rounded-lg shadow-md truncate">Lê Thị B</span><span data-template-id="bottom-odd-court" class="ref-court-label text-slate-300 canva-text" style="color: rgb(203, 213, 225); font-weight: 400; font-style: normal;">Ô TRÁI (Odd)</span>
+          </div>
+          <div id="pNode_t1_even" class="player-node ref-node">
+           <div class="ref-avatar rounded-full bg-slate-900 border-2 border-white flex items-center justify-center font-bold text-white relative shadow-lg" id="pAvatar_t1_even">A1<span id="pBall_t1_even" class="hidden absolute -top-1 -right-1 text-yellow-400 text-sm"><i class="fas fa-baseball-ball"></i></span></div><span id="pName_t1_even" class="ref-name font-extrabold text-white bg-slate-900/90 rounded-lg shadow-md truncate">Nguyễn Văn A</span><span data-template-id="bottom-even-court" class="ref-court-label text-yellow-300 font-bold canva-text" style="color: rgb(253, 224, 71); font-weight: 700; font-style: normal;">Ô PHẢI (Even) 🎾</span>
+          </div>
          </div>
         </div>
        </div>
       </div>
-      <div class="mt-3 flex flex-wrap justify-center gap-2"><button type="button" onclick="swapCourtSides()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-yellow-400 border border-yellow-500/40 rounded-xl text-xs font-bold shadow-lg flex items-center gap-2" aria-label="Đổi sân hai đội"><i class="fas fa-arrow-right-arrow-left text-sm"></i><span data-template-id="swap-court-sides-label" class="canva-text" style="color: rgb(250, 204, 21); font-weight: 700; font-style: normal; font-size: 12px;">Đổi sân hai đội</span></button><button type="button" onclick="openResetGameSetup()" class="px-4 py-2 bg-red-600/90 hover:bg-red-500 text-white border border-red-400/50 rounded-xl text-xs font-bold shadow-lg flex items-center gap-2" aria-label="Đặt lại ván"><i class="fas fa-rotate-left text-sm"></i><span data-template-id="reset-game-label" class="canva-text" style="color: rgb(255, 255, 255); font-weight: 700; font-style: normal; font-size: 12px;">Đặt lại ván</span></button>
-      </div>
-      <div id="rallyHistory" class="mt-3 max-w-4xl w-full mx-auto text-xs text-slate-300" aria-live="polite"></div>
+      <div id="rallyHistory" class="text-xs text-slate-300" aria-live="polite"></div>
      </div>
-     <div class="bg-slate-900 p-3 border-t border-slate-800 flex flex-wrap gap-2 justify-between items-center flex-shrink-0">
-      <div class="flex gap-2">
-       <button onclick="undoLastRally()" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold border border-slate-700"><i class="fas fa-rotate-left text-yellow-400 mr-1"></i> <span data-template-id="undo-label" class="canva-text" style="font-weight: 700; font-style: normal; font-size: 12px;">Hoàn Tác</span></button><button onclick="startWarmupTimer()" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold border border-slate-700"><i class="fas fa-stopwatch text-blue-400 mr-1"></i> <span data-template-id="warmup-label" class="canva-text" style="font-weight: 700; font-style: normal; font-size: 12px;">Khởi Động 5m</span></button>
-      </div>
-      <div class="flex gap-2 items-center" id="breakControlsContainer">
-       <button data-template-id="timeout-one-label" id="btnTimeoutT1" onclick="triggerTimeout(1)" class="px-3 py-2 bg-amber-500/20 text-amber-400 border border-amber-500/40 rounded-xl text-xs font-bold canva-button" style="color: rgb(251, 191, 36); font-weight: 700; font-style: normal; font-size: 12px;">⏱️ Timeout Team 1</button><button data-template-id="medical-one-label" id="btnMedicalT1" onclick="triggerMedical(1)" class="px-3 py-2 bg-red-500/20 text-red-400 border border-red-500/40 rounded-xl text-xs font-bold canva-button" style="color: rgb(248, 113, 113); font-weight: 700; font-style: normal; font-size: 12px;">🚑 Y Tế Team 1</button><button data-template-id="timeout-two-label" id="btnTimeoutT2" onclick="triggerTimeout(2)" class="px-3 py-2 bg-amber-500/20 text-amber-400 border border-amber-500/40 rounded-xl text-xs font-bold canva-button" style="color: rgb(251, 191, 36); font-weight: 700; font-style: normal; font-size: 12px;">⏱️ Timeout Team 2</button><button data-template-id="medical-two-label" id="btnMedicalT2" onclick="triggerMedical(2)" class="px-3 py-2 bg-red-500/20 text-red-400 border border-red-500/40 rounded-xl text-xs font-bold canva-button" style="color: rgb(248, 113, 113); font-weight: 700; font-style: normal; font-size: 12px;">🚑 Y Tế Team 2</button><button onclick="resetBreaks()" class="px-2.5 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs" title="Khôi phục lượt nghỉ"><i class="fas fa-undo"></i></button>
-      </div>
-      <div class="flex gap-2">
-       <button onclick="openWOModal()" class="px-3.5 py-2 bg-slate-800 text-red-400 rounded-xl text-xs font-bold border border-slate-700"><i class="fas fa-triangle-exclamation mr-1"></i> <span data-template-id="wo-action-label" class="canva-text" style="font-weight: 700; font-style: normal; font-size: 12px;">W.O</span></button><button data-template-id="finish-match-label" onclick="finishRefereeMatch()" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-extrabold shadow-lg canva-button" style="background: rgb(5, 150, 105); color: rgb(255, 255, 255); font-weight: 800; font-style: normal; font-size: 12px;">KẾT THÚC TRẬN</button>
-      </div>
+     <div id="refActionBar" class="ref-actions bg-slate-900 border-t border-slate-800 flex-shrink-0">
+      <button type="button" onclick="undoLastRally()" class="ref-act"><i class="fas fa-rotate-left text-yellow-400"></i><span data-template-id="undo-label" class="canva-text">Hoàn tác</span></button>
+      <button type="button" onclick="swapCourtSides()" class="ref-act" aria-label="Đổi sân hai đội"><i class="fas fa-right-left text-yellow-400"></i><span data-template-id="swap-court-sides-label" class="canva-text">Đổi sân</span></button>
+      <button type="button" onclick="openResetGameSetup()" class="ref-act ref-danger" aria-label="Đặt lại ván"><i class="fas fa-arrows-rotate"></i><span data-template-id="reset-game-label" class="canva-text">Đặt lại</span></button>
+      <button type="button" onclick="toggleRallyHistory()" class="ref-act"><i class="fas fa-list-ol text-cyan-400"></i><span>Lịch sử</span></button>
+      <button type="button" onclick="startWarmupTimer()" class="ref-act"><i class="fas fa-stopwatch text-blue-400"></i><span data-template-id="warmup-label" class="canva-text">Khởi động</span></button>
+      <button type="button" onclick="openWOModal()" class="ref-act ref-danger"><i class="fas fa-triangle-exclamation"></i><span data-template-id="wo-action-label" class="canva-text">W.O</span></button>
+      <button type="button" id="btnTimeoutT1" onclick="triggerTimeout(1)" class="ref-act ref-to"><i class="fas fa-clock"></i><span>Timeout 1</span></button>
+      <button type="button" id="btnMedicalT1" onclick="triggerMedical(1)" class="ref-act ref-med"><i class="fas fa-truck-medical"></i><span>Y tế 1</span></button>
+      <button type="button" id="btnTimeoutT2" onclick="triggerTimeout(2)" class="ref-act ref-to"><i class="fas fa-clock"></i><span>Timeout 2</span></button>
+      <button type="button" id="btnMedicalT2" onclick="triggerMedical(2)" class="ref-act ref-med"><i class="fas fa-truck-medical"></i><span>Y tế 2</span></button>
+      <button type="button" data-template-id="finish-match-label" onclick="finishRefereeMatch()" class="ref-act ref-finish"><i class="fas fa-flag-checkered"></i><span>KẾT THÚC TRẬN</span></button>
      </div>
     </div><!-- Game flow banner (hết ván / đổi sân giữa ván 3 / hết trận) -->
     <div id="gameFlowBanner" class="fixed inset-0 z-[236] hidden items-center justify-center bg-black/70 backdrop-blur-sm p-4">
@@ -744,7 +745,7 @@
       </div>
      </div>
      <script>
-        const DEFAULT_FIREBASE_URL = "https://pickleball-34cb5-default-rtdb.asia-southeast1.firebasedatabase.app";
+        const DEFAULT_FIREBASE_URL = "https://pickleball-ba0cb-default-rtdb.asia-southeast1.firebasedatabase.app";
         let isAdmin = false;
         let isTournamentStarted = false;
         let syncStatusTimer = null;
@@ -875,17 +876,54 @@
 
         window.addEventListener('DOMContentLoaded', () => {
             loadLocalState();
-            initDefaultData();
-            if (new URLSearchParams(window.location.search).get('viewer') === '1') enableViewerMode();
-            const sharedMatchId = Number(new URLSearchParams(window.location.search).get('match'));
-            if (sharedMatchId) setTimeout(() => openRefereeScreen(sharedMatchId), 300);
+            // Máy đang dùng link Firebase cũ (đã lưu cục bộ) thì chuyển sang link mặc định mới
+            if (/pickleball-34cb5/i.test(String((tournamentConfig && tournamentConfig.firebaseUrl) || ''))) tournamentConfig.firebaseUrl = DEFAULT_FIREBASE_URL;
+            const qs = new URLSearchParams(window.location.search);
+            // Máy trọng tài / người xem KHÔNG tự tạo dữ liệu mẫu: chờ dữ liệu thật từ Firebase
+            if (qs.get('viewer') !== '1' && !qs.get('match')) initDefaultData();
+            if (qs.get('viewer') === '1') enableViewerMode();
+            const sharedMatchId = Number(qs.get('match'));
+            if (sharedMatchId) waitAndOpenReferee(sharedMatchId);
             initPlayoffConfigUI();
             renderAllTabs();
             updateAdminUIState();
             initTVClock();
+            restoreUiSession();
+            window.addEventListener('pagehide', saveUiSession);
             initFirebaseSync();
         });
 
+        // ===== Giữ trạng thái giao diện khi tải lại trang (đăng nhập admin, tab đang mở, trận đang chấm) =====
+        let currentTabId = 'tab1';
+        function saveUiSession() {
+            try {
+                const ov = document.getElementById('refereeOverlay');
+                const open = !!ov && !ov.classList.contains('hidden');
+                sessionStorage.setItem('pb_ui', JSON.stringify({ admin: !!isAdmin, tab: currentTabId, ref: open ? activeMatchId : null }));
+            } catch (e) {}
+        }
+        function restoreUiSession() {
+            let ui = null;
+            try { ui = JSON.parse(sessionStorage.getItem('pb_ui') || 'null'); } catch (e) {}
+            const qs = new URLSearchParams(window.location.search);
+            if (!ui || qs.get('viewer') === '1' || qs.get('match')) return;
+            if (ui.admin) { isAdmin = true; updateAdminUIState(); }
+            if (ui.tab && document.getElementById(ui.tab)) switchTab(ui.tab);
+            if (ui.admin && ui.ref) waitAndOpenReferee(ui.ref);
+        }
+        // Mở màn hình trọng tài khi dữ liệu thật đã về (tối đa ~10 giây)
+        function waitAndOpenReferee(id, tries = 0) {
+            const have = Array.isArray(matches) && matches.some(m => Number(m.id) === Number(id));
+            const waitingRemote = typeof fbRef !== 'undefined' && fbRef && !fbFirstSyncDone;
+            if (have && !waitingRemote) { openRefereeScreen(id); return; }
+            if (tries >= 25) {
+                if (have) openRefereeScreen(id);
+                else showToast('Chưa tải được dữ liệu trận từ máy chủ. Kiểm tra mạng hoặc quyền Firebase.', 'warning');
+                return;
+            }
+            setTimeout(() => waitAndOpenReferee(id, tries + 1), 400);
+        }
+        function toggleRallyHistory() { document.getElementById('rallyHistory')?.classList.toggle('open'); }
         function loadLocalState() {
             try {
                 const shared = localStorage.getItem('pb_shared_state');
@@ -1129,6 +1167,7 @@
             document.getElementById('currentTabTitle').innerText = titles[tabId] || 'PicklePro';
             if (window.innerWidth < 768) document.getElementById('appSidebar').classList.add('-translate-x-full');
             renderTabSpecific(tabId);
+            currentTabId = tabId; saveUiSession();
         }
         function toggleMobileSidebar() { document.getElementById('appSidebar').classList.toggle('hidden'); }
         function enableViewerMode() {
@@ -1187,7 +1226,7 @@
             if (isAdmin) {
                 isAdmin = false;
                 showToast("Đã đăng xuất quyền Admin!", "info");
-                updateAdminUIState();
+                updateAdminUIState(); saveUiSession();
             } else {
                 document.getElementById('adminAuthModal').classList.remove('hidden');
                 document.getElementById('adminAuthModal').classList.add('flex');
@@ -1203,7 +1242,7 @@
                 isAdmin = true;
                 closeAdminAuthModal();
                 showToast("Đăng nhập Admin thành công!", "success");
-                updateAdminUIState();
+                updateAdminUIState(); saveUiSession();
             } else document.getElementById('adminPassErr').classList.remove('hidden');
         }
         function updateAdminUIState() {
@@ -2114,6 +2153,7 @@
         function openRefereeScreen(matchId) {
             refreshSharedState();
             if (!Array.isArray(matches) || matches.length === 0) {
+                if (!isAdmin) { showToast('Chưa tải được dữ liệu giải từ máy chủ. Kiểm tra mạng hoặc quyền Firebase rồi thử lại.', 'warning'); return; }
                 initDefaultData();
                 saveLocalState();
             }
@@ -2172,12 +2212,14 @@
             pre.classList.add('hidden'); pre.classList.remove('flex');
             const overlay = document.getElementById('refereeOverlay');
             overlay.classList.remove('hidden'); overlay.classList.add('flex');
-            update2DCourtUI();
+            update2DCourtUI(); saveUiSession();
             if (refState.pendingServe) openNextGameServeSetup();
         }
         function closeRefereeScreen() {
             document.getElementById('refereeOverlay').classList.add('hidden');
             document.getElementById('refereeOverlay').classList.remove('flex');
+            document.getElementById('rallyHistory')?.classList.remove('open');
+            saveUiSession();
         }
         function selectFirstServeTeam(teamNum) {
             pmState.firstTeam = Number(teamNum);
@@ -2535,7 +2577,19 @@
 
         /* ===== ĐỒNG BỘ FIREBASE REALTIME DATABASE (admin, trọng tài ghi - khán giả chỉ xem) ===== */
         const FB_STATE_PATH = 'pickle_state_v1';
-        let fbRef = null, fbPushTimer = null, fbStarted = false;
+        let fbRef = null, fbPushTimer = null, fbStarted = false, fbFirstSyncDone = false;
+        // Máy mở bằng link trọng tài (?match=) chưa đăng nhập admin: chỉ được ghi kết quả các trận, không đè đội/cấu hình
+        function fbIsReferee() { return !isAdmin && !fbIsViewer() && !!new URLSearchParams(window.location.search).get('match'); }
+        function fbMergeReferee(remote, local) {
+            const localMap = new Map(local.state.matches.map(m => [Number(m.id), m]));
+            let changed = false;
+            const matches = remote.state.matches.map(m => {
+                const o = localMap.get(Number(m.id));
+                if (o && (Number(o.updatedAt) || 0) > (Number(m.updatedAt) || 0)) { changed = true; return o; }
+                return m;
+            });
+            return { version: changed ? remote.version + 1 : remote.version, timestamp: changed ? Date.now() : remote.timestamp, state: { ...remote.state, matches } };
+        }
         function fbIsViewer() { return document.body.classList.contains('viewer-mode'); }
         function fbList(v) { return Array.isArray(v) ? v.filter(x => x != null) : (v && typeof v === 'object' ? Object.values(v) : []); }
         function fbNormalize(env) {
@@ -2585,9 +2639,16 @@
             scheduleSharedStateRefresh();
         }
         function fbOnRemote(raw) {
+            fbFirstSyncDone = true;
             const remote = fbNormalize(raw);
             let local = null;
             try { local = fbNormalize(readSharedState()); } catch (e) {}
+            if (remote && local && fbIsReferee()) {
+                const mergedR = fbMergeReferee(remote, local);
+                if (!fbSame(mergedR, local)) fbApply(mergedR);
+                if (!fbSame(mergedR, remote)) fbSchedulePush();
+                return;
+            }
             if (!remote) { if (local && !fbIsViewer()) fbSchedulePush(); return; }
             if (fbIsViewer() || !local) { if (!local || !fbSame(remote, local)) fbApply(remote); return; }
             const merged = fbMerge(remote, local);
@@ -2602,12 +2663,17 @@
             if (!local) return;
             fbRef.transaction(cur => {
                 const remote = fbNormalize(cur);
-                if (!remote) return fbPayload(local);
+                if (!remote) return fbIsReferee() ? undefined : fbPayload(local);
+                if (fbIsReferee()) {
+                    const mr = fbMergeReferee(remote, local);
+                    if (fbSame(mr, remote)) return;
+                    return fbPayload(mr);
+                }
                 const merged = fbMerge(remote, local);
                 if (fbSame(merged, remote)) return; // không có gì mới để ghi
                 return fbPayload(merged);
             }, (err, committed) => {
-                if (err) setSyncStatus('Lỗi đồng bộ');
+                if (err) { setSyncStatus('Lỗi đồng bộ'); showToast(/permission/i.test(String(err.message || err.code)) ? 'Firebase từ chối quyền ghi: cần mở Rules cho pickle_state_v1.' : 'Không ghi được lên Firebase.', 'warning'); }
                 else if (committed) setSyncStatus('Đã đồng bộ');
             }, false);
         }
@@ -2621,7 +2687,12 @@
                 const app = firebase.apps.length ? firebase.app() : firebase.initializeApp({ databaseURL: url });
                 fbRef = app.database().ref(FB_STATE_PATH);
                 fbRef.on('value', snap => { try { fbOnRemote(snap.val()); } catch (e) { console.error(e); } },
-                    () => { setSyncStatus('Mất kết nối máy chủ'); showToast('Không kết nối được Firebase (kiểm tra mạng hoặc Rules).', 'warning'); });
+                    err => {
+                        fbFirstSyncDone = true;
+                        const denied = err && /permission/i.test(String(err.message || err.code));
+                        setSyncStatus(denied ? 'Firebase chặn quyền' : 'Mất kết nối máy chủ');
+                        showToast(denied ? 'Firebase từ chối quyền đọc: cần mở Rules cho pickle_state_v1.' : 'Không kết nối được Firebase (kiểm tra mạng).', 'warning');
+                    });
                 window.addEventListener('picklepro:state-changed', fbSchedulePush);
             } catch (e) { setSyncStatus('Chỉ lưu trên máy này'); }
         }
