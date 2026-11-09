@@ -557,7 +557,8 @@
       <div class="flex justify-between items-center">
        <h2 class="text-lg font-bold text-white flex items-center gap-2"><i class="fas fa-calendar-days text-blue-400"></i><span data-template-id="matches-heading" class="canva-text" style="color: rgb(255, 255, 255); font-weight: 700; font-style: normal; font-size: 18px;">Lịch Thi Đấu &amp; Live Điểm</span></h2><span data-template-id="matches-description" class="text-xs text-slate-400 canva-text" style="color: rgb(148, 163, 184); font-weight: 400; font-style: normal; font-size: 12px;">Cập nhật realtime &amp; Lấy link trọng tài riêng biệt</span>
       </div>
-      <div id="matchesListContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+      <div id="matchFilterBar" class="space-y-2"></div>
+ <div id="matchesListContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
      </div><!-- TAB 3 -->
      <div id="tab3" class="tab-content max-w-7xl mx-auto space-y-4">
       <div class="flex justify-between items-center">
@@ -676,7 +677,7 @@
        </div>
        <div id="tvBodyContent" class="my-6 grid grid-cols-2 lg:grid-cols-4 gap-4 flex-1"></div>
        <div class="bg-slate-900 border-t-2 border-amber-500 px-4 py-2 flex items-center overflow-hidden rounded-xl">
-        <span data-template-id="breaking-news-label" class="bg-amber-500 text-slate-950 font-black text-[10px] px-2 py-1 rounded mr-3 uppercase flex-shrink-0 canva-tag" style="background: rgb(245, 158, 11); color: rgb(2, 6, 23); font-weight: 900; font-style: normal; font-size: 10px;">TIN NÓNG</span>
+        <span id="tvTickerLabel" data-template-id="breaking-news-label" class="bg-amber-500 text-slate-950 font-black px-4 py-1.5 rounded mr-3 uppercase flex-shrink-0 canva-tag" style="background: rgb(245, 158, 11); color: rgb(2, 6, 23); font-weight: 900; font-style: normal; font-size: 15px; max-width: 48%; white-space: normal; line-height: 1.15; text-align: center;">GIẢI ĐẤU</span>
         <div class="overflow-hidden whitespace-nowrap w-full">
          <div data-template-id="tv-marquee" id="tvMarqueeText" class="inline-block text-xs font-semibold text-amber-300 animate-marquee canva-text" style="color: rgb(252, 211, 77); font-weight: 600; font-style: normal; font-size: 12px;">🚨 CHÀO MỪNG CÁC VẬN ĐỘNG VIÊN ĐẾN VỚI GIẢI ĐẤU PICKLEBALL VÔ ĐỊCH MÙA HÈ 2026 • THỂ THỨC CHUẨN QUỐC TẾ</div>
         </div>
@@ -684,7 +685,7 @@
       </div>
       <div id="tvTickerEditor" class="admin-only bg-slate-900 p-4 rounded-2xl border border-slate-800 space-y-2">
        <div class="flex items-center justify-between gap-2 flex-wrap">
-        <h3 class="font-bold text-slate-200 text-sm"><i class="fas fa-pen-to-square text-amber-400 mr-2"></i>Chỉnh sửa dòng chữ chạy (TIN NÓNG)</h3>
+        <h3 class="font-bold text-slate-200 text-sm"><i class="fas fa-pen-to-square text-amber-400 mr-2"></i>Chỉnh sửa dòng chữ chạy dưới banner TV</h3>
         <div class="flex gap-2">
          <button onclick="resetTvTicker()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-[11px] font-semibold border border-slate-700">Mặc định</button>
          <button onclick="saveTvTicker()" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-lg text-[11px] font-black">Lưu &amp; Phát lên TV</button>
@@ -1561,16 +1562,52 @@
             if (!isAdmin) { showToast('Chỉ Admin cấp cao nhất mới được mở lại trận đấu!', 'warning'); return; }
             openRefereeScreen(id);
         }
+                // ===== Tab 2: phân biệt Vòng bảng (A, B, C…) / Seri A / Seri B =====
+        let matchFilter = 'ALL';
+        function matchStageInfo(m) {
+            if (matchStageKey(m) === 'GROUP' || !m.series) return { key: 'GROUP', group: m.group, label: 'BẢNG ' + (m.group || ''), color: '#10b981', bg: 'rgba(16,185,129,.15)' };
+            if (m.series === 'seriB') return { key: 'seriB', label: 'SERI B', color: '#818cf8', bg: 'rgba(129,140,248,.15)' };
+            return { key: 'seriA', label: 'SERI A', color: '#fbbf24', bg: 'rgba(251,191,36,.15)' };
+        }
+        function matchPassesFilter(m, f) {
+            const i = matchStageInfo(m);
+            if (f === 'ALL') return true;
+            if (f === 'GROUP') return i.key === 'GROUP';
+            if (f.startsWith('GROUP:')) return i.key === 'GROUP' && i.group === f.slice(6);
+            return i.key === f;
+        }
+        function filteredMatches() {
+            if (matchFilter.startsWith('GROUP:') && !groupLetters().includes(matchFilter.slice(6))) matchFilter = 'GROUP';
+            return matches.filter(m => matchPassesFilter(m, matchFilter));
+        }
+        function setMatchFilter(k) { matchFilter = k; renderTab2(); }
+        function emptyMatchesHtml() {
+            const msg = matchFilter === 'seriA' || matchFilter === 'seriB' ? 'Các trận Seri sẽ xuất hiện sau khi kết thúc vòng bảng.' : 'Chưa có trận nào trong mục này.';
+            return `<div class="col-span-full text-center text-slate-500 text-xs py-10">${msg}</div>`;
+        }
+        function renderMatchFilterBar() {
+            const el = document.getElementById('matchFilterBar');
+            if (!el) return;
+            const cnt = f => matches.filter(m => matchPassesFilter(m, f)).length;
+            const chip = (key, label, color, active) => `<button type="button" onclick="setMatchFilter('${key}')" style="flex:0 0 auto;padding:6px 12px;border-radius:999px;font-size:11px;font-weight:800;white-space:nowrap;border:1px solid ${active ? color : '#334155'};background:${active ? color + '26' : '#0f172a'};color:${active ? color : '#94a3b8'}">${label} <span style="opacity:.7">${cnt(key)}</span></button>`;
+            const inGroup = matchFilter === 'GROUP' || matchFilter.startsWith('GROUP:');
+            let html = `<div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:2px">${chip('ALL', 'Tất cả', '#38bdf8', matchFilter === 'ALL')}${chip('GROUP', 'Vòng bảng', '#10b981', inGroup)}${chip('seriA', 'Seri A', '#fbbf24', matchFilter === 'seriA')}${chip('seriB', 'Seri B', '#818cf8', matchFilter === 'seriB')}</div>`;
+            if (inGroup) html += `<div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:2px">${chip('GROUP', 'Mọi bảng', '#10b981', matchFilter === 'GROUP')}${groupLetters().map(g => chip('GROUP:' + g, 'Bảng ' + g, '#10b981', matchFilter === 'GROUP:' + g)).join('')}</div>`;
+            el.innerHTML = html;
+        }
         function renderTab2() {
-            document.getElementById('matchesListContainer').innerHTML = matches.map(m => {
+            renderMatchFilterBar();
+            const list = filteredMatches();
+            document.getElementById('matchesListContainer').innerHTML = list.map(m => {
+                const st = matchStageInfo(m);
                 const t1 = teams.find(t => t.id === m.team1Id) || { name: 'TBD' };
                 const t2 = teams.find(t => t.id === m.team2Id) || { name: 'TBD' };
                 let badge = `<span class="bg-slate-800 text-slate-400 text-[10px] px-2 py-0.5 rounded">Chưa đấu</span>`;
                 if (m.status === 'LIVE') badge = `<span class="bg-red-500/20 text-red-400 border border-red-500/40 text-[10px] px-2 py-0.5 rounded font-bold animate-pulse">● ĐANG ĐẤU</span>`;
                 if (m.status === 'COMPLETED') badge = `<span class="bg-emerald-500/20 text-emerald-400 text-[10px] px-2 py-0.5 rounded font-bold">✓ HOÀN TẤT</span>`;
                 return `
-                    <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 space-y-3 shadow-lg">
-                        <div class="flex justify-between items-center text-xs"><span class="font-bold text-slate-400">${m.roundName} • Sân ${m.courtId}</span>${badge}</div>
+                    <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 space-y-3 shadow-lg" style="border-left: 4px solid ${st.color};">
+                        <div class="flex justify-between items-center text-xs"><span class="font-bold text-slate-400 flex items-center gap-2 min-w-0"><span style="background:${st.bg};color:${st.color};border:1px solid ${st.color}55;padding:1px 8px;border-radius:999px;font-size:10px;font-weight:800;white-space:nowrap">${st.label}</span><span class="truncate">${m.roundName} • Sân ${m.courtId}</span></span>${badge}</div>
                         <div class="flex items-center justify-between py-2 border-y border-slate-800">
                             <div class="flex-1 text-right font-bold text-sm text-white truncate pr-3">${t1.name}</div>
                             ${matchScoreHTML(m)}
@@ -1578,7 +1615,7 @@
                         </div>
                         <div class="flex justify-between items-center text-xs"><div class="flex items-center gap-2 text-slate-500"><span>Trọng tài:</span><input type="text" value="${m.refereeName || ''}" placeholder="Admin nhập tên" onchange="updateMatchReferee(${m.id}, this.value)" class="w-32 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-white ${isAdmin ? '' : 'pointer-events-none opacity-60'}" ${isAdmin ? '' : 'readonly'}></div><div class="flex gap-2"><button onclick="announceNextMatch(${m.courtId}, '${t1.name.replace(/'/g, "\\'")}', '${t2.name.replace(/'/g, "\\'")}')" class="admin-only px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[11px] font-bold"><i class="fas fa-bullhorn mr-1"></i> Gọi VĐV</button><button onclick="openQRModal(${m.id})" class="admin-only px-2.5 py-1 bg-slate-800 text-emerald-400 rounded-lg text-[11px]"><i class="fas fa-link mr-1"></i> Chia sẻ Zalo</button><button onclick="reopenRefereeMatch(${m.id})" class="px-3 py-1 bg-slate-800 text-amber-400 font-bold rounded-lg text-[11px] ${isAdmin ? '' : 'hidden'}"><i class="fas fa-unlock mr-1"></i> Mở lại trận đấu</button></div></div>
                     </div>`;
-            }).join('');
+            }).join('') || emptyMatchesHtml();
         }
         function renderTab3() {
             const container = document.getElementById('courtsGridContainer');
@@ -1974,6 +2011,8 @@
             return lines.length ? lines : TV_TICKER_DEFAULT.split('\n');
         }
         function renderTicker() {
+            const lb = document.getElementById('tvTickerLabel');
+            if (lb) lb.textContent = String(tournamentConfig.name || 'GIẢI ĐẤU').toUpperCase();
             const el = document.getElementById('tvMarqueeText');
             if (!el) return;
             const text = getTickerLines().join('   •   ');
