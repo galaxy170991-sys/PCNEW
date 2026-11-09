@@ -405,7 +405,7 @@
        <h3 class="font-bold text-slate-200 text-sm border-b border-slate-800 pb-2.5 flex items-center justify-between"><span><i class="fas fa-sitemap text-yellow-400 mr-2"></i><span data-template-id="rules-heading" class="canva-text" style="font-weight: 700; font-style: normal; font-size: 14px;">2. Thể Thức &amp; Luật Điểm Vòng Bảng</span></span><span class="flex gap-2"><button type="button" id="rulesEditButton" onclick="beginConfigEdit('rules')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded-lg text-[10px] font-bold canva-button"><span data-template-id="edit-rules-label" class="canva-text" style="color: rgb(103, 232, 249); font-weight: 700; font-style: normal; font-size: 10px;">Chỉnh sửa</span></button><button type="button" id="rulesSaveButton" onclick="saveConfigEdit('rules')" class="hidden px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[10px] font-bold canva-button"><span data-template-id="save-config-label-rules" class="canva-text" style="color: rgb(255, 255, 255); font-weight: 700; font-style: normal; font-size: 10px;">Lưu</span></button><button type="button" id="rulesCancelButton" onclick="cancelConfigEdit('rules')" class="hidden px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-[10px] font-bold canva-button"><span data-template-id="cancel-config-label-rules" class="canva-text" style="color: rgb(203, 213, 225); font-weight: 700; font-style: normal; font-size: 10px;">Hủy</span></button></span></h3>
        <div class="grid grid-cols-2 gap-3">
         <div>
-         <label data-template-id="groups-label" class="block text-xs font-semibold text-slate-400 mb-1 canva-text" style="color: rgb(148, 163, 184); font-weight: 600; font-style: normal; font-size: 12px;">Số Bảng Đấu</label><select id="cfgGroupsCount" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white"><option value="2" data-template-id="two-groups-option" class="canva-text" style="font-weight: 400; font-style: normal; font-size: 14px;">2 Bảng (A, B)</option><option value="3" data-template-id="three-groups-option" class="canva-text" style="font-weight: 400; font-style: normal; font-size: 14px;">3 Bảng (A, B, C)</option><option value="4" selected="" data-template-id="four-groups-option" class="canva-text" style="font-weight: 400; font-style: normal; font-size: 14px;">4 Bảng (A, B, C, D)</option></select>
+         <label data-template-id="groups-label" class="block text-xs font-semibold text-slate-400 mb-1 canva-text" style="color: rgb(148, 163, 184); font-weight: 600; font-style: normal; font-size: 12px;">Số Bảng Đấu</label><select id="cfgGroupsCount" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white"><option value="2" data-template-id="two-groups-option" class="canva-text" style="font-weight: 400; font-style: normal; font-size: 14px;">2 Bảng (A, B)</option><option value="3" data-template-id="three-groups-option" class="canva-text" style="font-weight: 400; font-style: normal; font-size: 14px;">3 Bảng (A, B, C)</option><option value="4" selected="" data-template-id="four-groups-option" class="canva-text" style="font-weight: 400; font-style: normal; font-size: 14px;">4 Bảng (A, B, C, D)</option><option value="5">5 Bảng (A đến E)</option><option value="6">6 Bảng (A đến F)</option><option value="7">7 Bảng (A đến G)</option><option value="8">8 Bảng (A đến H)</option><option value="9">9 Bảng (A đến I)</option><option value="10">10 Bảng (A đến J)</option></select>
         </div>
         <div>
          <label data-template-id="games-label" class="block text-xs font-semibold text-slate-400 mb-1 canva-text" style="color: rgb(148, 163, 184); font-weight: 600; font-style: normal; font-size: 12px;">Thể thức mỗi trận</label><select id="cfgGameFormat" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-cyan-400 font-bold"><option value="1" selected="" data-template-id="one-game-option" class="canva-text" style="font-weight: 400; font-style: normal; font-size: 14px;">1 ván</option><option value="3" data-template-id="three-games-option" class="canva-text" style="font-weight: 400; font-style: normal; font-size: 14px;">3 thắng 2 (Best of 3)</option></select>
@@ -506,7 +506,7 @@
       </div>
       <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 space-y-4 shadow-lg">
        <div class="flex justify-between items-center border-b border-slate-800 pb-3">
-        <h3 class="font-bold text-slate-200 text-sm"><i class="fas fa-users-viewfinder text-teal-400 mr-2"></i><span data-template-id="teams-heading" class="canva-text" style="color: rgb(226, 232, 240); font-weight: 700; font-style: normal; font-size: 14px;">3. Danh Sách Đội &amp; Tải Ảnh Chân Dung VĐV (Infographic)</span></h3><button onclick="addMockTeams()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium border border-slate-700"><i class="fas fa-magic text-purple-400 mr-1"></i> <span data-template-id="load-sample-teams-label" class="canva-text" style="font-weight: 400; font-style: normal; font-size: 12px;">Tải Đội Mẫu</span></button>
+        <h3 class="font-bold text-slate-200 text-sm"><i class="fas fa-users-viewfinder text-teal-400 mr-2"></i><span data-template-id="teams-heading" class="canva-text" style="color: rgb(226, 232, 240); font-weight: 700; font-style: normal; font-size: 14px;">3. Danh Sách Đội &amp; Tải Ảnh Chân Dung VĐV (Infographic)</span></h3><div class="flex gap-2"><button onclick="addMockTeams()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium border border-slate-700"><i class="fas fa-magic text-purple-400 mr-1"></i> <span data-template-id="load-sample-teams-label" class="canva-text" style="font-weight: 400; font-style: normal; font-size: 12px;">Tải Đội Mẫu</span></button><button onclick="addNewTeam()" id="btnAddTeam" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-lg"><i class="fas fa-plus mr-1"></i> Thêm Đội</button></div>
        </div>
        <div class="overflow-x-auto">
         <table class="w-full text-xs text-left">
@@ -518,6 +518,7 @@
            <th class="px-3 py-2.5" data-template-id="player-two-column" style="font-weight: 400; font-style: normal; font-size: 14px;">Vận Động Viên 2</th>
            <th class="px-3 py-2.5" data-template-id="avatar-column" style="font-weight: 400; font-style: normal; font-size: 14px;">Ảnh Chân Dung (Chọn từ thiết bị hoặc URL)</th>
            <th class="px-3 py-2.5" data-template-id="admin-notes-column" style="font-weight: 400; font-style: normal; font-size: 14px;">Ghi Chú Admin Ẩn (SĐT)</th>
+           <th class="px-3 py-2.5 w-12 text-center">Xóa</th>
           </tr>
          </thead>
          <tbody id="teamRegisterTableBody" class="divide-y divide-slate-800/50"></tbody>
@@ -836,8 +837,8 @@
                 if (![a,b].every(x => [1,3].includes(x.games) && ['11_direct','11_diff2','15_direct','15_diff2'].includes(x.rule) && (x.maxScore === '' || /^\d+$/.test(x.maxScore) && Number(x.maxScore) > 0))) { showToast('Cấu hình tranh hạng 3 không hợp lệ.', 'warning'); return; }
                 tournamentConfig.playoff.thirdPlace = { seriA: a, seriB: b };
             } else {
-                const prevGroups = Math.max(2, Math.min(4, Number(tournamentConfig.groupsCount) || 4));
-                const newGroups = Math.max(2, Math.min(4, Number(read('cfgGroupsCount')) || 4));
+                const prevGroups = Math.max(2, Math.min(10, Number(tournamentConfig.groupsCount) || 4));
+                const newGroups = Math.max(2, Math.min(10, Number(read('cfgGroupsCount')) || 4));
                 if (newGroups !== prevGroups) {
                     const played = matches.some(m => m.status === 'LIVE' || m.status === 'COMPLETED');
                     if (played && !confirm('Đổi số bảng đấu sẽ tạo lại lịch vòng bảng và XÓA kết quả, nhánh đã có. Tiếp tục?')) { document.getElementById('cfgGroupsCount').value = prevGroups; return; }
@@ -1412,18 +1413,53 @@
         function renderTab1() {
             document.getElementById('teamRegisterTableBody').innerHTML = teams.map(t => `
                 <tr class="hover:bg-slate-800/40">
-                    <td class="px-3 py-2 text-center font-bold text-emerald-400">${t.group}</td>
+                    <td class="px-3 py-2 text-center">
+                        <select onchange="updateTeamData('${t.id}', 'group', this.value)" class="bg-slate-900 border border-slate-700 text-emerald-400 font-bold rounded px-1.5 py-1 w-full text-center ${isAdmin && !isTournamentStarted ? '' : 'pointer-events-none opacity-60'}">
+                            ${groupLetters().map(g => `<option value="${g}" ${t.group === g ? 'selected' : ''}>Bảng ${g}</option>`).join('')}
+                        </select>
+                    </td>
                     <td class="px-3 py-2"><input type="text" value="${t.name}" onchange="updateTeamData('${t.id}', 'name', this.value)" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-white w-full"></td>
                     <td class="px-3 py-2"><input type="text" value="${t.p1}" onchange="updateTeamData('${t.id}', 'p1', this.value)" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-slate-300 w-full"></td>
                     <td class="px-3 py-2"><input type="text" value="${t.p2}" onchange="updateTeamData('${t.id}', 'p2', this.value)" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-slate-300 w-full"></td>
                     <td class="px-3 py-2"><div class="flex items-center gap-2"><label class="flex-1 cursor-pointer"><span class="flex items-center justify-center gap-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded px-2 py-1.5 text-cyan-400 text-[11px] font-semibold"><i class="fas fa-image"></i> Chọn ảnh</span><input type="file" accept="image/*" class="hidden" onchange="handleAvatarUpload('${t.id}', this.files[0])"></label><div class="w-8 h-8 rounded-full bg-slate-950 border border-slate-700 overflow-hidden flex-shrink-0">${getTeamPhoto(t) ? `<img src="${getTeamPhoto(t)}" alt="Ảnh avatar" class="w-full h-full object-cover">` : '<i class="fas fa-user text-slate-600 text-xs flex items-center justify-center w-full h-full"></i>'}</div></div><input type="text" value="${t.avatar && !t.avatar.startsWith('data:') ? t.avatar : ''}" placeholder="Hoặc dán link ảnh" onchange="updateTeamData('${t.id}', 'avatar', this.value)" class="mt-1 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-cyan-400 w-full text-[10px]"></td>
-                    <td class="px-3 py-2"><input type="text" value="${t.note}" onchange="updateTeamData('${t.id}', 'note', this.value)" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-yellow-400 w-full font-mono text-[11px]"></td>
+                    <td class="px-3 py-2"><input type="text" value="${t.note || ''}" onchange="updateTeamData('${t.id}', 'note', this.value)" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-yellow-400 w-full font-mono text-[11px]"></td>
+                    <td class="px-3 py-2 text-center">
+                        <button onclick="removeTeam('${t.id}')" class="px-2 py-1.5 bg-red-500/20 hover:bg-red-500/40 text-red-400 rounded-lg text-[11px] border border-red-500/30 ${isAdmin && !isTournamentStarted ? '' : 'hidden'}"><i class="fas fa-trash"></i></button>
+                    </td>
                 </tr>
             `).join('');
+
+            const btnAdd = document.getElementById('btnAddTeam');
+            if (btnAdd) btnAdd.classList.toggle('hidden', isTournamentStarted);
+        }
+        function rebuildMatchesForCurrentTeams() {
+            if (isTournamentStarted) return;
+            matches = [];
+            buildGroupMatches(true);
+        }
+        function addNewTeam() {
+            if (isTournamentStarted) { showToast("Giải đã bắt đầu, không thể thêm đội!", "warning"); return; }
+            const newId = 't' + Date.now().toString().slice(-6);
+            teams.push({ id: newId, group: 'A', name: `Đội Mới`, p1: `VĐV 1`, p2: `VĐV 2`, avatar: '', note: '' });
+            rebuildMatchesForCurrentTeams();
+            saveLocalState();
+            renderTab1();
+        }
+        function removeTeam(id) {
+            if (isTournamentStarted) { showToast("Giải đã bắt đầu, không thể xóa đội!", "warning"); return; }
+            if (!confirm("Bạn có chắc muốn xóa đội này?")) return;
+            teams = teams.filter(t => t.id !== id);
+            rebuildMatchesForCurrentTeams();
+            saveLocalState();
+            renderTab1();
         }
         function updateTeamData(id, field, val) {
             const t = teams.find(x => x.id === id);
-            if (t) { t[field] = val; saveLocalState(); }
+            if (t) {
+                t[field] = val;
+                if (field === 'group' && !isTournamentStarted) rebuildMatchesForCurrentTeams();
+                saveLocalState();
+            }
         }
         function handleAvatarUpload(id, file) {
             if (!file) return;
@@ -1466,8 +1502,33 @@
             if (!isAdmin) { showToast('Chỉ Admin cấp cao nhất mới được mở lại trận đấu!', 'warning'); return; }
             openRefereeScreen(id);
         }
+        let currentMatchFilter = 'ALL';
+
+        function setMatchFilter(f) {
+            currentMatchFilter = f;
+            renderTab2();
+        }
+
         function renderTab2() {
-            document.getElementById('matchesListContainer').innerHTML = matches.map(m => {
+            const groups = groupLetters();
+            let filterHtml = `
+            <div class="col-span-full flex overflow-x-auto gap-2 pb-3 mb-2 border-b border-slate-800 scrollbar-hide">
+                <button onclick="setMatchFilter('ALL')" class="whitespace-nowrap px-4 py-1.5 rounded-full text-[11px] font-bold transition-all ${currentMatchFilter === 'ALL' ? 'bg-emerald-600 text-white shadow-md' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}">Tất Cả</button>
+                <button onclick="setMatchFilter('LIVE')" class="whitespace-nowrap px-4 py-1.5 rounded-full text-[11px] font-bold transition-all ${currentMatchFilter === 'LIVE' ? 'bg-red-600 text-white shadow-lg shadow-red-900/50' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}"><i class="fas fa-fire mr-1"></i> Đang &amp; Sắp Đấu</button>
+            `;
+            groups.forEach(g => {
+                filterHtml += `<button onclick="setMatchFilter('${g}')" class="whitespace-nowrap px-4 py-1.5 rounded-full text-[11px] font-bold transition-all ${currentMatchFilter === g ? 'bg-cyan-600 text-white shadow-md' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}">Bảng ${g}</button>`;
+            });
+            filterHtml += `<button onclick="setMatchFilter('KNOCKOUT')" class="whitespace-nowrap px-4 py-1.5 rounded-full text-[11px] font-bold transition-all ${currentMatchFilter === 'KNOCKOUT' ? 'bg-amber-600 text-white shadow-md' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}">Loại Trực Tiếp</button></div>`;
+
+            const filteredMatches = matches.filter(m => {
+                if (currentMatchFilter === 'ALL') return true;
+                if (currentMatchFilter === 'LIVE') return m.status === 'LIVE' || m.status === 'UPCOMING';
+                if (currentMatchFilter === 'KNOCKOUT') return m.stage !== 'GROUP';
+                return m.group === currentMatchFilter;
+            });
+
+            const matchesHtml = filteredMatches.length > 0 ? filteredMatches.map(m => {
                 const t1 = teams.find(t => t.id === m.team1Id) || { name: 'TBD' };
                 const t2 = teams.find(t => t.id === m.team2Id) || { name: 'TBD' };
                 let badge = `<span class="bg-slate-800 text-slate-400 text-[10px] px-2 py-0.5 rounded">Chưa đấu</span>`;
@@ -1481,10 +1542,13 @@
                             ${matchScoreHTML(m)}
                             <div class="flex-1 text-left font-bold text-sm text-white truncate pl-3">${t2.name}</div>
                         </div>
-                        <div class="flex justify-between items-center text-xs"><div class="flex items-center gap-2 text-slate-500"><span>Trọng tài:</span><input type="text" value="${m.refereeName || ''}" placeholder="Admin nhập tên" onchange="updateMatchReferee(${m.id}, this.value)" class="w-32 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-white ${isAdmin ? '' : 'pointer-events-none opacity-60'}" ${isAdmin ? '' : 'readonly'}></div><div class="flex gap-2"><button onclick="announceNextMatch(${m.courtId}, '${t1.name.replace(/'/g, "\\'")}', '${t2.name.replace(/'/g, "\\'")}')" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[11px] font-bold"><i class="fas fa-bullhorn mr-1"></i> Gọi VĐV</button><button onclick="openQRModal(${m.id})" class="px-2.5 py-1 bg-slate-800 text-emerald-400 rounded-lg text-[11px]"><i class="fas fa-link mr-1"></i> Chia sẻ Zalo</button><button onclick="reopenRefereeMatch(${m.id})" class="px-3 py-1 bg-slate-800 text-amber-400 font-bold rounded-lg text-[11px] ${isAdmin ? '' : 'hidden'}"><i class="fas fa-unlock mr-1"></i> Mở lại trận đấu</button></div></div>
+                        <div class="flex justify-between items-center text-xs"><div class="flex items-center gap-2 text-slate-500"><span>Trọng tài:</span><input type="text" value="${m.refereeName || ''}" placeholder="Admin nhập tên" onchange="updateMatchReferee(${m.id}, this.value)" class="w-32 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-white ${isAdmin ? '' : 'pointer-events-none opacity-60'}" ${isAdmin ? '' : 'readonly'}></div><div class="flex gap-2"><button onclick="announceNextMatch(${m.courtId}, '${t1.name.replace(/'/g, "\'")}', '${t2.name.replace(/'/g, "\'")}')" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[11px] font-bold"><i class="fas fa-bullhorn mr-1"></i> Gọi VĐV</button><button onclick="openQRModal(${m.id})" class="px-2.5 py-1 bg-slate-800 text-emerald-400 rounded-lg text-[11px]"><i class="fas fa-link mr-1"></i> Chia sẻ Zalo</button><button onclick="reopenRefereeMatch(${m.id})" class="px-3 py-1 bg-slate-800 text-amber-400 font-bold rounded-lg text-[11px] ${isAdmin ? '' : 'hidden'}"><i class="fas fa-unlock mr-1"></i> Mở lại trận đấu</button></div></div>
                     </div>`;
-            }).join('');
+            }).join('') : `<div class="col-span-full text-center py-12 text-slate-500 text-sm font-semibold">Không có trận đấu nào trong mục này.</div>`;
+
+            document.getElementById('matchesListContainer').innerHTML = filterHtml + matchesHtml;
         }
+
         function renderTab3() {
             const container = document.getElementById('courtsGridContainer');
             const total = tournamentConfig.courtsCount;
@@ -1568,7 +1632,7 @@
         function matchStageKey(m) { return String((m && m.stage) || 'GROUP').toUpperCase().replace(/[^A-Z0-9]/g, ''); }
         function teamNameById(id) { const t = teams.find(x => x.id === id); return t ? t.name : ''; }
         function awardNames(ids) { const n = (ids || []).map(teamNameById).filter(Boolean); return n.length ? n.join(' / ') : 'Chưa xác định'; }
-        function groupLetters() { return Array.from({ length: Math.max(2, Math.min(4, Number(tournamentConfig.groupsCount) || 4)) }, (_, i) => String.fromCharCode(65 + i)); }
+        function groupLetters() { return Array.from({ length: Math.max(2, Math.min(10, Number(tournamentConfig.groupsCount) || 4)) }, (_, i) => String.fromCharCode(65 + i)); }
         function isGroupStageDone() {
             const g = matches.filter(m => matchStageKey(m) === 'GROUP');
             return g.length > 0 && g.every(m => m.status === 'COMPLETED');
