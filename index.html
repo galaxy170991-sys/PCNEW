@@ -1008,57 +1008,55 @@ function rrdBuild(M, seed) {
 }
 
 
+        const RR_RULES = { '11_direct': ['Chạm 11 thắng', 0], '11_diff2': ['Chạm 11 cách 2, tối đa 13', 13], '15_direct': ['Chạm 15 thắng', 0], '15_diff2': ['Chạm 15 cách 2, tối đa 17', 17] };
         function rrFormat() { return (tournamentConfig && tournamentConfig.format) || 'GROUP_KO'; }
         function isRR() { const f = rrFormat(); return f === 'RR_SINGLES' || f === 'RR_DOUBLES'; }
-        function rrDefaults(f) { return { count: f === 'RR_SINGLES' ? 12 : 6, games: 1, target: 11, playoff: false, third: false, seed: '' }; }
-        function rrParseNames(text, single, cnt) {
-            const lines = String(text || '').split(/\r?\n/).map(x => x.trim()).filter(Boolean), out = [];
-            for (let i = 0; i < cnt; i++) {
-                const ln = lines[i];
-                if (!ln) { out.push(single ? { name: 'VĐV ' + (i + 1), p1: 'VĐV ' + (i + 1), p2: '' } : { name: 'Cặp ' + (i + 1), p1: 'VĐV ' + (i + 1) + 'A', p2: 'VĐV ' + (i + 1) + 'B' }); continue; }
-                if (single) { out.push({ name: ln, p1: ln, p2: '' }); continue; }
-                const parts = ln.split(/\s*(?:&|\+|\/|\||-)\s*/).filter(Boolean);
-                const a = parts[0] || ('VĐV ' + (i + 1) + 'A'), b = parts[1] || ('VĐV ' + (i + 1) + 'B');
-                out.push({ name: a + ' & ' + b, p1: a, p2: b });
-            }
-            return out;
-        }
-        function rrSaveNames() {
-            if (!isAdmin) { showToast('Chỉ Admin mới được sửa tên.', 'warning'); return; }
-            const ta = document.getElementById('rrNamesText'); if (!ta) return;
-            const rr = tournamentConfig.rr = Object.assign(rrDefaults(rrFormat()), tournamentConfig.rr || {});
-            rr.namesText = ta.value;
-            if (teams.length) {
-                const single = rrFormat() === 'RR_SINGLES', parsed = rrParseNames(rr.namesText, single, teams.length);
-                teams.forEach((t, i) => { t.name = parsed[i].name; t.p1 = parsed[i].p1; t.p2 = parsed[i].p2; });
-            }
-            saveLocalState(); renderAllTabs(); renderRRConfigCard(true);
-            showToast(teams.length ? 'Đã cập nhật tên. Lịch và tỷ số không đổi.' : 'Đã lưu danh sách. Bấm Tạo lịch đấu để áp dụng.', 'success');
-        }
+        function rrDefaults(f) { return { count: f === 'RR_SINGLES' ? 12 : 6, games: 1, rule: '11_diff2', playoff: false, third: false, seed: '' }; }
+        function rrCfg() { return (tournamentConfig.rr = Object.assign(rrDefaults(rrFormat()), tournamentConfig.rr || {})); }
         function rrHasScores() { return matches.some(m => m.status !== 'UPCOMING' || m.team1Score || m.team2Score); }
         function rrApplyRules() {
-            const rr = tournamentConfig.rr || {};
-            const target = Number(rr.target) === 15 ? 15 : 11;
+            const rr = rrCfg(), k = RR_RULES[rr.rule] ? rr.rule : '11_diff2';
             tournamentConfig.gameFormat = Number(rr.games) === 3 ? 3 : 1;
-            tournamentConfig.ruleTarget = target + '_diff2';
-            tournamentConfig.maxCapPoint = target === 11 ? 13 : 17;
+            tournamentConfig.ruleTarget = k;
+            tournamentConfig.maxCapPoint = RR_RULES[k][1] || '';
+        }
+        // Danh sách VĐV/cặp tạo sẵn theo số lượng đã chọn, giữ nguyên tên/ảnh đã nhập khi đổi số lượng
+        function rrResizeRoster() {
+            const single = rrFormat() === 'RR_SINGLES', cnt = Number(rrCfg().count) || 0, keep = teams.slice(0, cnt);
+            for (let i = keep.length + 1; i <= cnt; i++) {
+                keep.push(single
+                    ? { id: 't' + i, group: '', name: 'VĐV ' + i, p1: 'VĐV ' + i, p2: '', avatar: '', note: '' }
+                    : { id: 't' + i, group: '', name: 'VĐV ' + i + 'A & VĐV ' + i + 'B', p1: 'VĐV ' + i + 'A', p2: 'VĐV ' + i + 'B', avatar: '', note: '' });
+            }
+            teams = keep;
+        }
+        function rrUpdateName(id, field, val) {
+            if (!isAdmin) { showToast('Chỉ Admin mới được sửa tên.', 'warning'); return; }
+            const t = teams.find(x => x.id === id); if (!t) return;
+            const n = id.slice(1); val = String(val).trim();
+            if (rrFormat() === 'RR_SINGLES') { t.name = val || ('VĐV ' + n); t.p1 = t.name; t.p2 = ''; }
+            else { t[field] = val || ('VĐV ' + n + (field === 'p1' ? 'A' : 'B')); t.name = t.p1 + ' & ' + t.p2; }
+            saveLocalState(); renderAllTabs();
+        }
+        // Tên một phía của trận: đơn lấy từ 2 mã VĐV, còn lại tra theo team1Id/team2Id như cũ
+        function rrSide(m, k) {
+            if (m && m.stage === 'RRS') {
+                const ids = k === 1 ? [m.s1a, m.s1b] : [m.s2a, m.s2b];
+                const ts = ids.map(i => teams.find(t => t.id === i));
+                if (ts.every(Boolean)) return { name: ts.map(t => t.name).join(' & '), p1: ts[0].name, p2: ts[1].name };
+                return { name: 'TBD', p1: '', p2: '' };
+            }
+            return teams.find(t => t.id === (k === 1 ? m.team1Id : m.team2Id)) || { name: 'TBD' };
         }
         function createRRSchedule() {
-            const single = rrFormat() === 'RR_SINGLES';
-            const rr = Object.assign(rrDefaults(rrFormat()), tournamentConfig.rr || {});
-            const cnt = Number(rr.count);
+            const single = rrFormat() === 'RR_SINGLES', rr = rrCfg(), cnt = Number(rr.count);
             const seed = rr.seed || ('S' + Date.now().toString(36));
             const courts = Math.max(1, Math.min(20, Number(tournamentConfig.courtsCount) || 4));
             let S;
             try { S = single ? rrsBuild(cnt, seed) : rrdBuild(cnt, seed); }
             catch (e) { showToast(e.message, 'warning'); return; }
-            tournamentConfig.rr = Object.assign(rr, { count: cnt, seed });
-            rrApplyRules();
-            teams = []; matches = [];
-            const nmList = rrParseNames(rr.namesText, single, cnt);
-            for (let i = 1; i <= cnt; i++) {
-                teams.push({ id: 't' + i, group: '', name: nmList[i - 1].name, p1: nmList[i - 1].p1, p2: nmList[i - 1].p2, avatar: '', note: '' });
-            }
+            rr.seed = seed;
+            rrApplyRules(); rrResizeRoster(); matches = [];
             const tid = i => 't' + (i + 1), now = Date.now(), rest = [];
             S.rounds.forEach(R => {
                 rest.push('R' + R.no + '=' + R.rest.map(tid).join(','));
@@ -1081,21 +1079,22 @@ function rrdBuild(M, seed) {
         }
         function rrCfgChange(key, val) {
             if (!isAdmin) { showToast('Chỉ Admin mới được đổi cấu hình.', 'warning'); renderRRConfigCard(); return; }
-            if (isTournamentStarted) { showToast('Giải đã khóa. Bấm Mở khóa trước khi đổi cấu hình.', 'warning'); renderRRConfigCard(true); return; }
-            const rr = tournamentConfig.rr = Object.assign(rrDefaults(rrFormat()), tournamentConfig.rr || {});
-            const v = (key === 'playoff' || key === 'third') ? !!val : Number(val);
+            if (isTournamentStarted) { showToast('Giải đã khóa. Bấm Mở khóa trước khi đổi cấu hình.', 'warning'); renderRRConfigCard(); return; }
+            const rr = rrCfg();
+            const v = (key === 'playoff' || key === 'third') ? !!val : (key === 'rule' ? String(val) : Number(val));
             if (rr[key] === v) return;
             if (key === 'count' && matches.length) {
-                if (!confirm('Đổi số ' + (rrFormat() === 'RR_SINGLES' ? 'VĐV' : 'cặp') + ' sẽ xóa danh sách, lịch và tỷ số hiện có. Tiếp tục?')) { renderRRConfigCard(); return; }
-                teams = []; matches = []; tournamentConfig.scheduleReady = false; tournamentConfig.rrRest = ''; rr.seed = '';
+                if (!confirm('Đổi số ' + (rrFormat() === 'RR_SINGLES' ? 'VĐV' : 'cặp') + ' sẽ xóa lịch và tỷ số hiện có (tên đã nhập được giữ). Tiếp tục?')) { renderRRConfigCard(); return; }
+                matches = []; tournamentConfig.scheduleReady = false; tournamentConfig.rrRest = ''; rr.seed = '';
             }
-            if ((key === 'games' || key === 'target') && rrHasScores()) { showToast('Đã có tỷ số, không đổi game/luật được nữa.', 'warning'); renderRRConfigCard(); return; }
+            if ((key === 'games' || key === 'rule') && rrHasScores()) { showToast('Đã có tỷ số, không đổi game/luật được nữa.', 'warning'); renderRRConfigCard(); return; }
             rr[key] = v;
             if (key === 'playoff' && !v) rr.third = false;
+            if (key === 'count') rrResizeRoster();
             rrApplyRules();
             saveLocalState(); renderAllTabs(); updateAdminUIState();
         }
-        function renderRRConfigCard(force) {
+        function renderRRConfigCard() {
             const wrapper = document.getElementById('setupFormWrapper');
             let host = document.getElementById('rrConfigCard');
             if (!isRR()) { if (host) host.style.display = 'none'; return; }
@@ -1104,25 +1103,60 @@ function rrdBuild(M, seed) {
                 host.className = 'admin-only bg-slate-900 p-5 rounded-2xl border border-slate-800 space-y-3 shadow-lg';
                 wrapper.parentNode.insertBefore(host, wrapper);
             }
-            if (!host) return; host.style.display = ''; if (!force && host.contains(document.activeElement) && document.activeElement.tagName === 'TEXTAREA') return;
-            const single = rrFormat() === 'RR_SINGLES', rr = Object.assign(rrDefaults(rrFormat()), tournamentConfig.rr || {});
+            if (!host) return;
+            host.style.display = '';
+            const single = rrFormat() === 'RR_SINGLES', rr = rrCfg();
             const dis = (!isAdmin || isTournamentStarted) ? 'disabled' : '';
             const lo = single ? 6 : 4, hi = single ? 15 : 10, unit = single ? 'VĐV' : 'cặp';
-            const opts = (arr, cur) => arr.map(([v, l]) => '<option value="' + v + '"' + (Number(cur) === v ? ' selected' : '') + '>' + l + '</option>').join('');
+            const opts = (arr, cur) => arr.map(([v, l]) => '<option value="' + v + '"' + (String(cur) === String(v) ? ' selected' : '') + '>' + l + '</option>').join('');
             const cnts = Array.from({ length: hi - lo + 1 }, (_, i) => [lo + i, (lo + i) + ' ' + unit]);
+            const rules = Object.keys(RR_RULES).map((k, i) => [k, (i + 1) + '. ' + RR_RULES[k][0]]);
             const sel = 'class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white"';
             host.innerHTML = '<h3 class="font-bold text-slate-200 text-sm border-b border-slate-800 pb-2.5"><i class="fas fa-repeat text-cyan-400 mr-2"></i>Round Robin ' + (single ? 'đơn (xoay cặp)' : 'đôi (cố định cặp)') + '</h3>'
                 + '<div class="grid grid-cols-2 gap-3">'
                 + '<label class="text-[11px] text-slate-400">Số ' + unit + '<select ' + sel + ' ' + dis + ' onchange="rrCfgChange(\'count\',this.value)">' + opts(cnts, rr.count) + '</select></label>'
-                + '<label class="text-[11px] text-slate-400">Số game/trận<select ' + sel + ' ' + dis + ' onchange="rrCfgChange(\'games\',this.value)">' + opts([[1, '1 game'], [3, '3 game (thắng 2)']], rr.games) + '</select></label>'
-                + '<label class="text-[11px] text-slate-400 col-span-2">Luật game<select ' + sel + ' ' + dis + ' onchange="rrCfgChange(\'target\',this.value)">' + opts([[11, 'Chạm 11, cách 2, tối đa 13'], [15, 'Chạm 15, cách 2, tối đa 17']], rr.target) + '</select></label></div>'
+                + '<label class="text-[11px] text-slate-400">Số game/trận<select ' + sel + ' ' + dis + ' onchange="rrCfgChange(\'games\',this.value)">' + opts([[1, '1 game/trận'], [3, '3 game thắng 2']], rr.games) + '</select></label>'
+                + '<label class="text-[11px] text-slate-400 col-span-2">Cách tính điểm mỗi game<select ' + sel + ' ' + dis + ' onchange="rrCfgChange(\'rule\',this.value)">' + opts(rules, rr.rule) + '</select></label></div>'
                 + (single
                     ? '<div class="text-[11px] text-slate-500">Đơn không có bán kết/chung kết: hạng chốt theo bảng xếp hạng cá nhân sau khi hết các round.</div>'
                     : '<label class="flex items-center gap-2 text-xs text-slate-300"><input type="checkbox" class="accent-emerald-500" ' + dis + (rr.playoff ? ' checked' : '') + ' onchange="rrCfgChange(\'playoff\',this.checked)"> Bán kết &amp; Chung kết (tắt thì dừng ở vòng round)</label>'
                     + '<label class="flex items-center gap-2 text-xs text-slate-300 ml-6"><input type="checkbox" class="accent-emerald-500" ' + ((dis || !rr.playoff) ? 'disabled' : '') + (rr.third ? ' checked' : '') + ' onchange="rrCfgChange(\'third\',this.checked)"> Tranh hạng 3</label>')
-                + '<label class="block text-[11px] text-slate-400">Danh sách ' + (single ? 'VĐV (mỗi dòng một tên)' : 'cặp (mỗi dòng một cặp, dạng "Tên A - Tên B")') + '<textarea id="rrNamesText" rows="' + Math.min(14, Math.max(4, Number(rr.count))) + '" ' + (isAdmin ? '' : 'disabled') + ' class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white" placeholder="' + (single ? 'Nguyễn Văn A\nTrần Văn B\n...' : 'Nguyễn Văn A - Trần Văn B\nLê Văn C - Phạm Văn D\n...') + '">' + escHtml(rr.namesText != null ? rr.namesText : teams.map(t => single ? t.p1 : (t.p1 + ' - ' + t.p2)).join('\n')) + '</textarea></label>'
-                + '<button type="button" onclick="rrSaveNames()" class="px-3 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-[11px] font-bold"' + (isAdmin ? '' : ' disabled') + '>Lưu danh sách tên</button>'
-                + '<div class="text-[11px] text-slate-500">' + (tournamentConfig.scheduleReady === false && !matches.length ? 'Chưa có lịch: bấm "Tạo lịch đấu" ở khung vàng phía trên.' : 'Đã có lịch. Đổi số ' + unit + ' sẽ xóa lịch và tỷ số (có hỏi xác nhận).') + '</div>';
+                + '<div class="text-[11px] text-slate-500">' + (matches.length ? 'Đã có lịch. Đổi số ' + unit + ' sẽ xóa lịch và tỷ số (có hỏi xác nhận). Tên sửa được ở Danh sách bên dưới, lịch không đổi.' : 'Chọn số ' + unit + ', nhập tên ở bảng Danh sách bên dưới, rồi bấm "Tạo lịch đấu" ở khung vàng.') + '</div>';
+        }
+        // Bảng đăng ký ở tab 1 dùng lại khung của file gốc: STT, tên, ảnh, ghi chú
+        function rrFixHeader() {
+            const body = document.getElementById('teamRegisterTableBody'), table = body && body.closest('table');
+            const single = rrFormat() === 'RR_SINGLES', on = isRR();
+            if (table) {
+                const labels = single ? ['STT', 'Tên VĐV', null, null, 'Ảnh (chọn từ thiết bị hoặc URL)', 'Ghi chú Admin ẩn (SĐT)'] : ['STT', 'Cặp', 'VĐV 1', 'VĐV 2', 'Ảnh (chọn từ thiết bị hoặc URL)', 'Ghi chú Admin ẩn (SĐT)'];
+                table.querySelectorAll('thead th').forEach((th, i) => {
+                    if (th.dataset.orig === undefined) th.dataset.orig = th.textContent;
+                    if (!on) { th.textContent = th.dataset.orig; th.style.display = ''; }
+                    else if (labels[i] == null) th.style.display = 'none';
+                    else { th.textContent = labels[i]; th.style.display = ''; }
+                });
+            }
+            const h = document.querySelector('[data-template-id="teams-heading"]');
+            if (h) { if (h.dataset.orig === undefined) h.dataset.orig = h.textContent; h.textContent = on ? (single ? 'Danh sách VĐV' : 'Danh sách cặp') : h.dataset.orig; }
+            const sample = document.querySelector('[data-template-id="load-sample-teams-label"]')?.closest('button');
+            if (sample) sample.style.display = on ? 'none' : '';
+        }
+        function rrRenderRoster() {
+            const body = document.getElementById('teamRegisterTableBody'); if (!body) return;
+            const single = rrFormat() === 'RR_SINGLES', inp = 'class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-white w-full"';
+            body.innerHTML = teams.map((t, i) => {
+                const photo = getTeamPhoto(t);
+                const first = '<td class="px-3 py-2 text-center font-bold text-emerald-400">' + (i + 1) + '</td>';
+                const names = single
+                    ? '<td class="px-3 py-2"><input type="text" ' + inp + ' value="' + escHtml(t.name) + '" onchange="rrUpdateName(\'' + t.id + '\',\'name\',this.value)"></td>'
+                    : '<td class="px-3 py-2 font-bold text-slate-200">' + escHtml(t.name) + '</td>'
+                    + '<td class="px-3 py-2"><input type="text" ' + inp + ' value="' + escHtml(t.p1) + '" onchange="rrUpdateName(\'' + t.id + '\',\'p1\',this.value)"></td>'
+                    + '<td class="px-3 py-2"><input type="text" ' + inp + ' value="' + escHtml(t.p2) + '" onchange="rrUpdateName(\'' + t.id + '\',\'p2\',this.value)"></td>';
+                const av = t.avatar && !t.avatar.startsWith('data:') ? t.avatar : '';
+                const photoTd = '<td class="px-3 py-2"><div class="flex items-center gap-2"><label class="flex-1 cursor-pointer"><span class="flex items-center justify-center gap-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded px-2 py-1.5 text-cyan-400 text-[11px] font-semibold"><i class="fas fa-image"></i> Chọn ảnh</span><input type="file" accept="image/*" class="hidden" onchange="handleAvatarUpload(\'' + t.id + '\', this.files[0])"></label><div class="w-8 h-8 rounded-full bg-slate-950 border border-slate-700 overflow-hidden flex-shrink-0">' + (photo ? '<img src="' + photo + '" alt="Ảnh" class="w-full h-full object-cover">' : '<i class="fas fa-user text-slate-600 text-xs flex items-center justify-center w-full h-full"></i>') + '</div></div><input type="text" value="' + escHtml(av) + '" placeholder="Hoặc dán link ảnh" onchange="updateTeamData(\'' + t.id + '\', \'avatar\', this.value)" class="mt-1 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-cyan-400 w-full text-[10px]"></td>';
+                const noteTd = '<td class="px-3 py-2"><input type="text" value="' + escHtml(t.note || '') + '" onchange="updateTeamData(\'' + t.id + '\', \'note\', this.value)" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-yellow-400 w-full font-mono text-[11px]"></td>';
+                return '<tr class="hover:bg-slate-800/40">' + first + names + photoTd + noteTd + '</tr>';
+            }).join('');
         }
         function applyFormatUI() {
             const f = rrFormat(), rr = tournamentConfig.rr || {};
@@ -1869,9 +1903,9 @@ function rrdBuild(M, seed) {
         function renderScheduleBanner() {
             const tab = document.getElementById('tab1'); if (!tab) return;
             let b = document.getElementById('scheduleBanner');
-            if (!(tournamentConfig.scheduleReady === false && !teams.length)) { if (b) b.remove(); return; }
+            if (!(tournamentConfig.scheduleReady === false && (!teams.length || isRR()))) { if (b) b.remove(); return; }
             if (!b) { b = document.createElement('div'); b.id = 'scheduleBanner'; b.className = 'bg-amber-500/10 border border-amber-500/40 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3'; tab.prepend(b); }
-            b.innerHTML = '<div class="text-xs text-amber-200"><b>Giải mới chưa có lịch đấu.</b> ' + (isRR() ? 'Chọn số VĐV/cặp, số game và luật ở thẻ Round Robin bên dưới rồi bấm Tạo lịch đấu.' : 'Cấu hình số bảng, số đội, số sân, thể thức... rồi bấm Tạo lịch đấu.') + '</div><button onclick="createSchedule()" class="admin-only px-4 py-2 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black rounded-xl text-xs">Tạo lịch đấu</button>';
+            b.innerHTML = '<div class="text-xs text-amber-200"><b>Giải mới chưa có lịch đấu.</b> ' + (isRR() ? 'Chọn số VĐV/cặp, game, luật ở thẻ Round Robin, nhập tên ở Danh sách bên dưới rồi bấm Tạo lịch đấu.' : 'Cấu hình số bảng, số đội, số sân, thể thức... rồi bấm Tạo lịch đấu.') + '</div><button onclick="createSchedule()" class="admin-only px-4 py-2 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black rounded-xl text-xs">Tạo lịch đấu</button>';
         }
         function createSchedule() {
             if (!isAdmin) { showToast('Chỉ Admin mới được tạo lịch.', 'warning'); return; } if (isRR()) { createRRSchedule(); return; } tournamentConfig.scheduleReady = true;
@@ -1880,8 +1914,7 @@ function rrdBuild(M, seed) {
             saveLocalState(); renderAllTabs(); updateAdminUIState();
             showToast('Đã tạo lịch vòng bảng theo cấu hình.', 'success');
         }
-        function renderTab1() {
-            renderScheduleBanner();
+        function renderTab1() { renderScheduleBanner(); rrFixHeader(); if (isRR()) { rrRenderRoster(); return; }
             document.getElementById('teamRegisterTableBody').innerHTML = teams.map(t => `
                 <tr class="hover:bg-slate-800/40">
                     <td class="px-3 py-2 text-center font-bold text-emerald-400">${t.group}</td>
@@ -1942,6 +1975,7 @@ function rrdBuild(M, seed) {
                 // ===== Tab 2: phân biệt Vòng bảng (A, B, C…) / Seri A / Seri B =====
         let matchFilter = 'ALL';
         function matchStageInfo(m) {
+            if (m && (m.stage === 'RRS' || m.stage === 'RRD')) return { key: 'RR', label: 'ROUND ' + m.round, color: '#22d3ee', bg: 'rgba(34,211,238,.15)' };
             if (matchStageKey(m) === 'GROUP' || !m.series) return { key: 'GROUP', group: m.group, label: 'BẢNG ' + (m.group || ''), color: '#10b981', bg: 'rgba(16,185,129,.15)' };
             if (m.series === 'seriB') return { key: 'seriB', label: 'SERI B', color: '#818cf8', bg: 'rgba(129,140,248,.15)' };
             return { key: 'seriA', label: 'SERI A', color: '#fbbf24', bg: 'rgba(251,191,36,.15)' };
@@ -1977,8 +2011,7 @@ function rrdBuild(M, seed) {
             const list = filteredMatches();
             document.getElementById('matchesListContainer').innerHTML = list.map(m => {
                 const st = matchStageInfo(m);
-                const t1 = teams.find(t => t.id === m.team1Id) || { name: 'TBD' };
-                const t2 = teams.find(t => t.id === m.team2Id) || { name: 'TBD' };
+                const t1 = rrSide(m, 1); const t2 = rrSide(m, 2);
                 let badge = `<span class="bg-slate-800 text-slate-400 text-[10px] px-2 py-0.5 rounded">Chưa đấu</span>`;
                 if (m.status === 'LIVE') badge = `<span class="bg-red-500/20 text-red-400 border border-red-500/40 text-[10px] px-2 py-0.5 rounded font-bold animate-pulse">● ĐANG ĐẤU</span>`;
                 if (m.status === 'COMPLETED') badge = `<span class="bg-emerald-500/20 text-emerald-400 text-[10px] px-2 py-0.5 rounded font-bold">✓ HOÀN TẤT</span>`;
@@ -2371,9 +2404,8 @@ function rrdBuild(M, seed) {
             if (wantSave && !saveTournamentFile()) return;
             document.getElementById('newTourDlg').remove();
             const cfg = JSON.parse(JSON.stringify(DEFAULT_CONFIG_SNAPSHOT));
-            cfg.scheduleReady = false; if (nm) cfg.name = nm; cfg.format = ntFmt; cfg.rr = rrDefaults(cfg.format); cfg.rrRest = ''; if (cfg.format !== 'GROUP_KO') { const t = cfg.rr.target; cfg.ruleTarget = t + '_diff2'; cfg.maxCapPoint = t === 11 ? 13 : 17; cfg.gameFormat = cfg.rr.games; }
-            teams = []; matches = []; matchFilter = 'ALL'; tvPage = 0;
-            applyTournamentState(cfg, [], [], false, {});
+            cfg.scheduleReady = false; if (nm) cfg.name = nm; cfg.format = ntFmt; cfg.rr = rrDefaults(cfg.format); cfg.rrRest = ''; if (cfg.format !== 'GROUP_KO') { cfg.ruleTarget = '11_diff2'; cfg.maxCapPoint = 13; cfg.gameFormat = 1; }
+            teams = []; matches = []; matchFilter = 'ALL'; tvPage = 0; applyTournamentState(cfg, [], [], false, {}); if (isRR()) rrResizeRoster();
             saveLocalState(); renderAllTabs(); updateAdminUIState();
             switchTab('tab1');
             showToast('Đã tạo giải mới. Hãy cấu hình rồi bấm Tạo lịch đấu.', 'success');
