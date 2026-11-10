@@ -291,6 +291,9 @@
 .tv-sp{width:var(--tvbar);height:var(--tvbar);border-radius:9999px;object-fit:cover;border:2px solid #f59e0b;background:#0f172a;flex:0 0 auto}
 @media(max-width:520px){:root{--tvbar:38px}}
 body.no-seri-b #appSidebar nav .nav-btn[data-tab="tab6"], body.no-seri-b #viewerNav [data-vtab="tab6"]{display:none !important}
+body.fmt-rr #appSidebar nav .nav-btn[data-tab="tab6"], body.fmt-rr #viewerNav [data-vtab="tab6"],
+body.fmt-rrs #appSidebar nav .nav-btn[data-tab="tab5"], body.fmt-rrs #viewerNav [data-vtab="tab5"],
+body.rrd-noplayoff #appSidebar nav .nav-btn[data-tab="tab5"], body.rrd-noplayoff #viewerNav [data-vtab="tab5"]{display:none !important}
 @media(min-width:1800px){#tvBodyContent{zoom:1.35}}
 </style>
 </head>
@@ -842,8 +845,7 @@ body.no-seri-b #appSidebar nav .nav-btn[data-tab="tab6"], body.no-seri-b #viewer
             firebaseUrl: DEFAULT_FIREBASE_URL,
             groupsCount: 4,
             teamsPerGroup: 4,
-            gameFormat: 1,
-            nextGameServe: "redraw",
+            gameFormat: 1, nextGameServe: "redraw", format: "GROUP_KO", rr: { count: 12, games: 1, target: 11, playoff: false, third: false, seed: "" },
             ruleTarget: "11_direct",
             maxCapPoint: "",
             qualifiers: { seriA: 2, seriB: 2 },
@@ -854,6 +856,263 @@ body.no-seri-b #appSidebar nav .nav-btn[data-tab="tab6"], body.no-seri-b #viewer
             }
         };
         const DEFAULT_CONFIG_SNAPSHOT = JSON.parse(JSON.stringify(tournamentConfig));
+        // ===== ROUND ROBIN (đơn / đôi): module tách riêng, GROUP_KO không đụng tới =====
+// rr_schedule.js — Bước 1: tạo lịch Round Robin đơn (RRS) và đôi (RRD) + tự kiểm tra.
+// Chạy thử: node rr_schedule.js
+// Không phụ thuộc DOM; sau này dán nguyên khối này vào index.html (module RRS/RRD).
+
+// ---- Tiện ích dùng chung (bộ random theo hạt giống) ----
+function rrRng(seed) {
+  const s = String(seed);
+  let h = 1779033703 ^ s.length;
+  for (let i = 0; i < s.length; i++) { h = Math.imul(h ^ s.charCodeAt(i), 3432918353); h = (h << 13) | (h >>> 19); }
+  let a = h >>> 0;
+  return function () {
+    a = (a + 0x6D2B79F5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function rrShuffle(arr, rnd) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+// Phương pháp vòng tròn: trả về các round, mỗi round là danh sách cặp [x,y]; null = người nghỉ (bye)
+function rrCircle(ids, rnd) {
+  const arr = rrShuffle(ids, rnd);
+  if (arr.length % 2) arr.push(null);
+  const E = arr.length, rounds = [];
+  for (let r = 0; r < E - 1; r++) {
+    const pairs = [];
+    for (let i = 0; i < E / 2; i++) pairs.push([arr[i], arr[E - 1 - i]]);
+    rounds.push(pairs);
+    arr.splice(1, 0, arr.pop());
+  }
+  return rounds;
+}
+
+// ---- Round Robin ĐƠN ----
+const RRS_ROUNDS = { 6: 6, 7: 7, 8: 7, 9: 9, 10: 10, 11: 11, 12: 11, 13: 13, 14: 14, 15: 15 };
+function rrsParams(n) {
+  if (!RRS_ROUNDS[n]) throw new Error('Round Robin đơn chỉ hỗ trợ 6–15 VĐV');
+  const m = Math.floor(n / 4);
+  return { n, m, k: n - 4 * m, rounds: RRS_ROUNDS[n] };
+}
+function rrsRestBlock(P, rnd) {
+  const order = rrShuffle([...Array(P.n).keys()], rnd), start = Math.floor(rnd() * P.n), res = [];
+  for (let r = 0; r < P.rounds; r++) {
+    const s = new Set();
+    for (let j = 0; j < P.k; j++) s.add(order[(start + r * P.k + j) % P.n]);
+    res.push(s);
+  }
+  return res;
+}
+function rrsRestGreedy(P, rnd) {
+  const cnt = new Array(P.n).fill(0), res = [];
+  let last = new Set();
+  for (let r = 0; r < P.rounds; r++) {
+    const ids = rrShuffle([...Array(P.n).keys()], rnd)
+      .sort((a, b) => cnt[a] - cnt[b] || ((last.has(a) ? 1 : 0) - (last.has(b) ? 1 : 0)));
+    const s = new Set(ids.slice(0, P.k));
+    s.forEach(i => cnt[i]++);
+    res.push(s); last = s;
+  }
+  return res;
+}
+// Ghép từng round thành cặp bằng quay lui, mỗi cặp đứng chung tối đa một lần
+function rrsMatchPartners(P, rest, rnd, cap) {
+  const n = P.n, used = Array.from({ length: n }, () => new Uint8Array(n)), out = [];
+  let nodes = 0;
+  function round(r) {
+    if (r === P.rounds) return true;
+    const av = [];
+    for (let i = 0; i < n; i++) if (!rest[r].has(i)) av.push(i);
+    return pair(rrShuffle(av, rnd), [], r);
+  }
+  function pair(av, acc, r) {
+    if (++nodes > cap) return false;
+    if (!av.length) { out[r] = acc.slice(); return round(r + 1); }
+    const a = av[0], others = av.slice(1);
+    for (const b of rrShuffle(others, rnd)) {
+      if (used[a][b]) continue;
+      used[a][b] = used[b][a] = 1; acc.push([a, b]);
+      if (pair(others.filter(x => x !== b), acc, r)) return true;
+      acc.pop(); used[a][b] = used[b][a] = 0;
+      if (nodes > cap) return false;
+    }
+    return false;
+  }
+  return round(0) ? out : null;
+}
+// Chia các cặp của một round thành các trận, hạn chế gặp lại cùng đối thủ
+function rrsGroup(pairs, opp, rnd) {
+  let best = null, bestCost = Infinity;
+  for (let t = 0; t < 40; t++) {
+    const sh = rrShuffle(pairs, rnd);
+    let cost = 0;
+    for (let i = 0; i < sh.length; i += 2)
+      for (const x of sh[i]) for (const y of sh[i + 1]) cost += opp[x][y] * opp[x][y] + 1;
+    if (cost < bestCost) { bestCost = cost; best = sh; }
+  }
+  const ms = [];
+  for (let i = 0; i < best.length; i += 2) {
+    ms.push({ p1: best[i], p2: best[i + 1] });
+    for (const x of best[i]) for (const y of best[i + 1]) { opp[x][y]++; opp[y][x]++; }
+  }
+  return ms;
+}
+function rrsBuild(n, seed) {
+  const P = rrsParams(n), rnd = rrRng('RRS|' + n + '|' + seed);
+  const opp = Array.from({ length: n }, () => new Array(n).fill(0));
+  let roundsPairs, rest, mode;
+  if (P.k === 0 || P.k === 1) {          // chặt: mọi cặp dùng đúng một lần → vòng tròn
+    const circ = rrCircle([...Array(n).keys()], rnd);
+    rest = circ.map(prs => new Set(prs.filter(p => p.includes(null)).map(p => p.find(x => x !== null))));
+    roundsPairs = circ.map(prs => prs.filter(p => !p.includes(null)));
+    mode = 'circle';
+  } else {
+    for (let at = 0; at < 400 && !roundsPairs; at++) {
+      const block = at < 60;
+      rest = block ? rrsRestBlock(P, rnd) : rrsRestGreedy(P, rnd);
+      roundsPairs = rrsMatchPartners(P, rest, rnd, 30000);
+      mode = (block ? 'block' : 'greedy') + '#' + (at + 1);
+    }
+    if (!roundsPairs) throw new Error('Không tạo được lịch đơn cho N=' + n);
+  }
+  let no = 0;
+  const rounds = roundsPairs.map((prs, r) => ({
+    no: r + 1,
+    rest: [...rest[r]].sort((a, b) => a - b),
+    matches: rrsGroup(prs, opp, rnd).map(m => ({ no: ++no, p1: m.p1, p2: m.p2 }))
+  }));
+  return { format: 'RR_SINGLES', n, seed, mode, rounds };
+}
+
+// ---- Round Robin ĐÔI (cố định cặp) ----
+function rrdBuild(M, seed) {
+  if (M < 4 || M > 10) throw new Error('Round Robin đôi chỉ hỗ trợ 4–10 cặp');
+  const rnd = rrRng('RRD|' + M + '|' + seed);
+  const circ = rrCircle([...Array(M).keys()], rnd);
+  let no = 0;
+  const rounds = circ.map((prs, r) => {
+    const rest = prs.filter(p => p.includes(null)).map(p => p.find(x => x !== null));
+    const matches = rrShuffle(prs.filter(p => !p.includes(null)), rnd)
+      .map(p => (rnd() < 0.5 ? p : [p[1], p[0]]))
+      .map(p => ({ no: ++no, t1: p[0], t2: p[1] }));
+    return { no: r + 1, rest, matches };
+  });
+  return { format: 'RR_DOUBLES', n: M, seed, mode: 'circle', rounds };
+}
+
+
+        function rrFormat() { return (tournamentConfig && tournamentConfig.format) || 'GROUP_KO'; }
+        function isRR() { const f = rrFormat(); return f === 'RR_SINGLES' || f === 'RR_DOUBLES'; }
+        function rrDefaults(f) { return { count: f === 'RR_SINGLES' ? 12 : 6, games: 1, target: 11, playoff: false, third: false, seed: '' }; }
+        function rrHasScores() { return matches.some(m => m.status !== 'UPCOMING' || m.team1Score || m.team2Score); }
+        function rrApplyRules() {
+            const rr = tournamentConfig.rr || {};
+            const target = Number(rr.target) === 15 ? 15 : 11;
+            tournamentConfig.gameFormat = Number(rr.games) === 3 ? 3 : 1;
+            tournamentConfig.ruleTarget = target + '_diff2';
+            tournamentConfig.maxCapPoint = target === 11 ? 13 : 17;
+        }
+        function createRRSchedule() {
+            const single = rrFormat() === 'RR_SINGLES';
+            const rr = Object.assign(rrDefaults(rrFormat()), tournamentConfig.rr || {});
+            const cnt = Number(rr.count);
+            const seed = rr.seed || ('S' + Date.now().toString(36));
+            const courts = Math.max(1, Math.min(20, Number(tournamentConfig.courtsCount) || 4));
+            let S;
+            try { S = single ? rrsBuild(cnt, seed) : rrdBuild(cnt, seed); }
+            catch (e) { showToast(e.message, 'warning'); return; }
+            tournamentConfig.rr = Object.assign(rr, { count: cnt, seed });
+            rrApplyRules();
+            teams = []; matches = [];
+            for (let i = 1; i <= cnt; i++) {
+                teams.push(single
+                    ? { id: 't' + i, group: '', name: 'VĐV ' + i, p1: 'VĐV ' + i, p2: '', avatar: '', note: '' }
+                    : { id: 't' + i, group: '', name: 'Cặp ' + i, p1: 'VĐV ' + i + 'A', p2: 'VĐV ' + i + 'B', avatar: '', note: '' });
+            }
+            const tid = i => 't' + (i + 1), now = Date.now(), rest = [];
+            S.rounds.forEach(R => {
+                rest.push('R' + R.no + '=' + R.rest.map(tid).join(','));
+                R.matches.forEach(m => {
+                    const mt = {
+                        id: m.no, stage: single ? 'RRS' : 'RRD', group: '', round: R.no,
+                        roundName: 'Round ' + R.no, turnName: 'Trận ' + m.no,
+                        team1Score: 0, team2Score: 0, status: 'UPCOMING',
+                        courtId: ((m.no - 1) % courts) + 1, refereeName: '', updatedAt: now
+                    };
+                    if (single) { mt.team1Id = ''; mt.team2Id = ''; mt.s1a = tid(m.p1[0]); mt.s1b = tid(m.p1[1]); mt.s2a = tid(m.p2[0]); mt.s2b = tid(m.p2[1]); }
+                    else { mt.team1Id = tid(m.t1); mt.team2Id = tid(m.t2); }
+                    matches.push(mt);
+                });
+            });
+            tournamentConfig.rrRest = rest.join('|');
+            tournamentConfig.scheduleReady = true;
+            saveLocalState(); renderAllTabs(); updateAdminUIState();
+            showToast('Đã tạo lịch Round Robin (' + S.rounds.length + ' round, ' + matches.length + ' trận).', 'success');
+        }
+        function rrCfgChange(key, val) {
+            if (!isAdmin) { showToast('Chỉ Admin mới được đổi cấu hình.', 'warning'); renderRRConfigCard(); return; }
+            if (isTournamentStarted) { showToast('Giải đã khóa. Bấm Mở khóa trước khi đổi cấu hình.', 'warning'); renderRRConfigCard(); return; }
+            const rr = tournamentConfig.rr = Object.assign(rrDefaults(rrFormat()), tournamentConfig.rr || {});
+            const v = (key === 'playoff' || key === 'third') ? !!val : Number(val);
+            if (rr[key] === v) return;
+            if (key === 'count' && matches.length) {
+                if (!confirm('Đổi số ' + (rrFormat() === 'RR_SINGLES' ? 'VĐV' : 'cặp') + ' sẽ xóa danh sách, lịch và tỷ số hiện có. Tiếp tục?')) { renderRRConfigCard(); return; }
+                teams = []; matches = []; tournamentConfig.scheduleReady = false; tournamentConfig.rrRest = ''; rr.seed = '';
+            }
+            if ((key === 'games' || key === 'target') && rrHasScores()) { showToast('Đã có tỷ số, không đổi game/luật được nữa.', 'warning'); renderRRConfigCard(); return; }
+            rr[key] = v;
+            if (key === 'playoff' && !v) rr.third = false;
+            rrApplyRules();
+            saveLocalState(); renderAllTabs(); updateAdminUIState();
+        }
+        function renderRRConfigCard() {
+            const wrapper = document.getElementById('setupFormWrapper');
+            let host = document.getElementById('rrConfigCard');
+            if (!isRR()) { if (host) host.style.display = 'none'; return; }
+            if (!host && wrapper) {
+                host = document.createElement('div'); host.id = 'rrConfigCard';
+                host.className = 'admin-only bg-slate-900 p-5 rounded-2xl border border-slate-800 space-y-3 shadow-lg';
+                wrapper.parentNode.insertBefore(host, wrapper);
+            }
+            if (!host) return;
+            host.style.display = '';
+            const single = rrFormat() === 'RR_SINGLES', rr = Object.assign(rrDefaults(rrFormat()), tournamentConfig.rr || {});
+            const dis = (!isAdmin || isTournamentStarted) ? 'disabled' : '';
+            const lo = single ? 6 : 4, hi = single ? 15 : 10, unit = single ? 'VĐV' : 'cặp';
+            const opts = (arr, cur) => arr.map(([v, l]) => '<option value="' + v + '"' + (Number(cur) === v ? ' selected' : '') + '>' + l + '</option>').join('');
+            const cnts = Array.from({ length: hi - lo + 1 }, (_, i) => [lo + i, (lo + i) + ' ' + unit]);
+            const sel = 'class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white"';
+            host.innerHTML = '<h3 class="font-bold text-slate-200 text-sm border-b border-slate-800 pb-2.5"><i class="fas fa-repeat text-cyan-400 mr-2"></i>Round Robin ' + (single ? 'đơn (xoay cặp)' : 'đôi (cố định cặp)') + '</h3>'
+                + '<div class="grid grid-cols-2 gap-3">'
+                + '<label class="text-[11px] text-slate-400">Số ' + unit + '<select ' + sel + ' ' + dis + ' onchange="rrCfgChange(\'count\',this.value)">' + opts(cnts, rr.count) + '</select></label>'
+                + '<label class="text-[11px] text-slate-400">Số game/trận<select ' + sel + ' ' + dis + ' onchange="rrCfgChange(\'games\',this.value)">' + opts([[1, '1 game'], [3, '3 game (thắng 2)']], rr.games) + '</select></label>'
+                + '<label class="text-[11px] text-slate-400 col-span-2">Luật game<select ' + sel + ' ' + dis + ' onchange="rrCfgChange(\'target\',this.value)">' + opts([[11, 'Chạm 11, cách 2, tối đa 13'], [15, 'Chạm 15, cách 2, tối đa 17']], rr.target) + '</select></label></div>'
+                + (single
+                    ? '<div class="text-[11px] text-slate-500">Đơn không có bán kết/chung kết: hạng chốt theo bảng xếp hạng cá nhân sau khi hết các round.</div>'
+                    : '<label class="flex items-center gap-2 text-xs text-slate-300"><input type="checkbox" class="accent-emerald-500" ' + dis + (rr.playoff ? ' checked' : '') + ' onchange="rrCfgChange(\'playoff\',this.checked)"> Bán kết &amp; Chung kết (tắt thì dừng ở vòng round)</label>'
+                    + '<label class="flex items-center gap-2 text-xs text-slate-300 ml-6"><input type="checkbox" class="accent-emerald-500" ' + ((dis || !rr.playoff) ? 'disabled' : '') + (rr.third ? ' checked' : '') + ' onchange="rrCfgChange(\'third\',this.checked)"> Tranh hạng 3</label>')
+                + '<div class="text-[11px] text-slate-500">' + (tournamentConfig.scheduleReady === false && !matches.length ? 'Chưa có lịch: bấm "Tạo lịch đấu" ở khung vàng phía trên.' : 'Đã có lịch. Đổi số ' + unit + ' sẽ xóa lịch và tỷ số (có hỏi xác nhận).') + '</div>';
+        }
+        function applyFormatUI() {
+            const f = rrFormat(), rr = tournamentConfig.rr || {};
+            document.body.classList.toggle('fmt-rr', isRR());
+            document.body.classList.toggle('fmt-rrs', f === 'RR_SINGLES');
+            document.body.classList.toggle('fmt-rrd', f === 'RR_DOUBLES');
+            document.body.classList.toggle('rrd-noplayoff', f === 'RR_DOUBLES' && !rr.playoff);
+            ['rules-heading', 'playoff-settings-heading'].forEach(id => {
+                const card = document.querySelector('[data-template-id="' + id + '"]')?.closest('.rounded-2xl');
+                if (card) card.style.display = isRR() ? 'none' : '';
+            });
+            renderRRConfigCard();
+        }
+
         let teams = [];
         // Ảnh đội: chỉ lưu trên máy này (key riêng), KHÔNG nằm trong state đồng bộ Firebase
         let teamPhotos = (() => { try { return JSON.parse(localStorage.getItem('pb_team_photos') || '{}') || {}; } catch (e) { return {}; } })();
@@ -1345,8 +1604,7 @@ body.no-seri-b #appSidebar nav .nav-btn[data-tab="tab6"], body.no-seri-b #viewer
             });
         }
 
-        function initDefaultData() {
-            if (tournamentConfig.scheduleReady === false) return;
+        function initDefaultData() { if (tournamentConfig.scheduleReady === false || isRR()) return;
             if (teams.length === 0) {
                 const groupLabels = Array.from({ length: Math.max(2, Math.min(15, Number(tournamentConfig.groupsCount) || 4)) }, (_, index) => String.fromCharCode(65 + index));
                 let tCount = 1;
@@ -1458,7 +1716,7 @@ body.no-seri-b #appSidebar nav .nav-btn[data-tab="tab6"], body.no-seri-b #viewer
             link.href = image.tagName === 'CANVAS' ? image.toDataURL('image/png') : image.src;
             link.click();
         }
-        function renderAllTabs() {
+        function renderAllTabs() { try { applyFormatUI(); } catch (e) { console.error(e); }
             [renderTab1, renderTab2, renderTab3, renderTab4, renderTab5, renderTab6, renderTab7, renderTab8, renderTab9].forEach(f => { try { f(); } catch (e) { console.error(e); } });
             applySeriBUI();
             if (!teams.length) {
@@ -1500,8 +1758,7 @@ body.no-seri-b #appSidebar nav .nav-btn[data-tab="tab6"], body.no-seri-b #viewer
                 updateAdminUIState(); saveUiSession();
             } else document.getElementById('adminPassErr').classList.remove('hidden');
         }
-        function updateAdminUIState() {
-            const wrapper = document.getElementById('setupFormWrapper');
+        function updateAdminUIState() { try { applyFormatUI(); } catch (e) { console.error(e); } const wrapper = document.getElementById('setupFormWrapper');
             if (!wrapper) return;
             document.getElementById('audience-label')?.classList.toggle('hidden', isAdmin);
             document.getElementById('admin-access-label')?.classList.toggle('hidden', !isAdmin);
@@ -1540,8 +1797,7 @@ body.no-seri-b #appSidebar nav .nav-btn[data-tab="tab6"], body.no-seri-b #viewer
                 teams: JSON.parse(JSON.stringify(teams)),
                 matches: JSON.parse(JSON.stringify(matches))
             };
-            const nextStarted = !isTournamentStarted;
-            if (nextStarted) initDefaultData();
+            const nextStarted = !isTournamentStarted; if (isRR()) { if (nextStarted && !matches.length) { showToast('Hãy tạo lịch đấu trước khi bắt đầu giải.', 'warning'); return; } if (!nextStarted && rrHasScores() && !confirm('Đã có tỷ số. Mở khóa chỉ cho sửa tên, lịch và tỷ số vẫn giữ nguyên. Tiếp tục?')) return; } if (nextStarted) initDefaultData();
             isTournamentStarted = nextStarted;
             if (!saveLocalState()) {
                 isTournamentStarted = previousState.isTournamentStarted;
@@ -1591,11 +1847,10 @@ body.no-seri-b #appSidebar nav .nav-btn[data-tab="tab6"], body.no-seri-b #viewer
             let b = document.getElementById('scheduleBanner');
             if (!(tournamentConfig.scheduleReady === false && !teams.length)) { if (b) b.remove(); return; }
             if (!b) { b = document.createElement('div'); b.id = 'scheduleBanner'; b.className = 'bg-amber-500/10 border border-amber-500/40 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3'; tab.prepend(b); }
-            b.innerHTML = '<div class="text-xs text-amber-200"><b>Giải mới chưa có lịch đấu.</b> Cấu hình số bảng, số đội, số sân, thể thức... rồi bấm Tạo lịch đấu.</div><button onclick="createSchedule()" class="admin-only px-4 py-2 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black rounded-xl text-xs">Tạo lịch đấu</button>';
+            b.innerHTML = '<div class="text-xs text-amber-200"><b>Giải mới chưa có lịch đấu.</b> ' + (isRR() ? 'Chọn số VĐV/cặp, số game và luật ở thẻ Round Robin bên dưới rồi bấm Tạo lịch đấu.' : 'Cấu hình số bảng, số đội, số sân, thể thức... rồi bấm Tạo lịch đấu.') + '</div><button onclick="createSchedule()" class="admin-only px-4 py-2 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black rounded-xl text-xs">Tạo lịch đấu</button>';
         }
         function createSchedule() {
-            if (!isAdmin) { showToast('Chỉ Admin mới được tạo lịch.', 'warning'); return; }
-            tournamentConfig.scheduleReady = true;
+            if (!isAdmin) { showToast('Chỉ Admin mới được tạo lịch.', 'warning'); return; } if (isRR()) { createRRSchedule(); return; } tournamentConfig.scheduleReady = true;
             initDefaultData();
             matches.forEach(m => { m.updatedAt = Date.now(); });
             saveLocalState(); renderAllTabs(); updateAdminUIState();
@@ -2081,7 +2336,7 @@ body.no-seri-b #appSidebar nav .nav-btn[data-tab="tab6"], body.no-seri-b #viewer
                 <div style="font-weight:800;font-size:15px;margin-bottom:6px">Tạo giải mới</div>
                 <div style="color:#94a3b8;font-size:12px;margin-bottom:12px">Toàn bộ đội, lịch, kết quả và ảnh đội của giải hiện tại sẽ bị xóa khỏi máy này và các máy đang đồng bộ.</div>
                 <label style="display:flex;gap:8px;align-items:center;margin-bottom:12px"><input id="ntSave" type="checkbox" checked> Lưu file giải hiện tại trước khi tạo giải mới</label>
-                <label style="display:block;color:#94a3b8;font-size:12px;margin-bottom:4px">Tên giải mới (có thể để trống, sửa sau)</label>
+                <label style="display:block;color:#94a3b8;font-size:12px;margin-bottom:4px">Thể thức (khóa sau khi bắt đầu giải)</label><select id="ntFormat" style="width:100%;background:#020617;border:1px solid #334155;border-radius:10px;padding:8px 10px;color:#fff;margin-bottom:12px"><option value="GROUP_KO">Vòng bảng + loại trực tiếp</option><option value="RR_SINGLES">Round Robin đơn (xoay cặp)</option><option value="RR_DOUBLES">Round Robin đôi (cố định cặp)</option></select><label style="display:block;color:#94a3b8;font-size:12px;margin-bottom:4px">Tên giải mới (có thể để trống, sửa sau)</label>
                 <input id="ntName" type="text" style="width:100%;background:#020617;border:1px solid #334155;border-radius:10px;padding:8px 10px;color:#fff;margin-bottom:14px" placeholder="${escHtml(tournamentConfig.name || '')}">
                 <div style="display:flex;gap:8px;justify-content:flex-end"><button onclick="document.getElementById('newTourDlg').remove()" style="background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:10px;padding:8px 14px;font-weight:700">Hủy</button>
                 <button onclick="confirmNewTournament()" style="background:#fbbf24;color:#020617;border-radius:10px;padding:8px 14px;font-weight:800">Tạo giải mới</button></div></div>`;
@@ -2092,8 +2347,7 @@ body.no-seri-b #appSidebar nav .nav-btn[data-tab="tab6"], body.no-seri-b #viewer
             if (wantSave && !saveTournamentFile()) return;
             document.getElementById('newTourDlg').remove();
             const cfg = JSON.parse(JSON.stringify(DEFAULT_CONFIG_SNAPSHOT));
-            cfg.scheduleReady = false;
-            if (nm) cfg.name = nm;
+            cfg.scheduleReady = false; if (nm) cfg.name = nm; cfg.format = document.getElementById('ntFormat').value; cfg.rr = rrDefaults(cfg.format); cfg.rrRest = ''; if (cfg.format !== 'GROUP_KO') { const t = cfg.rr.target; cfg.ruleTarget = t + '_diff2'; cfg.maxCapPoint = t === 11 ? 13 : 17; cfg.gameFormat = cfg.rr.games; }
             teams = []; matches = []; matchFilter = 'ALL'; tvPage = 0;
             applyTournamentState(cfg, [], [], false, {});
             saveLocalState(); renderAllTabs(); updateAdminUIState();
