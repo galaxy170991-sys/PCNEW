@@ -1048,6 +1048,66 @@ function rrdBuild(M, seed) {
             }
             return teams.find(t => t.id === (k === 1 ? m.team1Id : m.team2Id)) || { name: 'TBD' };
         }
+        function sideOf(m, k, fb) { const x = (m && m.stage === 'RRS') ? rrSide(m, k) : teams.find(t => t.id === (k === 1 ? m.team1Id : m.team2Id)); return x || fb || { name: 'TBD', p1: '', p2: '' }; }
+        function rrRows() {
+            const single = rrFormat() === 'RR_SINGLES', st = {};
+            teams.forEach(t => { st[t.id] = { id: t.id, t, name: t.name, played: 0, wins: 0, losses: 0, pf: 0, pa: 0 }; });
+            matches.forEach(m => {
+                if ((m.stage !== 'RRS' && m.stage !== 'RRD') || (m.status !== 'LIVE' && m.status !== 'COMPLETED')) return;
+                const w = matchWinnerSide(m); let a = 0, b = 0; gamesOf(m).forEach(g => { a += g.a; b += g.b; });
+                const ids = k => single ? (k === 1 ? [m.s1a, m.s1b] : [m.s2a, m.s2b]) : [k === 1 ? m.team1Id : m.team2Id];
+                [1, 2].forEach(k => ids(k).forEach(id => { const r = st[id]; if (!r) return; r.played++; r.pf += k === 1 ? a : b; r.pa += k === 1 ? b : a; if (w === k) r.wins++; else if (w) r.losses++; }));
+            });
+            const h2h = (x, y) => { if (single) return 0; const m = matches.find(q => q.stage === 'RRD' && q.status === 'COMPLETED' && ((q.team1Id === x.id && q.team2Id === y.id) || (q.team1Id === y.id && q.team2Id === x.id))); if (!m) return 0; const w = matchWinnerSide(m), wid = w === 1 ? m.team1Id : w === 2 ? m.team2Id : ''; return wid === x.id ? -1 : wid === y.id ? 1 : 0; };
+            return Object.values(st).map(r => ({ ...r, diff: r.pf - r.pa })).sort((p, q) => q.wins - p.wins || q.diff - p.diff || q.pf - p.pf || h2h(p, q));
+        }
+        function renderRRStandings() {
+            const h = document.querySelector('#tab4 [data-template-id="standings-heading"]'); if (h) h.textContent = 'Bảng Xếp Hạng Round Robin';
+            const d = document.querySelector('#tab4 [data-template-id="standings-description"]'); if (d) d.textContent = 'Thắng ➔ Hiệu số điểm ➔ Điểm ghi' + (rrFormat() === 'RR_DOUBLES' ? ' ➔ Đối đầu' : '');
+            const box = document.getElementById('standingsGroupsContainer'); if (!box) return;
+            const rows = rrRows(), th = (t, c) => `<th class="px-3 py-2 text-center ${c || ''}">${t}</th>`;
+            box.innerHTML = `<div class="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden shadow-lg md:col-span-2"><div class="bg-emerald-600/20 px-4 py-3 border-b border-slate-800 font-bold text-sm text-emerald-400 flex justify-between"><span>${rrFormat() === 'RR_SINGLES' ? 'XẾP HẠNG CÁ NHÂN' : 'XẾP HẠNG CÁC CẶP'}</span><span class="text-xs text-slate-400">Top 3 vinh danh</span></div><table class="w-full text-xs text-left"><thead class="bg-slate-950 text-slate-400 uppercase text-[10px] font-bold"><tr>${th('Hạng', 'w-10')}<th class="px-3 py-2">${rrFormat() === 'RR_SINGLES' ? 'VĐV' : 'Cặp'}</th>${th('Trận')}${th('T')}${th('B')}${th('HS')}${th('Điểm ghi')}</tr></thead><tbody class="divide-y divide-slate-800/60">${rows.map((s, i) => `<tr class="${i < 3 ? 'bg-emerald-500/10' : ''}"><td class="px-3 py-2.5 text-center font-bold text-amber-400">${i + 1}</td><td class="px-3 py-2.5 font-bold text-white">${escHtml(s.name)}</td><td class="px-3 py-2.5 text-center text-slate-400">${s.played}</td><td class="px-3 py-2.5 text-center text-emerald-400 font-bold">${s.wins}</td><td class="px-3 py-2.5 text-center text-slate-400">${s.losses}</td><td class="px-3 py-2.5 text-center text-slate-300 font-mono">${fmtSigned(s.diff)}</td><td class="px-3 py-2.5 text-center font-bold text-cyan-400 font-mono">${s.pf}</td></tr>`).join('')}</tbody></table></div>`;
+        }
+        function rrPoMatches() { return matches.filter(m => m.series === 'seriA' && (m.stage === 'SEMIFINAL' || m.stage === 'FINAL' || m.stage === 'THIRD')); }
+        function rrRoundsDone() { const r = matches.filter(m => m.stage === 'RRS' || m.stage === 'RRD'); return r.length > 0 && r.every(m => m.status === 'COMPLETED'); }
+        function rrWL(m) { if (!m || m.status !== 'COMPLETED') return null; const w = matchWinnerSide(m); if (!w) return null; return w === 1 ? { w: m.team1Id, l: m.team2Id } : { w: m.team2Id, l: m.team1Id }; }
+        function rrAwards() {
+            const out = { champion: null, runnerUp: null, thirds: [], complete: false };
+            if (!rrRoundsDone()) return out;
+            const rr = rrCfg(), po = rrPoMatches();
+            if (rrFormat() === 'RR_DOUBLES' && rr.playoff) {
+                const F = rrWL(po.find(m => m.stage === 'FINAL')); if (!F) return out;
+                out.champion = F.w; out.runnerUp = F.l; out.complete = true;
+                if (rr.third) { const T = rrWL(po.find(m => m.stage === 'THIRD')); if (T) out.thirds = [T.w]; }
+                else out.thirds = po.filter(m => m.stage === 'SEMIFINAL').map(rrWL).filter(Boolean).map(x => x.l);
+                return out;
+            }
+            const rows = rrRows(); if (rows.length < 2) return out;
+            out.champion = rows[0].id; out.runnerUp = rows[1].id; out.complete = true;
+            if (rows[2]) { const k = r => r.wins + '|' + r.diff + '|' + r.pf; out.thirds = rows.slice(2).filter(r => k(r) === k(rows[2])).map(r => r.id); }
+            return out;
+        }
+        function syncRRPlayoff() {
+            const rr = rrCfg();
+            if (rrFormat() !== 'RR_DOUBLES' || !rr.playoff || !rrRoundsDone()) return 0;
+            const courts = Math.max(1, Math.min(20, Number(tournamentConfig.courtsCount) || 4)); let created = 0;
+            const add = (stage, slot, t1, t2) => {
+                if (!t1 || !t2 || matches.some(m => m.series === 'seriA' && m.slot === slot)) return;
+                const id = Math.max(0, ...matches.map(m => Number(m.id) || 0)) + 1;
+                matches.push({ id, stage, series: 'seriA', slot, roundName: PO_STAGE_LABEL[stage], turnName: '', team1Id: t1, team2Id: t2, team1Score: 0, team2Score: 0, status: 'UPCOMING', courtId: (id % courts) + 1, refereeName: '', updatedAt: Date.now() }); created++;
+            };
+            const rows = rrRows();
+            if (rows.length >= 4) { add('SEMIFINAL', 'sf1', rows[0].id, rows[3].id); add('SEMIFINAL', 'sf2', rows[1].id, rows[2].id); }
+            const sf = ['sf1', 'sf2'].map(k => rrWL(matches.find(m => m.series === 'seriA' && m.slot === k)));
+            if (sf[0] && sf[1]) { add('FINAL', 'fin', sf[0].w, sf[1].w); if (rr.third) add('THIRD', 'third', sf[0].l, sf[1].l); }
+            return created;
+        }
+        function renderRRBracket() {
+            const el = document.getElementById('bracketSeriAContainer'); if (!el) return;
+            const po = rrPoMatches(), ord = { SEMIFINAL: 1, FINAL: 2, THIRD: 3 };
+            if (!po.length) { el.innerHTML = '<div class="text-center text-slate-500 text-xs py-12">Bán kết/Chung kết sẽ được tạo sau khi hết các trận Round Robin.</div>'; return; }
+            el.innerHTML = '<div class="grid grid-cols-1 md:grid-cols-2 gap-4">' + po.sort((a, b) => ord[a.stage] - ord[b.stage] || a.id - b.id).map(m => `<div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-2"><div class="text-[10px] font-black text-amber-400 uppercase">${PO_STAGE_LABEL[m.stage]} • Trận ${m.id} • Sân ${m.courtId}</div><div class="flex items-center justify-between gap-2 text-sm font-bold text-white"><span class="flex-1 text-right truncate">${escHtml(sideOf(m, 1).name)}</span>${matchScoreHTML(m)}<span class="flex-1 truncate">${escHtml(sideOf(m, 2).name)}</span></div></div>`).join('') + '</div>';
+        }
         function createRRSchedule() {
             const single = rrFormat() === 'RR_SINGLES', rr = rrCfg(), cnt = Number(rr.count);
             const seed = rr.seed || ('S' + Date.now().toString(36));
@@ -1521,7 +1581,7 @@ function rrdBuild(M, seed) {
             if (v === undefined || v === null || v === '' || isNaN(n)) return 2;
             return Math.max(series === 'seriA' ? 1 : 0, Math.min(3, n));
         }
-        function hasSeriB() { return qualN('seriB') > 0; }
+        function hasSeriB() { return !isRR() && qualN('seriB') > 0; }
         function pruneSeriB() { if (!hasSeriB()) matches = matches.filter(m => !(m.series === 'seriB' && m.status === 'UPCOMING')); }
         function applySeriBUI() {
             const has = hasSeriB();
@@ -1978,6 +2038,7 @@ function rrdBuild(M, seed) {
         let matchFilter = 'ALL';
         function matchStageInfo(m) {
             if (m && (m.stage === 'RRS' || m.stage === 'RRD')) return { key: 'RR', label: 'ROUND ' + m.round, color: '#22d3ee', bg: 'rgba(34,211,238,.15)' };
+            if (isRR() && m && m.series) return { key: 'RR', label: m.stage === 'FINAL' ? 'CHUNG KẾT' : m.stage === 'THIRD' ? 'HẠNG 3' : 'BÁN KẾT', color: '#fbbf24', bg: 'rgba(251,191,36,.15)' };
             if (matchStageKey(m) === 'GROUP' || !m.series) return { key: 'GROUP', group: m.group, label: 'BẢNG ' + (m.group || ''), color: '#10b981', bg: 'rgba(16,185,129,.15)' };
             if (m.series === 'seriB') return { key: 'seriB', label: 'SERI B', color: '#818cf8', bg: 'rgba(129,140,248,.15)' };
             return { key: 'seriA', label: 'SERI A', color: '#fbbf24', bg: 'rgba(251,191,36,.15)' };
@@ -2037,10 +2098,10 @@ function rrdBuild(M, seed) {
             for (let i = 1; i <= total; i++) {
                 const live = matches.find(m => Number(m.courtId) === i && m.status === 'LIVE');
                 const next = matches.find(m => Number(m.courtId) === i && m.status === 'UPCOMING');
-                const t1 = live ? teams.find(t => t.id === live.team1Id) : null;
-                const t2 = live ? teams.find(t => t.id === live.team2Id) : null;
-                const n1 = next ? teams.find(t => t.id === next.team1Id) : null;
-                const n2 = next ? teams.find(t => t.id === next.team2Id) : null;
+                const t1 = live ? sideOf(live, 1) : null;
+                const t2 = live ? sideOf(live, 2) : null;
+                const n1 = next ? sideOf(next, 1) : null;
+                const n2 = next ? sideOf(next, 2) : null;
                 html += `
                     <div class="bg-slate-900 rounded-2xl border ${live ? 'border-red-500/50' : 'border-slate-800'} overflow-hidden flex flex-col justify-between p-4 shadow-lg">
                         <div class="flex justify-between items-center mb-3"><span class="font-bold text-xs text-white">SÂN SỐ ${i}</span>${live ? '<span class="bg-red-500 text-white text-[9px] px-2 py-0.5 rounded animate-pulse font-bold">LIVE</span>' : '<span class="text-[10px] text-slate-500">Trống</span>'}</div>
@@ -2095,6 +2156,7 @@ function rrdBuild(M, seed) {
             showToast(`Đã phát loa gọi VĐV sân ${courtId}`, "info");
         }
         function renderTab4() {
+            if (isRR()) { renderRRStandings(); return; }
             document.getElementById('standingsGroupsContainer').innerHTML = Array.from({ length: Math.max(2, Math.min(15, Number(tournamentConfig.groupsCount) || 4)) }, (_, index) => String.fromCharCode(65 + index)).map(g => {
                 const stats = sortGroupStandings(teams.filter(t => t.group === g).map(t => ({ ...t, ...teamStandingStats(t) })));
                 return `
@@ -2175,6 +2237,7 @@ function rrdBuild(M, seed) {
         }
         // Tạo các trận loại trực tiếp khi đã đủ hai đội (chỉ sau khi hoàn tất vòng bảng). Trả về số trận mới tạo.
         function syncPlayoffMatches() {
+            if (isRR()) return syncRRPlayoff();
             if (!isGroupStageDone()) return 0;
             let created = 0;
             const courts = Math.max(1, Math.min(20, Number(tournamentConfig.courtsCount) || 4));
@@ -2192,6 +2255,7 @@ function rrdBuild(M, seed) {
         }
         // Vô địch / nhì / ba của một Seri, chỉ khi trận đã HOÀN TẤT
         function seriesAwards(series) {
+            if (isRR()) return series === 'seriA' ? rrAwards() : { champion: null, runnerUp: null, thirds: [], complete: false };
             const out = { champion: null, runnerUp: null, thirds: [], complete: false };
             const plan = planBracket(series);
             if (!plan) return out;
@@ -2240,7 +2304,7 @@ function rrdBuild(M, seed) {
             const banner = plan.provisional ? '<div class="w-full text-center text-[11px] text-yellow-400 bg-yellow-500/10 border border-yellow-500/30 rounded-lg px-3 py-1.5 mb-4">Dự kiến theo thứ hạng vòng bảng hiện tại. Nhánh chính thức và các trận sẽ được tạo khi vòng bảng hoàn tất.</div>' : '';
             el.innerHTML = `<div class="w-full">${banner}<div style="width:max-content;margin:0 auto"><div class="bk-tree">${cols}</div>${thirdRow}${sharedNote}</div></div>`;
         }
-        function renderTab5() { renderBracket('seriA', 'bracketSeriAContainer'); }
+        function renderTab5() { if (isRR()) { renderRRBracket(); return; } renderBracket('seriA', 'bracketSeriAContainer'); }
         function renderTab6() { if (!hasSeriB()) { const el = document.getElementById('bracketSeriBContainer'); if (el) el.innerHTML = '<div class="text-center text-slate-500 text-xs py-12">Giải không có Seri B.</div>'; return; } renderBracket('seriB', 'bracketSeriBContainer'); }
         function renderTeamPhotoGrid() {
             const grid = document.getElementById('teamPhotoGrid');
@@ -2301,7 +2365,7 @@ function rrdBuild(M, seed) {
             const byId = id => teams.find(t => t.id === id) || null;
             const tc = byId(A.champion), tr = byId(A.runnerUp), t3 = A.thirds.length === 1 ? byId(A.thirds[0]) : null;
             const imgs = await Promise.all([tc, tr, t3].map(t => loadPhotoImg(t ? getTeamPhoto(t) : '')));
-            const none = 'Chưa xác định', players = t => t ? `VĐV: ${t.p1 || ''} & ${t.p2 || ''}` : 'Chờ kết quả chung kết';
+            const none = 'Chưa xác định', players = t => t ? `VĐV: ${[t.p1, t.p2].filter(Boolean).join(' & ')}` : 'Chờ kết quả chung kết';
             const canvas = document.getElementById('infographicCanvas'), ctx = canvas.getContext('2d');
             const grad = ctx.createLinearGradient(0, 0, 1200, 630);
             grad.addColorStop(0, '#020617'); grad.addColorStop(1, '#064e3b');
@@ -2315,7 +2379,7 @@ function rrdBuild(M, seed) {
             ctx.beginPath(); ctx.roundRect(350, 140, 500, 260, 20); ctx.fill(); ctx.stroke();
             drawTeamPhoto(ctx, imgs[0], 460, 285, 60, '#f59e0b');
             const cx1 = imgs[0] ? 665 : 600;
-            ctx.fillStyle = '#f59e0b'; ctx.font = '900 24px sans-serif'; ctx.fillText('👑 NHÀ VÔ ĐỊCH (SERI A) 👑', 600, 185);
+            ctx.fillStyle = '#f59e0b'; ctx.font = '900 24px sans-serif'; ctx.fillText((isRR() ? '👑 NHÀ VÔ ĐỊCH 👑' : '👑 NHÀ VÔ ĐỊCH (SERI A) 👑'), 600, 185);
             ctx.fillStyle = '#ffffff'; ctx.font = '800 28px sans-serif'; ctx.fillText(tc ? tc.name : none, cx1, 250);
             ctx.fillStyle = '#94a3b8'; ctx.font = '500 16px sans-serif';
             ctx.fillText(players(tc), cx1, 285);
@@ -2510,7 +2574,7 @@ function rrdBuild(M, seed) {
             const ctx = cv.getContext('2d');
             const F = (w, s) => `italic ${w} ${s}px "Plus Jakarta Sans", sans-serif`;
             const rankTxt = rank === 1 ? 'VÔ ĐỊCH' : rank === 2 ? 'HẠNG NHÌ' : (shared ? 'ĐỒNG HẠNG 3' : 'HẠNG BA');
-            const serLabel = series === 'seriA' ? 'SERI A' : 'SERI B';
+            const serLabel = isRR() ? 'ROUND ROBIN' : (series === 'seriA' ? 'SERI A' : 'SERI B');
             const name = (t.name || '').toUpperCase(), players = [t.p1, t.p2].filter(Boolean).join('  &  ');
             const tour = String(tournamentConfig.name || 'GIẢI PICKLEBALL').toUpperCase();
             const d = tournamentConfig.date ? tournamentConfig.date.split('-').reverse().join('/') : '';
@@ -2579,7 +2643,7 @@ function rrdBuild(M, seed) {
             g.addColorStop(0, 'rgba(3,20,70,0)'); g.addColorStop(0.35, 'rgba(3,20,70,0.84)'); g.addColorStop(1, 'rgba(2,12,48,0.96)');
             ctx.fillStyle = g; ctx.fillRect(0, H * 0.72, W, H * 0.28);
             const F = (w, s) => `italic ${w} ${s}px "Plus Jakarta Sans", sans-serif`;
-            const serLabel = series === 'seriA' ? 'SERI A' : 'SERI B';
+            const serLabel = isRR() ? 'ROUND ROBIN' : (series === 'seriA' ? 'SERI A' : 'SERI B');
             const name = (t.name || '').toUpperCase(), players = [t.p1, t.p2].filter(Boolean).join('  &  ');
             const tour = String(tournamentConfig.name || 'GIẢI PICKLEBALL').toUpperCase();
             const d = tournamentConfig.date ? tournamentConfig.date.split('-').reverse().join('/') : '';
@@ -2623,7 +2687,7 @@ function rrdBuild(M, seed) {
             if (!done.length) return '';
             const nameOf = id => (teams.find(t => t.id === id) || { name: 'TBD' }).name;
             const byRound = {};
-            done.forEach(m => { (byRound[m.roundName || 'Vòng đấu'] = byRound[m.roundName || 'Vòng đấu'] || []).push(`• ${nameOf(m.team1Id)} ${matchResultText(m)} ${nameOf(m.team2Id)}`); });
+            done.forEach(m => { (byRound[m.roundName || 'Vòng đấu'] = byRound[m.roundName || 'Vòng đấu'] || []).push(`• ${sideOf(m, 1).name} ${matchResultText(m)} ${sideOf(m, 2).name}`); });
             return '📋 KẾT QUẢ CÁC TRẬN\n' + Object.keys(byRound).map(r => `${r}\n${byRound[r].join('\n')}`).join('\n\n') + '\n\n';
         }
         function awardsZaloBlock() {
@@ -2659,9 +2723,9 @@ function rrdBuild(M, seed) {
                     const center = live ? (cur ? `${cur.a} - ${cur.b}` : `${m.team1Score} - ${m.team2Score}`) : 'VS';
                     let sub = '';
                     if (live && bo > 1) { const s = setsOf(m, bo), done = games.filter(g => g.status === 'DONE').map((g, i) => `V${i + 1} ${g.a}-${g.b}`); sub = `<div class="mt-1.5 text-[11px] font-mono font-bold text-cyan-300">VÁN ${games.length || 1}/${bo} · ${s.a}-${s.b}${done.length ? ' · ' + done.join(' · ') : ''}</div>`; }
-                    body = `<div class="my-4 text-center"><div class="text-[10px] text-slate-400 font-bold mb-1">${String(m.roundName || '').toUpperCase()}</div><div class="flex items-center justify-between bg-slate-950 p-2 md:p-3 rounded-xl border border-slate-800"><span class="font-bold text-[11px] md:text-xs text-white break-words leading-tight w-1/3">${nameOf(m.team1Id)}</span><span class="font-mono font-black text-xl md:text-2xl text-yellow-400">${center}</span><span class="font-bold text-[11px] md:text-xs text-white break-words leading-tight w-1/3 text-right">${nameOf(m.team2Id)}</span></div>${sub}</div>`;
+                    body = `<div class="my-4 text-center"><div class="text-[10px] text-slate-400 font-bold mb-1">${String(m.roundName || '').toUpperCase()}</div><div class="flex items-center justify-between bg-slate-950 p-2 md:p-3 rounded-xl border border-slate-800"><span class="font-bold text-[11px] md:text-xs text-white break-words leading-tight w-1/3">${sideOf(m, 1).name}</span><span class="font-mono font-black text-xl md:text-2xl text-yellow-400">${center}</span><span class="font-bold text-[11px] md:text-xs text-white break-words leading-tight w-1/3 text-right">${sideOf(m, 2).name}</span></div>${sub}</div>`;
                 }
-                const lastLine = last ? `<div class="text-[10px] text-slate-400 text-center font-mono truncate border-t border-slate-800 pt-2">Vừa xong: ${nameOf(last.team1Id)} ${matchResultText(last)} ${nameOf(last.team2Id)}</div>` : '';
+                const lastLine = last ? `<div class="text-[10px] text-slate-400 text-center font-mono truncate border-t border-slate-800 pt-2">Vừa xong: ${sideOf(last, 1).name} ${matchResultText(last)} ${sideOf(last, 2).name}</div>` : '';
                 return `
                 <div class="bg-slate-900 border-2 border-slate-800 rounded-2xl p-4 flex flex-col justify-between shadow-xl">
                     <div class="flex justify-between items-center border-b border-slate-800 pb-2"><span class="font-black text-sm text-white">SÂN SỐ ${c}</span>${badge}</div>
@@ -3127,8 +3191,8 @@ function rrdBuild(M, seed) {
             return scoreA >= rule.target && (!rule.winBy2 || scoreA - scoreB >= 2);
         }
         function buildRefStateFromMatch(m) {
-            const t1 = teams.find(t => t.id === m.team1Id) || { name: 'Team A', p1: 'VĐV A1', p2: 'VĐV A2' };
-            const t2 = teams.find(t => t.id === m.team2Id) || { name: 'Team B', p1: 'VĐV B1', p2: 'VĐV B2' };
+            const t1 = sideOf(m, 1, { name: 'Team A', p1: 'VĐV A1', p2: 'VĐV A2' });
+            const t2 = sideOf(m, 2, { name: 'Team B', p1: 'VĐV B1', p2: 'VĐV B2' });
             const rule = getRefereeRuleFor(m);
             const bestOf = rule.bestOf;
             // Ván đang đấu = ván cuối trong danh sách ván của trận (trận 1 ván/cũ tự quy đổi)
