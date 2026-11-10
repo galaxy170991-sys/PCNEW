@@ -568,7 +568,7 @@
      </div><!-- TAB 4 -->
      <div id="tab4" class="tab-content max-w-6xl mx-auto space-y-6">
       <div class="flex justify-between items-center">
-       <h2 class="text-lg font-bold text-white flex items-center gap-2"><i class="fas fa-ranking-star text-cyan-400"></i><span data-template-id="standings-heading" class="canva-text" style="color: rgb(255, 255, 255); font-weight: 700; font-style: normal; font-size: 18px;">Bảng Xếp Hạng Vòng Bảng</span></h2><span data-template-id="standings-description" class="text-xs text-slate-400 canva-text" style="color: rgb(148, 163, 184); font-weight: 400; font-style: normal; font-size: 12px;">Trận Thắng ➔ Hiệu Số ➔ Đối Đầu</span>
+       <h2 class="text-lg font-bold text-white flex items-center gap-2"><i class="fas fa-ranking-star text-cyan-400"></i><span data-template-id="standings-heading" class="canva-text" style="color: rgb(255, 255, 255); font-weight: 700; font-style: normal; font-size: 18px;">Bảng Xếp Hạng Vòng Bảng</span></h2><span data-template-id="standings-description" class="text-xs text-slate-400 canva-text" style="color: rgb(148, 163, 184); font-weight: 400; font-style: normal; font-size: 12px;">Thắng ➔ Hiệu số ván ➔ Hiệu số điểm ➔ Đối đầu</span>
       </div>
       <div id="standingsGroupsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
      </div><!-- TAB 5 -->
@@ -1684,7 +1684,7 @@
         }
         function renderTab4() {
             document.getElementById('standingsGroupsContainer').innerHTML = Array.from({ length: Math.max(2, Math.min(15, Number(tournamentConfig.groupsCount) || 4)) }, (_, index) => String.fromCharCode(65 + index)).map(g => {
-                const stats = teams.filter(t => t.group === g).map(t => ({ ...t, ...teamStandingStats(t) })).sort((a,b)=>b.pts-a.pts || b.gameDiff-a.gameDiff || b.diff-a.diff);
+                const stats = sortGroupStandings(teams.filter(t => t.group === g).map(t => ({ ...t, ...teamStandingStats(t) })));
                 return `
                     <div class="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden shadow-lg">
                         <div class="bg-emerald-600/20 px-4 py-3 border-b border-slate-800 font-bold text-sm text-emerald-400 flex justify-between"><span>BẢNG ${g}</span><span class="text-xs text-slate-400">Top ${Number((tournamentConfig.qualifiers || {}).seriA) || 2} vào Seri A</span></div>
@@ -1713,8 +1713,7 @@
             const from = series === 'seriA' ? 0 : qa, to = series === 'seriA' ? qa : qa + qb;
             const list = [];
             groupLetters().forEach(g => {
-                teams.filter(t => t.group === g).map(t => ({ t, ...teamStandingStats(t) }))
-                    .sort((a, b) => b.pts - a.pts || b.gameDiff - a.gameDiff || b.diff - a.diff)
+                sortGroupStandings(teams.filter(t => t.group === g).map(t => ({ id: t.id, t, ...teamStandingStats(t) })))
                     .forEach((s, idx) => { if (idx >= from && idx < to) list.push({ id: s.t.id, group: g, rank: idx, pts: s.pts, gameDiff: s.gameDiff, diff: s.diff }); });
             });
             return list.sort((a, b) => a.rank - b.rank || b.pts - a.pts || b.gameDiff - a.gameDiff || b.diff - a.diff);
@@ -2389,9 +2388,36 @@
             const s = setsOf(m);
             return `<div class="flex flex-col items-center gap-1">${box}<span>${s.a}</span><span>-</span><span>${s.b}</span></div>${matchSubHTML(m)}</div>`;
         }
-        // Xếp hạng vòng bảng: số trận thắng → hiệu số ván → hiệu số điểm
+        // Sắp xếp một bảng: Thắng → Hiệu số ván → Hiệu số điểm → Đối đầu (chỉ xét giữa các đội đang bằng hết 3 chỉ số trước).
+        // rows: [{ id, pts, gameDiff, diff, ... }]
+        function sortGroupStandings(rows) {
+            const sorted = rows.slice().sort((a, b) => b.pts - a.pts || b.gameDiff - a.gameDiff || b.diff - a.diff);
+            const out = [];
+            for (let i = 0; i < sorted.length;) {
+                let j = i + 1;
+                while (j < sorted.length && sorted[j].pts === sorted[i].pts && sorted[j].gameDiff === sorted[i].gameDiff && sorted[j].diff === sorted[i].diff) j++;
+                const tied = sorted.slice(i, j);
+                if (tied.length > 1) {
+                    const ids = new Set(tied.map(r => r.id));
+                    const h2h = {};
+                    tied.forEach(r => { h2h[r.id] = { w: 0, pd: 0 }; });
+                    matches.forEach(m => {
+                        if (matchStageKey(m) !== 'GROUP' || !ids.has(m.team1Id) || !ids.has(m.team2Id)) return;
+                        if (m.status !== 'LIVE' && m.status !== 'COMPLETED') return;
+                        const w = matchWinnerSide(m);
+                        if (w === 1) h2h[m.team1Id].w++; else if (w === 2) h2h[m.team2Id].w++;
+                        gamesOf(m).forEach(g => { h2h[m.team1Id].pd += g.a - g.b; h2h[m.team2Id].pd += g.b - g.a; });
+                    });
+                    tied.sort((a, b) => h2h[b.id].w - h2h[a.id].w || h2h[b.id].pd - h2h[a.id].pd); // đối đầu: số trận thắng, rồi hiệu số điểm đối đầu
+                }
+                out.push(...tied);
+                i = j;
+            }
+            return out;
+        }
+        // Xếp hạng vòng bảng: số trận thắng → hiệu số ván → hiệu số điểm → đối đầu. CHỈ tính trận vòng bảng (dừng cập nhật khi sang loại trực tiếp).
         function teamStandingStats(t) {
-            const list = matches.filter(m => (m.team1Id === t.id || m.team2Id === t.id) && (m.status === 'LIVE' || m.status === 'COMPLETED'));
+            const list = matches.filter(m => matchStageKey(m) === 'GROUP' && (m.team1Id === t.id || m.team2Id === t.id) && (m.status === 'LIVE' || m.status === 'COMPLETED'));
             let wins = 0, gw = 0, gl = 0, pf = 0, pa = 0;
             list.forEach(m => {
                 const first = m.team1Id === t.id, mine = first ? 1 : 2;
