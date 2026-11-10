@@ -290,6 +290,7 @@
 :root{--tvbar:48px}
 .tv-sp{width:var(--tvbar);height:var(--tvbar);border-radius:9999px;object-fit:cover;border:2px solid #f59e0b;background:#0f172a;flex:0 0 auto}
 @media(max-width:520px){:root{--tvbar:38px}}
+body.no-seri-b #appSidebar nav .nav-btn[data-tab="tab6"], body.no-seri-b #viewerNav [data-vtab="tab6"]{display:none !important}
 @media(min-width:1800px){#tvBodyContent{zoom:1.35}}
 </style>
 </head>
@@ -453,7 +454,7 @@
          <label data-template-id="seri-a-qualifiers-label" for="cfgSeriAQualifiers" class="block text-xs font-semibold text-slate-400 mb-1 canva-text" style="color: rgb(251, 191, 36); font-weight: 700; font-style: normal; font-size: 12px;">Số đội đầu bảng vào Seri A</label><select id="cfgSeriAQualifiers" onchange="updateQualifiers('seriA', this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-amber-400 font-bold"><option value="1">1 đội / bảng</option><option value="2" selected="">2 đội / bảng</option><option value="3">3 đội / bảng</option></select>
         </div>
         <div>
-         <label data-template-id="seri-b-qualifiers-label" for="cfgSeriBQualifiers" class="block text-xs font-semibold text-slate-400 mb-1 canva-text" style="color: rgb(129, 140, 248); font-weight: 700; font-style: normal; font-size: 12px;">Số đội tiếp theo vào Seri B</label><select id="cfgSeriBQualifiers" onchange="updateQualifiers('seriB', this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-indigo-400 font-bold"><option value="1">1 đội / bảng</option><option value="2" selected="">2 đội / bảng</option><option value="3">3 đội / bảng</option></select>
+         <label data-template-id="seri-b-qualifiers-label" for="cfgSeriBQualifiers" class="block text-xs font-semibold text-slate-400 mb-1 canva-text" style="color: rgb(129, 140, 248); font-weight: 700; font-style: normal; font-size: 12px;">Số đội tiếp theo vào Seri B</label><select id="cfgSeriBQualifiers" onchange="updateQualifiers('seriB', this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-indigo-400 font-bold"><option value="0">0 – Không có Seri B</option><option value="1">1 đội / bảng</option><option value="2" selected="">2 đội / bảng</option><option value="3">3 đội / bảng</option></select>
         </div>
        </div>
        <div class="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-3"><label data-template-id="scoring-rules-label" class="block text-xs font-bold text-slate-300 canva-text" style="color: rgb(203, 213, 225); font-weight: 700; font-style: normal; font-size: 12px;">Quy Tắc Tính Điểm Mỗi Game:</label>
@@ -925,7 +926,7 @@
                 tournamentConfig.maxCapPoint = read('cfgMaxCapPoint');
                 tournamentConfig.qualifiers = {
                     seriA: Math.max(1, Math.min(3, Number(read('cfgSeriAQualifiers')) || 2)),
-                    seriB: Math.max(1, Math.min(3, Number(read('cfgSeriBQualifiers')) || 2))
+                    seriB: (v => isNaN(v) ? 2 : Math.max(0, Math.min(3, v)))(parseInt(read('cfgSeriBQualifiers'), 10))
                 };
                 tournamentConfig.playoff = tournamentConfig.playoff || {};
                 ['seriA', 'seriB'].forEach(series => {
@@ -946,6 +947,7 @@
             configEditSnapshot = null;
             configEditMode[section] = false;
             if (groupsChanged) rebuildGroupStage();
+            pruneSeriB();
             sanitizeMatchFormats();
             saveLocalState();
             renderAllTabs();
@@ -1170,7 +1172,7 @@
             const seriBSelect = document.getElementById('cfgSeriBQualifiers');
             const gameFormatSelect = document.getElementById('cfgGameFormat');
             if (seriASelect) seriASelect.value = qualifiers.seriA || 2;
-            if (seriBSelect) seriBSelect.value = qualifiers.seriB || 2;
+            if (seriBSelect) seriBSelect.value = String(qualN('seriB'));
             if (gameFormatSelect) gameFormatSelect.value = String(tournamentConfig.gameFormat || 1);
             buildGroupSelect();
             const tpg = document.getElementById('cfgTeamsPerGroup'); if (tpg) tpg.value = String(teamsPerGroup());
@@ -1194,13 +1196,32 @@
             [['A', a], ['B', b]].forEach(([prefix, cfg]) => { document.getElementById(`thirdPlace${prefix}Enabled`).checked = cfg.enabled !== false; document.getElementById(`thirdPlace${prefix}Shared`).checked = cfg.sharedThird === true; document.getElementById(`thirdPlace${prefix}-games`).value = String(cfg.games || 1); document.getElementById(`thirdPlace${prefix}-rule`).value = cfg.rule || '11_direct'; document.getElementById(`thirdPlace${prefix}-max-score`).value = cfg.maxScore || ''; });
             refreshFormatPreviews();
         }
+        // Số đội đi tiếp mỗi bảng; Seri B được phép = 0 (không có Seri B)
+        function qualN(series) {
+            const v = (tournamentConfig.qualifiers || {})[series], n = Number(v);
+            if (v === undefined || v === null || v === '' || isNaN(n)) return 2;
+            return Math.max(series === 'seriA' ? 1 : 0, Math.min(3, n));
+        }
+        function hasSeriB() { return qualN('seriB') > 0; }
+        function pruneSeriB() { if (!hasSeriB()) matches = matches.filter(m => !(m.series === 'seriB' && m.status === 'UPCOMING')); }
+        function applySeriBUI() {
+            const has = hasSeriB();
+            document.body.classList.toggle('no-seri-b', !has);
+            if (!has && matchFilter === 'seriB') matchFilter = 'ALL';
+            const card = document.querySelector('[data-template-id="seri-b-settings-heading"]')?.closest('.bg-slate-950');
+            if (card) { card.style.opacity = has ? '' : '0.4'; card.style.pointerEvents = has ? '' : 'none'; }
+            const sel = document.getElementById('honorManualSeries');
+            if (sel) { const o = [...sel.options].find(x => x.value === 'seriB'); if (o) { o.hidden = !has; o.disabled = !has; } if (!has && sel.value === 'seriB') sel.value = 'seriA'; }
+        }
         function updateQualifiers(series, value) {
-            const selected = Math.max(1, Math.min(3, Number(value) || 2));
+            const n0 = parseInt(value, 10);
+            const selected = Math.max(series === 'seriA' ? 1 : 0, Math.min(3, isNaN(n0) ? 2 : n0));
             if (configEditMode.rules) return;
             tournamentConfig.qualifiers = tournamentConfig.qualifiers || { seriA: 2, seriB: 2 };
             tournamentConfig.qualifiers[series] = selected;
-            saveLocalState();
-            showToast(`Đã chọn ${selected} đội/bảng cho ${series === 'seriA' ? 'Seri A' : 'Seri B'}`, 'success');
+            pruneSeriB();
+            saveLocalState(); renderAllTabs();
+            showToast(series === 'seriB' && selected === 0 ? 'Đã tắt Seri B (không có nhánh B)' : `Đã chọn ${selected} đội/bảng cho ${series === 'seriA' ? 'Seri A' : 'Seri B'}`, 'success');
         }
 
         function buildGroupMatches(stamp) {
@@ -1439,6 +1460,7 @@
         }
         function renderAllTabs() {
             [renderTab1, renderTab2, renderTab3, renderTab4, renderTab5, renderTab6, renderTab7, renderTab8, renderTab9].forEach(f => { try { f(); } catch (e) { console.error(e); } });
+            applySeriBUI();
             if (!teams.length) {
                 const msg = '<div class="col-span-full text-center text-slate-500 text-xs py-10">Chưa có đội/lịch đấu. Vào "Thiết lập BTC" để cấu hình và tạo lịch.</div>';
                 ['standingsGroupsContainer', 'bracketSeriAContainer', 'bracketSeriBContainer'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = msg; });
@@ -1667,7 +1689,7 @@
             const cnt = f => matches.filter(m => matchPassesFilter(m, f)).length;
             const chip = (key, label, color, active) => `<button type="button" onclick="setMatchFilter('${key}')" style="flex:0 0 auto;padding:6px 12px;border-radius:999px;font-size:11px;font-weight:800;white-space:nowrap;border:1px solid ${active ? color : '#334155'};background:${active ? color + '26' : '#0f172a'};color:${active ? color : '#94a3b8'}">${label} <span style="opacity:.7">${cnt(key)}</span></button>`;
             const inGroup = matchFilter === 'GROUP' || matchFilter.startsWith('GROUP:');
-            let html = `<div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:2px">${chip('ALL', 'Tất cả', '#38bdf8', matchFilter === 'ALL')}${chip('GROUP', 'Vòng bảng', '#10b981', inGroup)}${chip('seriA', 'Seri A', '#fbbf24', matchFilter === 'seriA')}${chip('seriB', 'Seri B', '#818cf8', matchFilter === 'seriB')}</div>`;
+            let html = `<div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:2px">${chip('ALL', 'Tất cả', '#38bdf8', matchFilter === 'ALL')}${chip('GROUP', 'Vòng bảng', '#10b981', inGroup)}${chip('seriA', 'Seri A', '#fbbf24', matchFilter === 'seriA')}${hasSeriB() ? chip('seriB', 'Seri B', '#818cf8', matchFilter === 'seriB') : ''}</div>`;
             if (inGroup) html += `<div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:2px">${chip('GROUP', 'Mọi bảng', '#10b981', matchFilter === 'GROUP')}${groupLetters().map(g => chip('GROUP:' + g, 'Bảng ' + g, '#10b981', matchFilter === 'GROUP:' + g)).join('')}</div>`;
             el.innerHTML = html;
         }
@@ -1785,7 +1807,8 @@
         // Danh sách hạt giống của một Seri, lấy theo thứ hạng vòng bảng (Seri A: hạng 1..qA mỗi bảng; Seri B: các hạng kế tiếp)
         function seriesSeeds(series) {
             const q = tournamentConfig.qualifiers || {};
-            const qa = Number(q.seriA) || 2, qb = Number(q.seriB) || 2;
+            const qa = qualN('seriA'), qb = qualN('seriB');
+            if (series === 'seriB' && qb === 0) return [];
             const from = series === 'seriA' ? 0 : qa, to = series === 'seriA' ? qa : qa + qb;
             const list = [];
             groupLetters().forEach(g => {
@@ -1904,7 +1927,7 @@
             el.innerHTML = `<div class="w-full">${banner}<div style="width:max-content;margin:0 auto"><div class="bk-tree">${cols}</div>${thirdRow}${sharedNote}</div></div>`;
         }
         function renderTab5() { renderBracket('seriA', 'bracketSeriAContainer'); }
-        function renderTab6() { renderBracket('seriB', 'bracketSeriBContainer'); }
+        function renderTab6() { if (!hasSeriB()) { const el = document.getElementById('bracketSeriBContainer'); if (el) el.innerHTML = '<div class="text-center text-slate-500 text-xs py-12">Giải không có Seri B.</div>'; return; } renderBracket('seriB', 'bracketSeriBContainer'); }
         function renderTeamPhotoGrid() {
             const grid = document.getElementById('teamPhotoGrid');
             if (!grid) return;
@@ -1931,7 +1954,8 @@
             setSlot('runner-up-image', 'runner-up-name', A.runnerUp ? [A.runnerUp] : []);
             setSlot('third-place-image', 'third-place-name', A.thirds);
             const blk = document.getElementById('awardsSeriBBlock');
-            if (blk) {
+            if (blk && !hasSeriB()) blk.innerHTML = '';
+            if (blk && hasSeriB()) {
                 const line = (icon, lab, txt) => `<div>${icon} <span class="text-slate-400">${lab}:</span> <span class="font-bold text-white">${escHtml(txt)}</span></div>`;
                 blk.innerHTML = `<div class="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-1">Seri B</div>`
                     + line('🥇', 'Vô địch', awardNames(B.champion ? [B.champion] : []))
@@ -1994,7 +2018,7 @@
             ctx.fillStyle = '#d97706'; ctx.font = '700 18px sans-serif'; ctx.fillText('🥉 HẠNG BA: ' + awardNames(A.thirds), cx3, 480);
             ctx.fillStyle = '#94a3b8'; ctx.font = '14px sans-serif'; ctx.fillText(t3 ? players(t3) : (A.thirds.length > 1 ? 'Đồng hạng 3' : 'Chờ kết quả chung kết'), cx3, 515);
             ctx.fillStyle = '#a5b4fc'; ctx.font = '600 16px sans-serif';
-            ctx.fillText(`SERI B  •  🥇 ${B.champion ? teamNameById(B.champion) : none}  •  🥈 ${B.runnerUp ? teamNameById(B.runnerUp) : none}  •  🥉 ${awardNames(B.thirds)}`, 600, 612);
+            if (hasSeriB()) ctx.fillText(`SERI B  •  🥇 ${B.champion ? teamNameById(B.champion) : none}  •  🥈 ${B.runnerUp ? teamNameById(B.runnerUp) : none}  •  🥉 ${awardNames(B.thirds)}`, 600, 612);
             let dataUrl;
             try { dataUrl = canvas.toDataURL('image/png'); }
             catch (e) { showToast('Không xuất được ảnh (ảnh từ link ngoài bị chặn). Hãy tải ảnh lên từ máy.', 'warning'); return; }
@@ -2150,7 +2174,7 @@
                 return `<div class="space-y-2"><div class="text-xs font-black ${cls.txt} uppercase tracking-wider">${label}</div>${body}</div>`;
             };
             box.innerHTML = panel('seriA', 'Seri A', A, { txt: 'text-amber-400', btn: 'bg-amber-400 hover:bg-amber-300' })
-                          + panel('seriB', 'Seri B', B, { txt: 'text-indigo-400', btn: 'bg-indigo-300 hover:bg-indigo-200' });
+                          + (hasSeriB() ? panel('seriB', 'Seri B', B, { txt: 'text-indigo-400', btn: 'bg-indigo-300 hover:bg-indigo-200' }) : '');
         }
         function fitHonorText(ctx, text, maxW, size, weight, min) {
             let s = size;
@@ -2243,7 +2267,7 @@
             g.addColorStop(0, 'rgba(3,20,70,0)'); g.addColorStop(0.35, 'rgba(3,20,70,0.84)'); g.addColorStop(1, 'rgba(2,12,48,0.96)');
             ctx.fillStyle = g; ctx.fillRect(0, H * 0.72, W, H * 0.28);
             const F = (w, s) => `italic ${w} ${s}px "Plus Jakarta Sans", sans-serif`;
-            const serLabel = (series === 'seriA' ? 'SERI A' : 'SERI B') + (rank === 3 && shared ? '  •  ĐỒNG HẠNG 3' : '');
+            const serLabel = series === 'seriA' ? 'SERI A' : 'SERI B';
             const name = (t.name || '').toUpperCase(), players = [t.p1, t.p2].filter(Boolean).join('  &  ');
             const tour = String(tournamentConfig.name || 'GIẢI PICKLEBALL').toUpperCase();
             const d = tournamentConfig.date ? tournamentConfig.date.split('-').reverse().join('/') : '';
@@ -2253,8 +2277,7 @@
             ctx.fillStyle = '#fde047'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(W / 2 - pw / 2, py, pw, 52, 26) : ctx.rect(W / 2 - pw / 2, py, pw, 52); ctx.fill();
             ctx.fillStyle = '#0b2a6b'; ctx.fillText(serLabel, W / 2, py + 37);
             ctx.shadowColor = 'rgba(0,20,80,0.95)'; ctx.shadowBlur = 12; ctx.shadowOffsetY = 3;
-            ctx.fillStyle = '#ffffff'; const s = fitHonorText(ctx, name, W * 0.88, 96, 900, 40); ctx.fillText(name, W / 2, py + 52 + s + 22);
-            ctx.fillStyle = '#e0f2fe'; fitHonorText(ctx, players, W * 0.86, 40, 600, 22); ctx.fillText(players, W / 2, py + 52 + s + 78);
+            ctx.fillStyle = '#ffffff'; const s = fitHonorText(ctx, players.toUpperCase(), W * 0.9, 84, 900, 34); ctx.fillText(players.toUpperCase(), W / 2, py + 52 + s + 30);
             ctx.fillStyle = '#ffffff'; fitHonorText(ctx, tour, W * 0.9, 30, 800, 18); ctx.fillText(tour, W / 2, H - 52);
             ctx.fillStyle = '#fde047'; fitHonorText(ctx, foot, W * 0.9, 26, 700, 16); ctx.fillText(foot, W / 2, H - 18);
             return { cv, t, rankTxt: rank === 1 ? 'VÔ ĐỊCH' : rank === 2 ? 'HẠNG NHÌ' : 'HẠNG BA', serLabel };
@@ -2292,7 +2315,7 @@
             return '📋 KẾT QUẢ CÁC TRẬN\n' + Object.keys(byRound).map(r => `${r}\n${byRound[r].join('\n')}`).join('\n\n') + '\n\n';
         }
         function awardsZaloBlock() {
-            return [['seriA', 'SERI A'], ['seriB', 'SERI B']].map(([k, lab]) => {
+            return [['seriA', 'SERI A'], ['seriB', 'SERI B']].filter(([k]) => k === 'seriA' || hasSeriB()).map(([k, lab]) => {
                 const a = seriesAwards(k);
                 return `🥇 VÔ ĐỊCH (${lab}): ${awardNames(a.champion ? [a.champion] : [])}\n🥈 HẠNG NHÌ (${lab}): ${awardNames(a.runnerUp ? [a.runnerUp] : [])}\n🥉 HẠNG BA (${lab}): ${awardNames(a.thirds)}\n\n`;
             }).join('');
@@ -2592,10 +2615,10 @@
             const add = (count, games) => { const d = DUR[Number(games) === 3 ? 3 : 1]; lo += count * d[0]; hi += count * d[1]; };
             add(groupMatches, val('cfgGameFormat'));
             [['seriA', 'cfgSeriAQualifiers', 'A'], ['seriB', 'cfgSeriBQualifiers', 'B']].forEach(([series, qid, p]) => {
-                const n = groups * (Number(val(qid)) || 2), total = Math.max(0, n - 1);
+                const qv = String(val(qid)), n = groups * (qv === '' || isNaN(Number(qv)) ? 2 : Number(qv)), total = Math.max(0, n - 1);
                 const f = Math.min(1, total), sf = Math.min(2, total - f), qf = Math.min(4, total - f - sf), r16 = total - f - sf - qf;
                 [['round16', r16], ['quarterfinal', qf], ['semifinal', sf], ['final', f]].forEach(([r, c]) => { if (c > 0) { add(c, val(`${series}-${r}-games`)); ko += c; } });
-                if (document.getElementById(`thirdPlace${p}Enabled`)?.checked) { add(1, val(`thirdPlace${p}-games`)); ko += 1; }
+                if (n >= 2 && document.getElementById(`thirdPlace${p}Enabled`)?.checked) { add(1, val(`thirdPlace${p}-games`)); ko += 1; }
             });
             const total = groupMatches + ko, perCourt = Math.ceil(total / courts), fmtH = min => (min / courts / 60).toLocaleString('vi-VN', { maximumFractionDigits: 1 });
             est.textContent = `Ước tính: ${groupMatches} trận vòng bảng + ${ko} trận loại trực tiếp = ${total} trận · ${courts} sân → khoảng ${perCourt} trận/sân, ${fmtH(lo)}–${fmtH(hi)} giờ/sân (1 ván ~15–25 phút, 3 thắng 2 ~30–75 phút/trận).`;
