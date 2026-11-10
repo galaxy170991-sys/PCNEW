@@ -1011,6 +1011,30 @@ function rrdBuild(M, seed) {
         function rrFormat() { return (tournamentConfig && tournamentConfig.format) || 'GROUP_KO'; }
         function isRR() { const f = rrFormat(); return f === 'RR_SINGLES' || f === 'RR_DOUBLES'; }
         function rrDefaults(f) { return { count: f === 'RR_SINGLES' ? 12 : 6, games: 1, target: 11, playoff: false, third: false, seed: '' }; }
+        function rrParseNames(text, single, cnt) {
+            const lines = String(text || '').split(/\r?\n/).map(x => x.trim()).filter(Boolean), out = [];
+            for (let i = 0; i < cnt; i++) {
+                const ln = lines[i];
+                if (!ln) { out.push(single ? { name: 'VĐV ' + (i + 1), p1: 'VĐV ' + (i + 1), p2: '' } : { name: 'Cặp ' + (i + 1), p1: 'VĐV ' + (i + 1) + 'A', p2: 'VĐV ' + (i + 1) + 'B' }); continue; }
+                if (single) { out.push({ name: ln, p1: ln, p2: '' }); continue; }
+                const parts = ln.split(/\s*(?:&|\+|\/|\||-)\s*/).filter(Boolean);
+                const a = parts[0] || ('VĐV ' + (i + 1) + 'A'), b = parts[1] || ('VĐV ' + (i + 1) + 'B');
+                out.push({ name: a + ' & ' + b, p1: a, p2: b });
+            }
+            return out;
+        }
+        function rrSaveNames() {
+            if (!isAdmin) { showToast('Chỉ Admin mới được sửa tên.', 'warning'); return; }
+            const ta = document.getElementById('rrNamesText'); if (!ta) return;
+            const rr = tournamentConfig.rr = Object.assign(rrDefaults(rrFormat()), tournamentConfig.rr || {});
+            rr.namesText = ta.value;
+            if (teams.length) {
+                const single = rrFormat() === 'RR_SINGLES', parsed = rrParseNames(rr.namesText, single, teams.length);
+                teams.forEach((t, i) => { t.name = parsed[i].name; t.p1 = parsed[i].p1; t.p2 = parsed[i].p2; });
+            }
+            saveLocalState(); renderAllTabs(); renderRRConfigCard(true);
+            showToast(teams.length ? 'Đã cập nhật tên. Lịch và tỷ số không đổi.' : 'Đã lưu danh sách. Bấm Tạo lịch đấu để áp dụng.', 'success');
+        }
         function rrHasScores() { return matches.some(m => m.status !== 'UPCOMING' || m.team1Score || m.team2Score); }
         function rrApplyRules() {
             const rr = tournamentConfig.rr || {};
@@ -1031,10 +1055,9 @@ function rrdBuild(M, seed) {
             tournamentConfig.rr = Object.assign(rr, { count: cnt, seed });
             rrApplyRules();
             teams = []; matches = [];
+            const nmList = rrParseNames(rr.namesText, single, cnt);
             for (let i = 1; i <= cnt; i++) {
-                teams.push(single
-                    ? { id: 't' + i, group: '', name: 'VĐV ' + i, p1: 'VĐV ' + i, p2: '', avatar: '', note: '' }
-                    : { id: 't' + i, group: '', name: 'Cặp ' + i, p1: 'VĐV ' + i + 'A', p2: 'VĐV ' + i + 'B', avatar: '', note: '' });
+                teams.push({ id: 't' + i, group: '', name: nmList[i - 1].name, p1: nmList[i - 1].p1, p2: nmList[i - 1].p2, avatar: '', note: '' });
             }
             const tid = i => 't' + (i + 1), now = Date.now(), rest = [];
             S.rounds.forEach(R => {
@@ -1058,7 +1081,7 @@ function rrdBuild(M, seed) {
         }
         function rrCfgChange(key, val) {
             if (!isAdmin) { showToast('Chỉ Admin mới được đổi cấu hình.', 'warning'); renderRRConfigCard(); return; }
-            if (isTournamentStarted) { showToast('Giải đã khóa. Bấm Mở khóa trước khi đổi cấu hình.', 'warning'); renderRRConfigCard(); return; }
+            if (isTournamentStarted) { showToast('Giải đã khóa. Bấm Mở khóa trước khi đổi cấu hình.', 'warning'); renderRRConfigCard(true); return; }
             const rr = tournamentConfig.rr = Object.assign(rrDefaults(rrFormat()), tournamentConfig.rr || {});
             const v = (key === 'playoff' || key === 'third') ? !!val : Number(val);
             if (rr[key] === v) return;
@@ -1072,7 +1095,7 @@ function rrdBuild(M, seed) {
             rrApplyRules();
             saveLocalState(); renderAllTabs(); updateAdminUIState();
         }
-        function renderRRConfigCard() {
+        function renderRRConfigCard(force) {
             const wrapper = document.getElementById('setupFormWrapper');
             let host = document.getElementById('rrConfigCard');
             if (!isRR()) { if (host) host.style.display = 'none'; return; }
@@ -1081,8 +1104,7 @@ function rrdBuild(M, seed) {
                 host.className = 'admin-only bg-slate-900 p-5 rounded-2xl border border-slate-800 space-y-3 shadow-lg';
                 wrapper.parentNode.insertBefore(host, wrapper);
             }
-            if (!host) return;
-            host.style.display = '';
+            if (!host) return; host.style.display = ''; if (!force && host.contains(document.activeElement) && document.activeElement.tagName === 'TEXTAREA') return;
             const single = rrFormat() === 'RR_SINGLES', rr = Object.assign(rrDefaults(rrFormat()), tournamentConfig.rr || {});
             const dis = (!isAdmin || isTournamentStarted) ? 'disabled' : '';
             const lo = single ? 6 : 4, hi = single ? 15 : 10, unit = single ? 'VĐV' : 'cặp';
@@ -1098,6 +1120,8 @@ function rrdBuild(M, seed) {
                     ? '<div class="text-[11px] text-slate-500">Đơn không có bán kết/chung kết: hạng chốt theo bảng xếp hạng cá nhân sau khi hết các round.</div>'
                     : '<label class="flex items-center gap-2 text-xs text-slate-300"><input type="checkbox" class="accent-emerald-500" ' + dis + (rr.playoff ? ' checked' : '') + ' onchange="rrCfgChange(\'playoff\',this.checked)"> Bán kết &amp; Chung kết (tắt thì dừng ở vòng round)</label>'
                     + '<label class="flex items-center gap-2 text-xs text-slate-300 ml-6"><input type="checkbox" class="accent-emerald-500" ' + ((dis || !rr.playoff) ? 'disabled' : '') + (rr.third ? ' checked' : '') + ' onchange="rrCfgChange(\'third\',this.checked)"> Tranh hạng 3</label>')
+                + '<label class="block text-[11px] text-slate-400">Danh sách ' + (single ? 'VĐV (mỗi dòng một tên)' : 'cặp (mỗi dòng một cặp, dạng "Tên A - Tên B")') + '<textarea id="rrNamesText" rows="' + Math.min(14, Math.max(4, Number(rr.count))) + '" ' + (isAdmin ? '' : 'disabled') + ' class="mt-1 w-full bg-slate-950 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white" placeholder="' + (single ? 'Nguyễn Văn A\nTrần Văn B\n...' : 'Nguyễn Văn A - Trần Văn B\nLê Văn C - Phạm Văn D\n...') + '">' + escHtml(rr.namesText != null ? rr.namesText : teams.map(t => single ? t.p1 : (t.p1 + ' - ' + t.p2)).join('\n')) + '</textarea></label>'
+                + '<button type="button" onclick="rrSaveNames()" class="px-3 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-[11px] font-bold"' + (isAdmin ? '' : ' disabled') + '>Lưu danh sách tên</button>'
                 + '<div class="text-[11px] text-slate-500">' + (tournamentConfig.scheduleReady === false && !matches.length ? 'Chưa có lịch: bấm "Tạo lịch đấu" ở khung vàng phía trên.' : 'Đã có lịch. Đổi số ' + unit + ' sẽ xóa lịch và tỷ số (có hỏi xác nhận).') + '</div>';
         }
         function applyFormatUI() {
@@ -2343,11 +2367,11 @@ function rrdBuild(M, seed) {
             document.body.appendChild(m);
         }
         function confirmNewTournament() {
-            const wantSave = document.getElementById('ntSave').checked, nm = document.getElementById('ntName').value.trim();
+            const wantSave = document.getElementById('ntSave').checked, nm = document.getElementById('ntName').value.trim(), ntFmt = (document.getElementById('ntFormat') || {}).value || 'GROUP_KO';
             if (wantSave && !saveTournamentFile()) return;
             document.getElementById('newTourDlg').remove();
             const cfg = JSON.parse(JSON.stringify(DEFAULT_CONFIG_SNAPSHOT));
-            cfg.scheduleReady = false; if (nm) cfg.name = nm; cfg.format = document.getElementById('ntFormat').value; cfg.rr = rrDefaults(cfg.format); cfg.rrRest = ''; if (cfg.format !== 'GROUP_KO') { const t = cfg.rr.target; cfg.ruleTarget = t + '_diff2'; cfg.maxCapPoint = t === 11 ? 13 : 17; cfg.gameFormat = cfg.rr.games; }
+            cfg.scheduleReady = false; if (nm) cfg.name = nm; cfg.format = ntFmt; cfg.rr = rrDefaults(cfg.format); cfg.rrRest = ''; if (cfg.format !== 'GROUP_KO') { const t = cfg.rr.target; cfg.ruleTarget = t + '_diff2'; cfg.maxCapPoint = t === 11 ? 13 : 17; cfg.gameFormat = cfg.rr.games; }
             teams = []; matches = []; matchFilter = 'ALL'; tvPage = 0;
             applyTournamentState(cfg, [], [], false, {});
             saveLocalState(); renderAllTabs(); updateAdminUIState();
