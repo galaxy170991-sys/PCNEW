@@ -1164,10 +1164,12 @@ function rrdBuild(M, seed) {
             document.body.classList.toggle('fmt-rrs', f === 'RR_SINGLES');
             document.body.classList.toggle('fmt-rrd', f === 'RR_DOUBLES');
             document.body.classList.toggle('rrd-noplayoff', f === 'RR_DOUBLES' && !rr.playoff);
-            ['rules-heading', 'playoff-settings-heading'].forEach(id => {
-                const card = document.querySelector('[data-template-id="' + id + '"]')?.closest('.rounded-2xl');
-                if (card) card.style.display = isRR() ? 'none' : '';
-            });
+            // Thẻ "Cấu hình loại trực tiếp" bọc luôn cả thẻ Danh sách đội, nên chỉ ẩn các khối con không chứa danh sách
+            const rCard = document.querySelector('[data-template-id="rules-heading"]')?.closest('.rounded-2xl');
+            if (rCard) rCard.style.display = isRR() ? 'none' : '';
+            const tHead = document.querySelector('[data-template-id="teams-heading"]');
+            const pCard = document.querySelector('[data-template-id="playoff-settings-heading"]')?.closest('.rounded-2xl');
+            if (pCard) Array.from(pCard.children).forEach(ch => { ch.style.display = (isRR() && !(tHead && ch.contains(tHead))) ? 'none' : ''; });
             renderRRConfigCard();
         }
 
