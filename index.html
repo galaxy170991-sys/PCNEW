@@ -2049,51 +2049,92 @@ function rrdBuild(M, seed) {
         }
 
         const scrollNavigationStates = new WeakMap();
+        const scrollNavigationElements = new Set();
         function resetScrollNavigationChrome() {
             document.body.classList.remove('scroll-header-hidden', 'scroll-tabs-hidden');
+            scrollNavigationElements.forEach(scroller => {
+                const state = scrollNavigationStates.get(scroller);
+                if (!state) return;
+                if (state.finishTimer) clearTimeout(state.finishTimer);
+                state.lastTop = scroller.scrollTop;
+                state.direction = 0;
+                state.distance = 0;
+                state.pendingAction = '';
+                state.finishTimer = 0;
+            });
+        }
+        function deferScrollNavigationUpdate(scroller, state) {
+            if (state.finishTimer) clearTimeout(state.finishTimer);
+            state.finishTimer = setTimeout(() => completeWorkspaceScroll(scroller, state), 140);
+        }
+        function completeWorkspaceScroll(scroller, state) {
+            if (state.finishTimer) {
+                clearTimeout(state.finishTimer);
+                state.finishTimer = 0;
+            }
+            if (scroller.scrollTop <= 8) {
+                state.direction = 0;
+                state.distance = 0;
+                state.pendingAction = '';
+                resetScrollNavigationChrome();
+                return;
+            }
+            if (state.pendingAction === 'hide') {
+                document.body.classList.add('scroll-header-hidden', 'scroll-tabs-hidden');
+            } else if (state.pendingAction === 'show') {
+                document.body.classList.add('scroll-header-hidden');
+                document.body.classList.remove('scroll-tabs-hidden');
+            }
+            state.pendingAction = '';
+        }
+        function finishWorkspaceScroll(event) {
+            const scroller = event.currentTarget;
+            const state = scrollNavigationStates.get(scroller);
+            if (state) completeWorkspaceScroll(scroller, state);
         }
         function handleWorkspaceScroll(event) {
             const scroller = event.currentTarget;
             let state = scrollNavigationStates.get(scroller);
             if (!state) {
-                state = { lastTop: 0, direction: 0, distance: 0, framePending: false };
+                state = { lastTop: scroller.scrollTop, direction: 0, distance: 0, pendingAction: '', finishTimer: 0 };
                 scrollNavigationStates.set(scroller, state);
+                scrollNavigationElements.add(scroller);
             }
-            if (state.framePending) return;
-            state.framePending = true;
-            requestAnimationFrame(() => {
-                state.framePending = false;
-                const currentTop = scroller.scrollTop;
-                const delta = currentTop - state.lastTop;
-                if (currentTop <= 8) {
-                    resetScrollNavigationChrome();
-                    state.direction = 0;
+            const currentTop = scroller.scrollTop;
+            const delta = currentTop - state.lastTop;
+            state.lastTop = currentTop;
+            if (currentTop <= 8) {
+                state.direction = 0;
+                state.distance = 0;
+                state.pendingAction = 'reset';
+                deferScrollNavigationUpdate(scroller, state);
+                return;
+            }
+            if (Math.abs(delta) >= 1) {
+                const direction = Math.sign(delta);
+                if (direction !== state.direction) {
+                    state.direction = direction;
                     state.distance = 0;
-                } else if (Math.abs(delta) >= 1) {
-                    const direction = Math.sign(delta);
-                    if (direction !== state.direction) {
-                        state.direction = direction;
-                        state.distance = 0;
-                    }
-                    state.distance += Math.abs(delta);
-                    if (state.distance >= 18) {
-                        if (direction > 0) {
-                            document.body.classList.add('scroll-header-hidden', 'scroll-tabs-hidden');
-                        } else {
-                            document.body.classList.add('scroll-header-hidden');
-                            document.body.classList.remove('scroll-tabs-hidden');
-                        }
-                        state.distance = 0;
-                    }
+                    state.pendingAction = '';
                 }
-                state.lastTop = currentTop;
-            });
+                state.distance += Math.abs(delta);
+                if (state.distance >= 24) {
+                    state.pendingAction = direction > 0 ? 'hide' : 'show';
+                    state.distance = 0;
+                }
+            }
+            deferScrollNavigationUpdate(scroller, state);
         }
         function initScrollNavigation() {
             const workspace = document.getElementById('workspaceContainer');
             if (!workspace) return;
-            workspace.addEventListener('scroll', handleWorkspaceScroll, { passive: true });
-            document.querySelectorAll('.tab-content:not(#tab1)').forEach(tab => tab.addEventListener('scroll', handleWorkspaceScroll, { passive: true }));
+            const scrollers = [workspace, ...document.querySelectorAll('.tab-content:not(#tab1)')];
+            scrollers.forEach(scroller => {
+                scrollNavigationStates.set(scroller, { lastTop: scroller.scrollTop, direction: 0, distance: 0, pendingAction: '', finishTimer: 0 });
+                scrollNavigationElements.add(scroller);
+                scroller.addEventListener('scroll', handleWorkspaceScroll, { passive: true });
+                scroller.addEventListener('scrollend', finishWorkspaceScroll, { passive: true });
+            });
         }
         function switchTab(tabId) {
             if (document.body.classList.contains('viewer-mode') && !['tab2','tab4','tab5','tab6','tab7'].includes(tabId)) tabId = 'tab2';
