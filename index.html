@@ -75,10 +75,6 @@
         #tab7 #podiumExportButtons,
         #tab7 #honorSection { display: none !important; }
         body.scroll-header-hidden main > header.app-header { flex: 0 0 0; max-height: 0; min-height: 0; margin: 0 !important; padding: 0 !important; border-width: 0; opacity: 0; overflow: hidden; }
-        body.scroll-tabs-hidden #appSidebar { flex: 0 0 0 !important; height: 0 !important; max-height: 0; min-height: 0; margin: 0 !important; padding: 0 !important; border-width: 0 !important; opacity: 0; overflow: hidden; pointer-events: none; }
-        body.scroll-tabs-hidden #viewerNav { transform: translateY(calc(100% + env(safe-area-inset-bottom, 0px))); opacity: 0; pointer-events: none; }
-        body.scroll-tabs-hidden #workspaceContainer { padding-bottom: env(safe-area-inset-bottom, 0px) !important; }
-        body.scroll-tabs-hidden.outside-workspace-tab-active main > .tab-content.active { padding-bottom: 1.5rem !important; }
         #appSidebar { transition: opacity .18s ease; }
         /* Thanh điều hướng đáy dùng chung trên điện thoại; chế độ người xem giới hạn tab theo quyền. */
         body.viewer-mode #appSidebar, body.viewer-mode main > header button[onclick="toggleMobileSidebar()"] { display: none !important; }
@@ -328,7 +324,6 @@
             body:not(.referee-mode) #viewerNav { display: flex; }
             body:not(.referee-mode) #workspaceContainer { padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px)); }
             body.outside-workspace-tab-active main > .tab-content.active { padding: 1rem 1rem calc(80px + env(safe-area-inset-bottom, 0px)); }
-            body.scroll-tabs-hidden.outside-workspace-tab-active main > .tab-content.active { padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px)) !important; }
             main > header.app-header { margin: .4rem .5rem 0; width: auto; gap: .45rem; padding: .6rem .7rem !important; border: 1px solid #1e293b; border-radius: 1rem; background: linear-gradient(135deg, rgba(15, 23, 42, .98), rgba(17, 35, 50, .98)); box-shadow: 0 8px 24px rgba(2, 6, 23, .22); }
             .app-header-primary { gap: .5rem; }
             .app-header-title-group { gap: .45rem; }
@@ -2060,7 +2055,7 @@ function rrdBuild(M, seed) {
         const scrollNavigationStates = new WeakMap();
         const scrollNavigationElements = new Set();
         function resetScrollNavigationChrome() {
-            document.body.classList.remove('scroll-header-hidden', 'scroll-tabs-hidden');
+            document.body.classList.remove('scroll-header-hidden');
             scrollNavigationElements.forEach(scroller => {
                 const state = scrollNavigationStates.get(scroller);
                 if (!state) return;
@@ -2089,10 +2084,9 @@ function rrdBuild(M, seed) {
                 return;
             }
             if (state.pendingAction === 'hide') {
-                document.body.classList.add('scroll-header-hidden', 'scroll-tabs-hidden');
+                document.body.classList.add('scroll-header-hidden');
             } else if (state.pendingAction === 'show') {
                 document.body.classList.add('scroll-header-hidden');
-                document.body.classList.remove('scroll-tabs-hidden');
             }
             state.pendingAction = '';
         }
@@ -2202,7 +2196,9 @@ function rrdBuild(M, seed) {
                 ['tab4', 'fa-ranking-star', 'Xếp hạng'],
                 ['tab5', 'fa-trophy', 'Nhánh A'],
                 ['tab6', 'fa-shield-halved', 'Nhánh B'],
-                ['tab7', 'fa-award', 'Vinh danh']
+                ['tab7', 'fa-award', 'Vinh danh'],
+                ['tab8', 'fa-share-nodes', 'Zalo'],
+                ['tab9', 'fa-tv', 'TV']
             ];
             const nav = document.createElement('nav'); nav.id = 'viewerNav'; nav.setAttribute('aria-label', 'Điều hướng chức năng');
             nav.innerHTML = items.map(([id, ic, lb]) => `<button type="button" data-vtab="${id}" aria-label="${lb}" onclick="switchTab('${id}')"><i class="fas ${ic}" aria-hidden="true"></i><span>${lb}</span></button>`).join('');
